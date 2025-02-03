@@ -1,13 +1,5 @@
 //
 //  ContentView.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 2/3/25.
-//
-
-
-//
-//  ContentView.swift
 //  HavenHub
 //
 //  Created by Garrett Butchko on 1/7/25.

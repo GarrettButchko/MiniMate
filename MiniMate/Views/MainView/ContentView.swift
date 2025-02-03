@@ -28,9 +28,6 @@ struct ContentView: View {
             case .profile:
                 ProfileView(viewManager: viewManager, authViewModel: authViewModel)
                     .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
-            case .health:
-                HealthView(viewManager: viewManager)
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
             case .login:
                 LoginView(authViewModel: authViewModel, viewManager: viewManager)
                     .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
