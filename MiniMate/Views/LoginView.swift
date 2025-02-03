@@ -1,3 +1,11 @@
+//
+//  LoginView.swift
+//  MiniMate
+//
+//  Created by Garrett Butchko on 2/3/25.
+//
+
+
 import SwiftUI
 
 struct LoginView: View {

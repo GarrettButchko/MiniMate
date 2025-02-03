@@ -14,7 +14,6 @@ class ViewManager: ObservableObject {
     enum ViewType {
         case main
         case profile
-        case health
         case login
     }
     
@@ -33,10 +32,6 @@ class ViewManager: ObservableObject {
     
     func navigateToProfile() {
         currentView = .profile
-    }
-    
-    func navigateToHealth() {
-        currentView = .health
     }
     
     func navigateToLogin() {

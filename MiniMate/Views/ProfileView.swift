@@ -40,8 +40,6 @@ struct ProfileView: View {
                 .frame(width: 250, height: 40)
                 .font(.title)
                 .foregroundColor(.primary)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 15))
                 .fontWeight(.bold)
             
             Spacer()

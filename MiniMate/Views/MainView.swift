@@ -9,8 +9,7 @@ import SwiftUI
 
 struct MainView: View {
     
-    
-    
+    @StateObject var viewManager: ViewManager
     
     var body: some View {
         VStack {
@@ -29,7 +28,7 @@ struct MainView: View {
                 
                 Button(action: {
                     withAnimation{
-                        
+                        viewManager.navigateToProfile()
                     }
                 }) {
                     ZStack {
@@ -61,12 +60,13 @@ struct MainView: View {
             }
             
             HStack{
+                
                 RoundedRectangle(cornerSize: CGSize(width: 30, height: 30))
                     .foregroundStyle(.ultraThinMaterial)
-                    .frame(width: .infinity, height: 175)
+                    .frame(height: 175)
                 RoundedRectangle(cornerSize: CGSize(width: 30, height: 30))
                     .foregroundStyle(.ultraThinMaterial)
-                    .frame(width: .infinity, height: 175)
+                    .frame(height: 175)
             }
             .padding(.vertical)
             
@@ -75,8 +75,4 @@ struct MainView: View {
         }
         .padding()
     }
-}
-
-#Preview {
-    ContentView()
 }
