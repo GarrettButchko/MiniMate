@@ -23,13 +23,13 @@ struct ContentView: View {
         VStack {
             switch viewManager.currentView {
             case .main:
-                MainView(viewManager: viewManager)
+                MainView(authViewModel: authViewModel, viewManager: viewManager)
                     .transition(.asymmetric(insertion: .move(edge: .leading), removal: .opacity))
-            case .profile:
-                ProfileView(viewManager: viewManager, authViewModel: authViewModel)
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
             case .login:
                 LoginView(authViewModel: authViewModel, viewManager: viewManager)
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
+            case .signup:
+                SignUpView(authViewModel: authViewModel, viewManager: viewManager)
                     .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .opacity))
             }
         }

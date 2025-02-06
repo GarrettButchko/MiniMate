@@ -9,6 +9,8 @@ import SwiftUI
 
 struct MainView: View {
     
+    @State private var isSheetPresented = false
+    @StateObject var authViewModel: AuthViewModel
     @StateObject var viewManager: ViewManager
     
     var body: some View {
@@ -27,9 +29,7 @@ struct MainView: View {
                 Spacer()
                 
                 Button(action: {
-                    withAnimation{
-                        viewManager.navigateToProfile()
-                    }
+                    isSheetPresented = true
                 }) {
                     ZStack {
                         Circle()
@@ -41,6 +41,10 @@ struct MainView: View {
                             .frame(width: 20, height: 20)
                     }
                 }
+                .sheet(isPresented: $isSheetPresented) {
+                    ProfileView(viewManager: viewManager, authViewModel: authViewModel)
+                }
+                
             }
             
             

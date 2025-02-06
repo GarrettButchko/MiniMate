@@ -6,7 +6,6 @@
 //
 
 
-
 import SwiftUI
 
 struct ProfileView: View {
@@ -17,38 +16,24 @@ struct ProfileView: View {
     
     var body: some View {
         
-        HStack{
-            Button(action: {
-                withAnimation{
-                    viewManager.navigateToMain()
-                }
-            }) {
-                ZStack {
-                    Circle()
-                    VStack {
-                        Image(systemName: "arrow.left")
-                            .foregroundColor(.white)
-                    }
-                }
-            }
-            .frame(width: 30, height: 30)
-            .padding(.leading)
+        VStack{
             
-            Spacer()
+            Capsule()
+                .frame(width: 38, height: 6)
+                .foregroundColor(.gray)
+                .padding(10)
             
             Text("Profile")
                 .frame(width: 250, height: 40)
                 .font(.title)
                 .foregroundColor(.primary)
                 .fontWeight(.bold)
-            
-            Spacer()
-            Spacer()
+
         }
         
         List{
             HStack{
-                Text("Name: ")
+                Text("Name:")
                 if !editProfile{
                     Text(name)
                 } else {
@@ -59,7 +44,7 @@ struct ProfileView: View {
             
             
             
-            Text("Email: \(authViewModel.user?.email ?? "No email")")
+            Text("Email:  \(authViewModel.user?.email ?? "No email")")
             
             
             if authViewModel.user != nil {
@@ -76,6 +61,9 @@ struct ProfileView: View {
                 }
                 
                 Button("Logout") {
+                    withAnimation{
+                        viewManager.navigateToLogin()
+                    }
                     authViewModel.logout()
                     name = "N/A"
                 }
