@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		211D23372D556B3C00558873 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 211D23362D556B3C00558873 /* GoogleSignIn */; };
+		211D23392D556B3C00558873 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 211D23382D556B3C00558873 /* GoogleSignInSwift */; };
 		215679982D5175D9001BE574 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 215679972D5175D9001BE574 /* FirebaseAnalytics */; };
 		2156799A2D5175D9001BE574 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 215679992D5175D9001BE574 /* FirebaseAnalyticsOnDeviceConversion */; };
 		2156799C2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 2156799B2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport */; };
@@ -37,9 +39,22 @@
 		213F26F62D4D639100579FAE /* MiniMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiniMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		211D233B2D55707100558873 /* Exceptions for "MiniMate" folder in "MiniMate" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 213F26F52D4D639100579FAE /* MiniMate */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		213F26F82D4D639100579FAE /* MiniMate */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				211D233B2D55707100558873 /* Exceptions for "MiniMate" folder in "MiniMate" target */,
+			);
 			path = MiniMate;
 			sourceTree = "<group>";
 		};
@@ -55,6 +70,7 @@
 				215679B02D5175D9001BE574 /* FirebaseFirestoreCombine-Community in Frameworks */,
 				215679BE2D5175D9001BE574 /* FirebasePerformance in Frameworks */,
 				215679C42D5175D9001BE574 /* FirebaseStorageCombine-Community in Frameworks */,
+				211D23392D556B3C00558873 /* GoogleSignInSwift in Frameworks */,
 				215679C02D5175D9001BE574 /* FirebaseRemoteConfig in Frameworks */,
 				215679B22D5175D9001BE574 /* FirebaseFunctions in Frameworks */,
 				215679AA2D5175D9001BE574 /* FirebaseDatabase in Frameworks */,
@@ -65,6 +81,7 @@
 				215679AE2D5175D9001BE574 /* FirebaseFirestore in Frameworks */,
 				215679B82D5175D9001BE574 /* FirebaseInstallations in Frameworks */,
 				215679B42D5175D9001BE574 /* FirebaseFunctionsCombine-Community in Frameworks */,
+				211D23372D556B3C00558873 /* GoogleSignIn in Frameworks */,
 				215679A02D5175D9001BE574 /* FirebaseAppDistribution-Beta in Frameworks */,
 				215679BC2D5175D9001BE574 /* FirebaseMLModelDownloader in Frameworks */,
 				2156799C2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
@@ -140,6 +157,8 @@
 				215679C12D5175D9001BE574 /* FirebaseStorage */,
 				215679C32D5175D9001BE574 /* FirebaseStorageCombine-Community */,
 				215679C52D5175D9001BE574 /* FirebaseVertexAI */,
+				211D23362D556B3C00558873 /* GoogleSignIn */,
+				211D23382D556B3C00558873 /* GoogleSignInSwift */,
 			);
 			productName = MiniMate;
 			productReference = 213F26F62D4D639100579FAE /* MiniMate.app */;
@@ -171,6 +190,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				210BDE4B2D4DDFB80012E465 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				211D23352D556B3C00558873 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 213F26F72D4D639100579FAE /* Products */;
@@ -333,6 +353,7 @@
 				DEVELOPMENT_TEAM = PCUSPZK2L4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MiniMate/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -362,6 +383,7 @@
 				DEVELOPMENT_TEAM = PCUSPZK2L4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MiniMate/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -412,9 +434,27 @@
 				minimumVersion = 11.7.0;
 			};
 		};
+		211D23352D556B3C00558873 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		211D23362D556B3C00558873 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 211D23352D556B3C00558873 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		211D23382D556B3C00558873 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 211D23352D556B3C00558873 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
 		215679972D5175D9001BE574 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 210BDE4B2D4DDFB80012E465 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

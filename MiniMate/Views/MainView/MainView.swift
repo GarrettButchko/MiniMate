@@ -15,9 +15,7 @@ struct MainView: View {
     
     var body: some View {
         VStack {
-            
             HStack{
-                
                 ZStack{
                     RoundedRectangle(cornerSize: CGSize(width: 15, height: 15))
                         .frame(width: 200, height: 40)

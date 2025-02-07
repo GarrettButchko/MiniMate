@@ -46,6 +46,21 @@ struct LoginView: View {
             }
             .buttonStyle(.borderedProminent)
             
+            Button("Login with Google") {
+                authViewModel.signInWithGoogle { result in
+                    switch result {
+                    case .success:
+                        errorMessage = nil
+                        withAnimation(){
+                            viewManager.navigateToMain()
+                        }
+                    case .failure(let error):
+                        errorMessage = error.localizedDescription
+                    }
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            
             Button("Sign Up") {
                 withAnimation(){
                     viewManager.navigateToSignUp()
