@@ -9,22 +9,14 @@ import SwiftUI
 
 struct MainView: View {
     
-    @State private var isSheetPresented = false
-    @StateObject var authViewModel: AuthViewModel
+    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
+    
+    @State private var isSheetPresented = false
     
     var body: some View {
         VStack {
             HStack{
-                ZStack{
-                    RoundedRectangle(cornerSize: CGSize(width: 15, height: 15))
-                        .frame(width: 200, height: 40)
-                        .foregroundStyle(.ultraThickMaterial)
-                    Text("Leader Board 🥇")
-                        .foregroundStyle(.yellow)
-                }
-                
-                Spacer()
                 
                 Button(action: {
                     isSheetPresented = true
@@ -40,9 +32,15 @@ struct MainView: View {
                     }
                 }
                 .sheet(isPresented: $isSheetPresented) {
-                    ProfileView(viewManager: viewManager, authViewModel: authViewModel)
+                    ProfileView(userData: userData, viewManager: viewManager, isSheetPresent: $isSheetPresented)
                 }
                 
+                if let name = userData.userModel?.name {
+                    Text("Welcome \(name)!")
+                }
+                
+                Spacer()
+            
             }
             
             
@@ -55,7 +53,7 @@ struct MainView: View {
                 ZStack{
                     Capsule()
                         .frame(width: 200, height: 50)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.blue)
                     Text("Quick Start")
                         .foregroundStyle(.white)
                 }

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct StatsView: View {
-    @StateObject var authViewModel: AuthViewModel
+    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
     
     var body: some View {

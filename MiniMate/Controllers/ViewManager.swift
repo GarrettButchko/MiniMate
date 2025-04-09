@@ -15,6 +15,7 @@ class ViewManager: ObservableObject {
         case main
         case login
         case signup
+        case welcome
     }
     
     init() {
@@ -22,7 +23,7 @@ class ViewManager: ObservableObject {
         if Auth.auth().currentUser != nil {
             self.currentView = .main
         } else {
-            self.currentView = .login
+            self.currentView = .welcome
         }
     }
     
@@ -36,6 +37,10 @@ class ViewManager: ObservableObject {
     
     func navigateToSignUp() {
         currentView = .signup
+    }
+    
+    func navigateToWelcome() {
+        currentView = .welcome
     }
 }
 

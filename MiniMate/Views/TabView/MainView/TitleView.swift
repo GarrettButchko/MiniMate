@@ -42,6 +42,7 @@ struct TitleView: View {
                         .bold()
                         .zIndex(1)
                 }
+                
             }
             .frame(width: 130)
             

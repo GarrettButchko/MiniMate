@@ -6,14 +6,15 @@
 //
 
 import SwiftUI
+import MapKit
 
-struct GameView: View {
-    @StateObject var authViewModel: AuthViewModel
+struct CourseView: View {
+    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
     
     var body: some View {
-        
-        Text("GameView")
-        
+        Map(){
+            
+        }
     }
 }

@@ -34,6 +34,7 @@ struct YourApp: App {
     WindowGroup {
         ContentView()
     }
+    .modelContainer(for: UserModel.self)
   }
 }
 

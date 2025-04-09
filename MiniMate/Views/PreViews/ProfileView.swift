@@ -5,14 +5,21 @@
 //  Created by Garrett Butchko on 2/3/25.
 //
 
-
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileView: View {
+    
+    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
-    @StateObject var authViewModel: AuthViewModel
-    @State var name: String = "N/A"
+    
     @State var editProfile: Bool = false
+    @Binding var isSheetPresent: Bool
+    
+    @State var name : String = ""
+    @State var email : String = ""
+    @State var password : String = ""
+    
     
     var body: some View {
         
@@ -35,7 +42,7 @@ struct ProfileView: View {
             HStack{
                 Text("Name:")
                 if !editProfile{
-                    Text(name)
+                    //Text(name here)
                 } else {
                     TextField("name", text: $name)
                         .background(.ultraThinMaterial)
@@ -44,46 +51,29 @@ struct ProfileView: View {
             
             
             
-            Text("Email:  \(authViewModel.user?.email ?? "No email")")
-            
-            
-            if authViewModel.user != nil {
-                
-                if !editProfile {
-                    Button("Edit Profile") {
-                        editProfile = true
-                    }
-                } else {
-                    Button("Save") {
-                        editProfile = false
-                        authViewModel.saveUserData(key: "name", data: name, completion: { _ in })
+            Text("Email:  \(email)")
+                if password != "google"{
+                    if !editProfile {
+                        Button("Edit Profile") {
+                            editProfile = true
+                        }
+                    } else {
+                        Button("Save") {
+                           
+                        }
                     }
                 }
                 
                 Button("Logout") {
-                    withAnimation{
-                        viewManager.navigateToLogin()
-                    }
-                    authViewModel.logout()
-                    name = "N/A"
-                }
-                
-            } else {
-                Button(action: {
-                    withAnimation{
-                        viewManager.navigateToLogin()
-                    }
-                }) {
-                    Text("Login")
-                }
-            }
-        }
-        .onAppear(){
-            authViewModel.fetchUserData(key: "name", completion: { name in
-            
-                self.name = name!
                     
-            })
+                    isSheetPresent.toggle()
+                    
+                    withAnimation{
+                        viewManager.navigateToLogin()
+                    }
+                    
+                    userData.logout()
+                }
         }
     }
 }
