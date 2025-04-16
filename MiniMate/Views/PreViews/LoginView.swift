@@ -8,23 +8,34 @@
 import SwiftUI
 import FirebaseAuth
 
+/// Login screen allowing existing users to sign in with email or Google
 struct LoginView: View {
+    @Environment(\.modelContext) private var context
     
-    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
-
+    @StateObject var authModel: AuthModel
+    
+    /// Local database helper
+    let locFuncs = LocFuncs()
+    
+    /// Error message displayed to the user
     @State private var errorMessage: String?
-
-    let sectionSpacing: CGFloat = 30
-    let verticalSpacing: CGFloat = 20
     
     @State var email: String = ""
     @State var password: String = ""
+    
+    /// UserModel binding to sync with app state
+    @Binding var userModel: UserModel?
+
+    /// UI constants
+    let sectionSpacing: CGFloat = 30
+    let verticalSpacing: CGFloat = 20
 
     var body: some View {
         VStack {
             Spacer()
-
+            
+            // MARK: - Title & Description
             VStack(spacing: 8) {
                 HStack {
                     Text("Login")
@@ -41,70 +52,94 @@ struct LoginView: View {
                     Spacer()
                 }
             }
-            
+
             Spacer()
 
+            // MARK: - Email & Password Fields
             VStack(spacing: verticalSpacing) {
-                // Email
-                VStack {
-                    HStack {
-                        Text("Email")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
+                // Email Field
+                VStack(alignment: .leading) {
+                    Text("Email")
+                        .foregroundStyle(.secondary)
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(lineWidth: 1)
                             .frame(height: 50)
                             .foregroundStyle(.secondary)
+
                         HStack {
                             Image(systemName: "envelope")
                                 .foregroundStyle(.secondary)
                             TextField("example@example", text: $email)
-                                .foregroundColor(.secondary)
-                                .autocapitalization(.none)
-                                .keyboardType(.emailAddress)
+                                .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
+                                .keyboardType(.emailAddress)
                                 .padding(.trailing, 5)
                         }
                         .padding(.leading)
                     }
                 }
 
-                // Password
-                VStack {
-                    HStack {
-                        Text("Password")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
+                // Password Field
+                VStack(alignment: .leading) {
+                    Text("Password")
+                        .foregroundStyle(.secondary)
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(lineWidth: 1)
                             .frame(height: 50)
                             .foregroundStyle(.secondary)
+
                         HStack {
                             Image(systemName: "lock")
                                 .foregroundStyle(.secondary)
-                                .padding(.trailing, 5)
-                            SecureField("123ABC", text: $password)
-                                .foregroundStyle(.secondary)
+                            SecureField("abc123", text: $password)
                                 .padding(.trailing, 5)
                         }
                         .padding(.leading, 20)
                     }
                 }
 
-                // Buttons
+                // MARK: - Auth Buttons
                 HStack(spacing: 16) {
+                    // Google Sign-In Button
                     Button {
-                        userData.signInWithGoogle { result in
+                        authModel.signInWithGoogle { result in
                             switch result {
                             case .success(let user):
-                                    errorMessage = ""
+                                errorMessage = nil
+                                
+                                // Validate Google user info
+                                if let name = user.displayName,
+                                   let email = user.email {
+                                    /// If user is in local storage
+                                    if let existingUser = locFuncs.fetchUser(by: user.uid, context: context) {
+                                        userModel = existingUser
+                                        authModel.saveUserData(user: userModel!) { _ in }
+                                        viewManager.navigateToMain()
+                                    } else {
+                                        
+                                        authModel.fetchUserData { model in
+                                            /// if user is in online storage
+                                            if let model = model {
+                                                userModel = model
+                                            /// if user is not in either online storage or local
+                                            } else {
+                                                let newUser = UserModel(id: user.uid, name: name, email: email, password: "google", games: [])
+                                                userModel = newUser
+                                                authModel.saveUserData(user: userModel!) { _ in }
+                                            }
+                                        }
+                                        viewManager.navigateToMain()
+                                        context.insert(userModel!)
+                                    }
                                     viewManager.navigateToMain()
+                                } else {
+                                    errorMessage = "Missing Google account information."
+                                }
+
                             case .failure(let error):
-                                    errorMessage = error.localizedDescription
+                                errorMessage = error.localizedDescription
                             }
                         }
                     } label: {
@@ -118,14 +153,29 @@ struct LoginView: View {
                         }
                     }
 
+                    // Email/Password Login Button
                     Button {
-                        userData.signIn(email: email, password: password) { result in
+                        authModel.signIn(email: email, password: password) { result in
                             switch result {
-                            case .success:
-                                    errorMessage = ""
+                            case .success(let user):
+                                errorMessage = nil
+                                if let existingUser = locFuncs.fetchUser(by: user.uid, context: context) {
+                                    userModel = existingUser
+                                    authModel.saveUserData(user: userModel!) { _ in }
                                     viewManager.navigateToMain()
+                                } else {
+                                    authModel.fetchUserData { model in
+                                        if let model = model {
+                                            userModel = model
+                                            viewManager.navigateToMain()
+                                        } else {
+                                            fatalError("User Data Not Found!!!!!!")
+                                        }
+                                    }
+                                }
+
                             case .failure(let error):
-                                    errorMessage = error.localizedDescription
+                                errorMessage = error.localizedDescription
                             }
                         }
                     } label: {
@@ -138,6 +188,7 @@ struct LoginView: View {
                     }
                 }
 
+                // Error Message
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
@@ -148,6 +199,7 @@ struct LoginView: View {
 
             Spacer()
 
+            // MARK: - Navigation to Sign Up
             HStack(spacing: 4) {
                 Text("If you are a new user")
                     .foregroundStyle(.secondary)
@@ -165,4 +217,3 @@ struct LoginView: View {
         .padding()
     }
 }
-

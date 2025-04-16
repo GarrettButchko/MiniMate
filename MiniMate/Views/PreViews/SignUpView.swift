@@ -9,14 +9,18 @@ import SwiftUI
 import FirebaseAuth
 
 struct SignUpView: View {
+    @Environment(\.modelContext) private var context
     
-    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
-
+    @StateObject var authViewModel : AuthModel
+    let locFuncs = LocFuncs()
+    
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var errorMessage: String?
+    
+    @Binding var userModel : UserModel?
 
     @FocusState private var isTextFieldFocused: Bool
 
@@ -134,10 +138,11 @@ struct SignUpView: View {
                     // Sign Up Button
                     Button {
                         if password == confirmPassword {
-                            userData.createUser(email: email, password: password) { result in
+                            authViewModel.createUser(email: email, password: password) { result in
                                 switch result {
                                 case .success:
                                         errorMessage = ""
+                                    context.insert(UserModel(id: authViewModel.user!.uid, name: email, email: email, password: password, games: []))
                                         viewManager.navigateToMain()
                                 case .failure(let error):
                                         errorMessage = error.localizedDescription

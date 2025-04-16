@@ -1,19 +1,29 @@
 import Foundation
 import SwiftData
 
+// MARK: - UserModel
+
+/// Represents a user and their associated games
 @Model
-class UserModel: Codable {
+class UserModel: Codable, Identifiable {
+    
+    /// Unique user identifier (should match Firebase UID)
+    @Attribute(.unique) var id: String
     var name: String
     var email: String
     var password: String
-    @Relationship(deleteRule: .cascade)
-    var games: [GameModel]?
+    
+    /// List of games played by the user (with cascade delete)
+    @Relationship(deleteRule: .cascade) var games: [GameModel]
+
+    // MARK: - Coding
 
     enum CodingKeys: String, CodingKey {
-        case name, email, password, games
+        case id, name, email, password, games
     }
 
-    init(name: String, email: String, password: String, games: [GameModel] = []) {
+    init(id: String, name: String, email: String, password: String, games: [GameModel]) {
+        self.id = id
         self.name = name
         self.email = email
         self.password = password
@@ -22,30 +32,38 @@ class UserModel: Codable {
 
     required convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try container.decode(String.self, forKey: .id)
         let name = try container.decode(String.self, forKey: .name)
         let email = try container.decode(String.self, forKey: .email)
         let password = try container.decode(String.self, forKey: .password)
-        let games = try container.decodeIfPresent([GameModel].self, forKey: .games) ?? []
-        self.init(name: name, email: email, password: password, games: games)
+        let games = try container.decode([GameModel].self, forKey: .games)
+        self.init(id: id, name: name, email: email, password: password, games: games)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(email, forKey: .email)
         try container.encode(password, forKey: .password)
-        try container.encodeIfPresent(games, forKey: .games)
+        try container.encode(games, forKey: .games)
     }
 }
 
+// MARK: - GameModel
+
+/// Represents a game session, including GPS location and associated holes
 @Model
 class GameModel: Codable {
     var name: String
     var lat: Double
     var long: Double
     var date: Date
-    @Relationship(deleteRule: .cascade)
-    var holes: [HoleModel]
+
+    /// List of holes in this game (with cascade delete)
+    @Relationship(deleteRule: .cascade) var holes: [HoleModel]
+
+    // MARK: - Coding
 
     enum CodingKeys: String, CodingKey {
         case name, lat, long, date, holes
@@ -79,17 +97,22 @@ class GameModel: Codable {
     }
 }
 
+// MARK: - HoleModel
+
+/// Represents a single hole in a game, including par and strokes taken
 @Model
 class HoleModel: Codable {
-    var number: Int
-    var par: Int
-    var strokes: Int?
+    var number: Int      // Hole number (1-based)
+    var par: Int         // Expected strokes
+    var strokes: Int     // Actual strokes (default 0)
+
+    // MARK: - Coding
 
     enum CodingKeys: String, CodingKey {
         case number, par, strokes
     }
 
-    init(number: Int, par: Int, strokes: Int? = nil) {
+    init(number: Int, par: Int, strokes: Int = 0) {
         self.number = number
         self.par = par
         self.strokes = strokes
@@ -99,7 +122,7 @@ class HoleModel: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let number = try container.decode(Int.self, forKey: .number)
         let par = try container.decode(Int.self, forKey: .par)
-        let strokes = try container.decodeIfPresent(Int.self, forKey: .strokes)
+        let strokes = try container.decodeIfPresent(Int.self, forKey: .strokes) ?? 0
         self.init(number: number, par: par, strokes: strokes)
     }
 
@@ -107,6 +130,7 @@ class HoleModel: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(number, forKey: .number)
         try container.encode(par, forKey: .par)
-        try container.encodeIfPresent(strokes, forKey: .strokes)
+        try container.encode(strokes, forKey: .strokes)
     }
 }
+

@@ -9,7 +9,6 @@ import SwiftUI
 import MapKit
 
 struct CourseView: View {
-    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
     
     var body: some View {

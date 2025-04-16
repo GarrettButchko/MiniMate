@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    @State private var displayedText = ""
     @StateObject var viewManager: ViewManager
+    
+    @State private var displayedText = ""
     
     let fullText = "Welcome to MiniMate"
     let typingSpeed = 0.05 // Time interval between each character

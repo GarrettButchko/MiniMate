@@ -8,11 +8,12 @@
 import SwiftUI
 
 struct MainView: View {
-    
-    @StateObject var userData: AuthViewModel
     @StateObject var viewManager: ViewManager
+    @StateObject var authViewModel : AuthModel
     
     @State private var isSheetPresented = false
+    
+    @Binding var userModel: UserModel?
     
     var body: some View {
         VStack {
@@ -32,12 +33,10 @@ struct MainView: View {
                     }
                 }
                 .sheet(isPresented: $isSheetPresented) {
-                    ProfileView(userData: userData, viewManager: viewManager, isSheetPresent: $isSheetPresented)
+                    ProfileView(viewManager: viewManager, authViewModel: authViewModel, isSheetPresent: $isSheetPresented, userModel: $userModel)
                 }
                 
-                if let name = userData.userModel?.name {
-                    Text("Welcome \(name)!")
-                }
+                
                 
                 Spacer()
             
