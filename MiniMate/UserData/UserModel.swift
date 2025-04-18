@@ -11,7 +11,7 @@ class UserModel: Codable, Identifiable {
     @Attribute(.unique) var id: String
     var name: String
     var email: String
-    var password: String
+    var password: String? = nil
     
     /// List of games played by the user (with cascade delete)
     @Relationship(deleteRule: .cascade) var games: [GameModel]
@@ -22,7 +22,7 @@ class UserModel: Codable, Identifiable {
         case id, name, email, password, games
     }
 
-    init(id: String, name: String, email: String, password: String, games: [GameModel]) {
+    init(id: String, name: String, email: String, password: String? = nil, games: [GameModel]) {
         self.id = id
         self.name = name
         self.email = email
@@ -35,7 +35,7 @@ class UserModel: Codable, Identifiable {
         let id = try container.decode(String.self, forKey: .id)
         let name = try container.decode(String.self, forKey: .name)
         let email = try container.decode(String.self, forKey: .email)
-        let password = try container.decode(String.self, forKey: .password)
+        let password = try container.decodeIfPresent(String.self, forKey: .password)
         let games = try container.decode([GameModel].self, forKey: .games)
         self.init(id: id, name: name, email: email, password: password, games: games)
     }
@@ -45,10 +45,11 @@ class UserModel: Codable, Identifiable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(email, forKey: .email)
-        try container.encode(password, forKey: .password)
+        try container.encodeIfPresent(password, forKey: .password)
         try container.encode(games, forKey: .games)
     }
 }
+
 
 // MARK: - GameModel
 

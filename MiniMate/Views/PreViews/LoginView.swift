@@ -24,6 +24,8 @@ struct LoginView: View {
     @State var email: String = ""
     @State var password: String = ""
     
+    @State var errorRed : Bool = true
+    
     /// UserModel binding to sync with app state
     @Binding var userModel: UserModel?
 
@@ -58,14 +60,20 @@ struct LoginView: View {
             // MARK: - Email & Password Fields
             VStack(spacing: verticalSpacing) {
                 // Email Field
+                // Email Field
                 VStack(alignment: .leading) {
                     Text("Email")
                         .foregroundStyle(.secondary)
+
                     ZStack {
+                        // Background with light fill
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(lineWidth: 1)
+                            .fill(Color.mainOpp.opacity(0.15)) // Light background
                             .frame(height: 50)
-                            .foregroundStyle(.secondary)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
+                            )
 
                         HStack {
                             Image(systemName: "envelope")
@@ -76,7 +84,7 @@ struct LoginView: View {
                                 .keyboardType(.emailAddress)
                                 .padding(.trailing, 5)
                         }
-                        .padding(.leading)
+                        .padding(.horizontal)
                     }
                 }
 
@@ -84,21 +92,27 @@ struct LoginView: View {
                 VStack(alignment: .leading) {
                     Text("Password")
                         .foregroundStyle(.secondary)
+
                     ZStack {
+                        // Background with light fill
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(lineWidth: 1)
+                            .fill(Color.mainOpp.opacity(0.15))
                             .frame(height: 50)
-                            .foregroundStyle(.secondary)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
+                            )
 
                         HStack {
                             Image(systemName: "lock")
                                 .foregroundStyle(.secondary)
-                            SecureField("abc123", text: $password)
+                            SecureField("••••••", text: $password)
                                 .padding(.trailing, 5)
                         }
-                        .padding(.leading, 20)
+                        .padding(.horizontal)
                     }
                 }
+
 
                 // MARK: - Auth Buttons
                 HStack(spacing: 16) {
@@ -123,18 +137,22 @@ struct LoginView: View {
                                             /// if user is in online storage
                                             if let model = model {
                                                 userModel = model
+                                                viewManager.navigateToMain()
+                                                context.insert(userModel!)
                                             /// if user is not in either online storage or local
                                             } else {
-                                                let newUser = UserModel(id: user.uid, name: name, email: email, password: "google", games: [])
+                                                let newUser = UserModel(id: user.uid, name: name, email: email, games: [])
                                                 userModel = newUser
                                                 authModel.saveUserData(user: userModel!) { _ in }
+                                                context.insert(userModel!)
+                                                viewManager.navigateToMain()
                                             }
                                         }
-                                        viewManager.navigateToMain()
-                                        context.insert(userModel!)
+                                        
                                     }
                                     viewManager.navigateToMain()
                                 } else {
+                                    errorRed = true
                                     errorMessage = "Missing Google account information."
                                 }
 
@@ -191,7 +209,7 @@ struct LoginView: View {
                 // Error Message
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
+                        .foregroundColor(errorRed ? Color.red : .mainOpp)
                         .font(.caption)
                         .padding(.top, 8)
                 }
@@ -199,6 +217,28 @@ struct LoginView: View {
 
             Spacer()
 
+            
+                
+            Button {
+                if email != "" {
+                    Auth.auth().sendPasswordReset(withEmail: email) { error in
+                        if let error = error {
+                            errorMessage = error.localizedDescription
+                        } else {
+                            errorRed = false
+                            errorMessage = "Password reset email sent!"
+                        }
+                    }
+                } else {
+                    errorRed = true
+                    errorMessage = "Please enter your email address"
+                }
+                
+            } label: {
+                Text("Reset Password")
+            }
+            .padding(.bottom, 5)
+            
             // MARK: - Navigation to Sign Up
             HStack(spacing: 4) {
                 Text("If you are a new user")

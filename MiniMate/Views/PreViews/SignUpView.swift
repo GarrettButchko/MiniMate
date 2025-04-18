@@ -8,19 +8,21 @@
 import SwiftUI
 import FirebaseAuth
 
+/// View for new users to sign up and create an account
 struct SignUpView: View {
     @Environment(\.modelContext) private var context
-    
+
     @StateObject var viewManager: ViewManager
-    @StateObject var authViewModel : AuthModel
+    @StateObject var authModel: AuthModel
     let locFuncs = LocFuncs()
-    
+
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var errorMessage: String?
-    
-    @Binding var userModel : UserModel?
+
+    /// Stores the created user in local database
+    @Binding var userModel: UserModel?
 
     @FocusState private var isTextFieldFocused: Bool
 
@@ -32,6 +34,7 @@ struct SignUpView: View {
             VStack {
                 Spacer()
 
+                // MARK: - Title and Subtitle
                 VStack(spacing: 8) {
                     HStack {
                         Text("Sign Up")
@@ -46,110 +49,116 @@ struct SignUpView: View {
                         Spacer()
                     }
                 }
-                
+
                 Spacer()
 
+                // MARK: - Form Fields
                 VStack(spacing: verticalSpacing) {
-                    
-                    
-                    
-                    // Email
-                    VStack {
-                        HStack {
-                            Text("Email")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                        }
+                    // Email Field
+                    // Email Field
+                    VStack(alignment: .leading) {
+                        Text("Email")
+                            .foregroundStyle(.secondary)
+                        
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(lineWidth: 1)
+                                .fill(Color.mainOpp.opacity(0.15))
                                 .frame(height: 50)
-                                .foregroundStyle(.secondary)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
+                                )
+                            
                             HStack {
                                 Image(systemName: "envelope")
                                     .foregroundStyle(.secondary)
                                 TextField("example@example", text: $email)
-                                    .foregroundColor(.secondary)
-                                    .autocapitalization(.none)
-                                    .keyboardType(.emailAddress)
+                                    .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
+                                    .keyboardType(.emailAddress)
                                     .padding(.trailing, 5)
                                     .focused($isTextFieldFocused)
                             }
-                            .padding(.leading)
+                            .padding(.horizontal)
                         }
                     }
-                    
-                    
-                    HStack{
+
+                    // Password + Confirm Password
+                    HStack(alignment: .top, spacing: 12) {
                         // Password
-                        VStack {
-                            HStack {
-                                Text("Password")
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                            }
+                        VStack(alignment: .leading) {
+                            Text("Password")
+                                .foregroundStyle(.secondary)
+                            
                             ZStack {
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(lineWidth: 1)
+                                    .fill(Color.mainOpp.opacity(0.15))
                                     .frame(height: 50)
-                                    .foregroundStyle(.secondary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
+                                    )
+                                
                                 HStack {
                                     Image(systemName: "lock")
                                         .foregroundStyle(.secondary)
-                                        .padding(.trailing, 5)
-                                    SecureField("123ABC", text: $password)
-                                        .foregroundStyle(.secondary)
+                                    SecureField("••••••", text: $password)
                                         .padding(.trailing, 5)
                                         .focused($isTextFieldFocused)
                                 }
-                                .padding(.leading, 20)
+                                .padding(.horizontal)
                             }
                         }
-                        Spacer()
+
                         // Confirm Password
-                        VStack {
-                            HStack {
-                                Text("Confirm Password")
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                            }
+                        VStack(alignment: .leading) {
+                            Text("Confirm")
+                                .foregroundStyle(.secondary)
+                            
                             ZStack {
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(lineWidth: 1)
+                                    .fill(Color.mainOpp.opacity(0.15))
                                     .frame(height: 50)
-                                    .foregroundStyle(.secondary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
+                                    )
+                                
                                 HStack {
                                     Image(systemName: "lock")
                                         .foregroundStyle(.secondary)
-                                        .padding(.trailing, 5)
-                                    SecureField("123ABC", text: $confirmPassword)
-                                        .foregroundStyle(.secondary)
+                                    SecureField("••••••", text: $confirmPassword)
                                         .padding(.trailing, 5)
                                         .focused($isTextFieldFocused)
                                 }
-                                .padding(.leading, 20)
+                                .padding(.horizontal)
                             }
                         }
                     }
-                    
-                    
-                    
-                    // Sign Up Button
+
+
+                    // MARK: - Sign Up Button
                     Button {
-                        if password == confirmPassword {
-                            authViewModel.createUser(email: email, password: password) { result in
-                                switch result {
-                                case .success:
-                                        errorMessage = ""
-                                    context.insert(UserModel(id: authViewModel.user!.uid, name: email, email: email, password: password, games: []))
-                                        viewManager.navigateToMain()
-                                case .failure(let error):
-                                        errorMessage = error.localizedDescription
-                                }
-                            }
-                        } else {
+                        guard password == confirmPassword else {
                             errorMessage = "Passwords do not match."
+                            return
+                        }
+                        
+                        authModel.createUser(email: email, password: password) { result in
+                            switch result {
+                            case .success (let user):
+                                errorMessage = nil
+                                let newUser = UserModel(id: user.uid, name: email, email: email, password: password, games: [])
+                                userModel = newUser
+                                context.insert(userModel!)
+                                authModel.saveUserData(user: userModel!) { _ in }
+                                viewManager.navigateToMain()
+                                Auth.auth().currentUser?.sendEmailVerification { error in
+                                    print("Failed to send verification email.")
+                                }
+                            case .failure(let error):
+                                errorMessage = error.localizedDescription
+                            }
                         }
                     } label: {
                         ZStack {
@@ -159,22 +168,21 @@ struct SignUpView: View {
                                 .foregroundStyle(.white)
                         }
                     }
-                    
+
+                    // Error message
                     if let errorMessage = errorMessage {
                         Text(errorMessage)
                             .foregroundColor(.red)
                             .font(.caption)
                     }
-                    
-                    
                 }
-                
+
                 Spacer()
                 Spacer()
             }
             .padding()
 
-            // Back button
+            // MARK: - Back Button
             HStack {
                 Button {
                     isTextFieldFocused = false
@@ -187,7 +195,6 @@ struct SignUpView: View {
                             .fill(.ultraThinMaterial)
                             .frame(width: 40, height: 40)
                         Image(systemName: "arrow.left")
-                            .frame(width: 30, height: 30)
                             .fontWeight(.bold)
                     }
                 }

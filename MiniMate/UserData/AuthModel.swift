@@ -23,6 +23,7 @@ class AuthModel: ObservableObject {
 
     /// Signs in the user using Google Sign-In and Firebase
     func signInWithGoogle(completion: @escaping (Result<User, Error>) -> Void) {
+        
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
 
         // Configure Google Sign-In
@@ -154,6 +155,96 @@ class AuthModel: ObservableObject {
             }
         } catch {
             print("❌ Error signing out: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Deletes the current user. Handles both Email/Password and Google sign-in methods.
+    
+        func deleteAccount(email: String? = nil, password: String? = nil, completion: @escaping (String) -> Void) {
+            guard let user = Auth.auth().currentUser else {
+                completion("❌ No user is currently signed in.")
+                return
+            }
+
+            if let email = email, let password = password {
+                // Reauthenticate using email/password
+                let credential = EmailAuthProvider.credential(withEmail: email, password: password)
+                user.reauthenticate(with: credential) { result, error in
+                    self.handleReauthenticationResult(user: user, error: error, completion: completion)
+                }
+            } else if let googleUser = GIDSignIn.sharedInstance.currentUser,
+                      let idToken = googleUser.idToken?.tokenString {
+                
+                let accessToken = googleUser.accessToken.tokenString
+                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+                
+                user.reauthenticate(with: credential) { result, error in
+                    self.handleReauthenticationResult(user: user, error: error, completion: completion)
+                }
+            } else {
+                    guard let clientID = FirebaseApp.app()?.options.clientID else {
+                        completion("❌ Missing Firebase client ID.")
+                        return
+                    }
+
+                    let config = GIDConfiguration(clientID: clientID)
+                    GIDSignIn.sharedInstance.configuration = config
+
+                    guard let rootViewController = UIApplication.shared.connectedScenes
+                        .compactMap({ ($0 as? UIWindowScene)?.windows.first?.rootViewController })
+                        .first else {
+                            completion("❌ Unable to get rootViewController.")
+                            return
+                    }
+
+                    GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+                        if let error = error {
+                            completion("❌ Google Sign-In Error: \(error.localizedDescription)")
+                            return
+                        }
+
+                        guard let user = result?.user,
+                              let idToken = user.idToken?.tokenString else {
+                            completion("❌ Failed to retrieve Google ID token.")
+                            return
+                        }
+
+                        let credential = GoogleAuthProvider.credential(
+                            withIDToken: idToken,
+                            accessToken: user.accessToken.tokenString
+                        )
+
+                        Auth.auth().currentUser?.reauthenticate(with: credential) { result, error in
+                            if let currentUser = Auth.auth().currentUser {
+                                self.handleReauthenticationResult(user: currentUser, error: error, completion: completion)
+                            } else {
+                                completion("❌ Firebase user session missing.")
+                            }
+                        }
+                    }
+                }
+        }
+
+    private func handleReauthenticationResult(user: User, error: Error?, completion: @escaping (String) -> Void) {
+        if let error = error {
+            let message = "❌ Reauthentication failed: \(error.localizedDescription)"
+            print(message)
+            completion(message)
+            return
+        }
+        
+        user.delete { error in
+            if let error = error {
+                let message = "❌ Account deletion failed: \(error.localizedDescription)"
+                print(message)
+                completion(message)
+            } else {
+                print("✅ Account successfully deleted.")
+                DispatchQueue.main.async {
+                    self.user = nil
+                }
+                completion("true")
+            }
         }
     }
 }
