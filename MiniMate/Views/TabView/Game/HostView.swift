@@ -115,9 +115,9 @@ struct HostView: View {
 
                     VStack {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(1.5)
                             .frame(width: 40, height: 40)
+                            .scaleEffect(1.5)
+                            .progressViewStyle(CircularProgressViewStyle())
                         Text("Searching...")
                             .font(.caption)
                     }
@@ -197,6 +197,8 @@ struct HostView: View {
     private func startPollingForPlayers() {
         guard showHost else { return }  // Don't start if sheet is not showing
 
+        print("running polling players...")
+        
         authModel.fetchGameData(gameCode: gameModel.id) { model in
             if let model = model {
                 self.gameModel.playerIDs = model.playerIDs

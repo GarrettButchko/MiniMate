@@ -15,7 +15,6 @@ struct JoinView: View {
     @State private var gameStarted = false
     @State private var gameModel: GameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18)
     @State private var gameCode: String = ""
-    @State private var isConnected: Bool = false
 
     var body: some View {
         VStack {
@@ -32,30 +31,66 @@ struct JoinView: View {
                     .padding(.leading, 30)
                 Spacer()
             }
+            .onChange(of: showHost) { oldValue, newValue in
+                if gameModel.id != "" {
+                    authModel.fetchGameData(gameCode: gameCode) { model in
+                        if let model = model {
+                            // Remove this player from the game
+                            if let index = model.playerIDs.firstIndex(of: userModel!.mini) {
+                                model.playerIDs.remove(at: index)
+                            }
+                            
+                            // Save the updated model
+                            authModel.addAndUpdateGame(game: model) { success in
+                                if success {
+                                    print("✅ Player removed and game updated")
+                                    self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
+                                    
+                                } else {
+                                    print("❌ Could not update game")
+                                }
+                            }
+                        } else {
+                            print("❌ Game not found")
+                        }
+                    }
+                }
+            }
 
             Form {
                 gameInfoSection
                 if gameModel.id != "" {
                     playersSection
-                    Button{
-                        authModel.fetchGameData(gameCode: gameCode) { model in
+                    Button {
+                        authModel.fetchGameData(gameCode: gameModel.id) { model in
                             if let model = model {
-                                if let index = model.playerIDs.firstIndex(of: userModel!.mini) {
+                                // Remove this player from the game
+                                
+                                let modelCopy = model
+                                
+                                if let index = model.playerIDs.firstIndex(where: { $0.id == userModel!.mini.id }) {
                                     model.playerIDs.remove(at: index)
                                 }
-                                self.gameModel = model
-                                authModel.addAndUpdateGame(game: model) { success in
-                                    print(success ? "Updated Game" : "Could not update Game")
+
+                                // Save the updated model
+                                authModel.addAndUpdateGame(game: modelCopy) { success in
+                                    if success {
+                                        print("✅ Player removed and game updated")
+                                        self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
+                                        
+                                    } else {
+                                        print("❌ Could not update game")
+                                    }
                                 }
-                                self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18)
-                                isConnected = false
                             } else {
-                                print("Game not found")
+                                print("❌ Game not found")
                             }
                         }
-
                     } label: {
                         Text("Exit Game")
+                    }
+                    .onAppear {
+                        pollingForUpdates()
                     }
                     
                 } else {
@@ -66,10 +101,9 @@ struct JoinView: View {
                                 self.gameModel = model
                                 authModel.addAndUpdateGame(game: model) { success in
                                     print(success ? "Updated Game" : "Could not update Game")
-                                    isConnected = true
                                 }
                             } else {
-                                print("Game not found")
+                                self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
                             }
                         }
 
@@ -79,9 +113,7 @@ struct JoinView: View {
                 }
             }
         }
-        .onAppear(){
-            
-        }
+        
     }
 
     // MARK: - View Sections
@@ -90,12 +122,14 @@ struct JoinView: View {
         Section(header: Text("Game Info")) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
+                    if gameModel.id == "" {
                     Text("Enter Code:")
                     Spacer()
-                    if !isConnected {
-                        TextField("Code:", text: $gameCode)
+                        TextField("Code", text: $gameCode)
                     } else {
-                        Text("Code: \(gameModel.id)")
+                        Text("Code: ")
+                        Spacer()
+                        Text(gameModel.id)
                     }
                 }
 
@@ -131,9 +165,9 @@ struct JoinView: View {
 
                     VStack {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(1.5)
                             .frame(width: 40, height: 40)
+                            .scaleEffect(1.5)
+                            .progressViewStyle(CircularProgressViewStyle())
                         Text("Searching...")
                             .font(.caption)
                     }
@@ -144,15 +178,17 @@ struct JoinView: View {
         }
     }
     
-    private func startPollingForPlayers() {
-        guard showHost else { return }  // Don't start if sheet is not showing
-
-        authModel.fetchGameData(gameCode: gameModel.id) { model in
-            if let model = model {
-                self.gameModel.playerIDs = model.playerIDs
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                startPollingForPlayers()
+    private func pollingForUpdates() {
+        if gameModel.id != "" {
+            authModel.fetchGameData(gameCode: gameModel.id) { model in
+                if let model = model {
+                    self.gameModel = model
+                } else {
+                    self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    pollingForUpdates()
+                }
             }
         }
     }
