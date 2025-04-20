@@ -28,6 +28,7 @@ struct SignUpView: View {
 
     let sectionSpacing: CGFloat = 30
     let verticalSpacing: CGFloat = 20
+    let characterLimit: Int = 15
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -105,6 +106,11 @@ struct SignUpView: View {
                                     SecureField("••••••", text: $password)
                                         .padding(.trailing, 5)
                                         .focused($isTextFieldFocused)
+                                        .onChange(of: password) { newValue, oldValue in
+                                            if newValue.count > characterLimit {
+                                                password = String(newValue.prefix(characterLimit))
+                                            }
+                                        }
                                 }
                                 .padding(.horizontal)
                             }
@@ -130,6 +136,11 @@ struct SignUpView: View {
                                     SecureField("••••••", text: $confirmPassword)
                                         .padding(.trailing, 5)
                                         .focused($isTextFieldFocused)
+                                        .onChange(of: confirmPassword) { newValue, oldValue  in
+                                            if newValue.count > characterLimit {
+                                                confirmPassword = String(newValue.prefix(characterLimit))
+                                            }
+                                        }
                                 }
                                 .padding(.horizontal)
                             }
@@ -148,7 +159,7 @@ struct SignUpView: View {
                             switch result {
                             case .success (let user):
                                 errorMessage = nil
-                                let newUser = UserModel(id: user.uid, name: email, email: email, password: password, games: [])
+                                let newUser = UserModel(id: user.uid, mini: UserModelEssentials(id: user.uid, name: email), email: email, games: [])
                                 userModel = newUser
                                 context.insert(userModel!)
                                 authModel.saveUserData(user: userModel!) { _ in }

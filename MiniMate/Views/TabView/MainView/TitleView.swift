@@ -1,88 +1,79 @@
-//
-//  Untitled.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 1/31/25.
-//
-
 import SwiftUI
 
 struct TitleView: View {
-    @State private var time: Double = 0  // Animation time
-
-    let orbitingCircles: [OrbitingCircle] = (0..<8).map { index in  //Generate circles
-        
-        let colors = [Color.red, Color.orange, Color.yellow, Color.green, Color.blue, Color.purple, Color.indigo, Color.pink]
-        
-        return OrbitingCircle(
-            angleOffset: Double(index) * (360 / 8),
-            size: Double.random(in: 10...20),
-            speedMultiplier: Double.random(in: 0.8...1.2),
-            color: colors[index]
-        )
-    }
-
     var body: some View {
         ZStack {
-            
-            VStack{
-                HStack{
+            // Foreground Title text
+            VStack {
+                HStack {
                     Text("Mini")
                         .font(.largeTitle)
                         .foregroundColor(.mainOpp)
                         .bold()
-                        .zIndex(1)
                     Spacer()
                 }
-                HStack{
+                HStack {
                     Spacer()
                     Text("Mate")
                         .font(.largeTitle)
                         .foregroundColor(.mainOpp)
                         .bold()
-                        .zIndex(1)
                 }
-                
             }
             .frame(width: 130)
             
+            // Orbiting background
+            OrbitingCirclesView()
+                .frame(width: 220, height: 220)
+                .clipped()
+        }
+        .frame(width: 220, height: 220)
+    }
+}
 
-            TimelineView(.animation) { timeline in
-                let date = timeline.date.timeIntervalSinceReferenceDate
-                let rotationAngle = date * 50  // Speed of orbit
+// MARK: - Orbiting Circle Model
+struct OrbitingCircle {
+    let angleOffset: Double
+    let size: Double
+    let speedMultiplier: Double
+    let verticalScale: Double
+    let color: Color
+}
 
+// MARK: - Circle Animation View
+struct OrbitingCirclesView: View {
+    let orbitingCircles: [OrbitingCircle] = (0..<8).map { index in
+        let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .indigo, .pink]
+        return OrbitingCircle(
+            angleOffset: Double(index) * (360 / 8),
+            size: Double.random(in: 10...20),
+            speedMultiplier: Double.random(in: 0.8...1.2),
+            verticalScale: Double.random(in: 30...60),  // Each circle has its own vertical motion range
+            color: colors[index % colors.count]
+        )
+    }
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            let date = timeline.date.timeIntervalSinceReferenceDate
+            let baseRotation = date * 50
+
+            ZStack {
                 ForEach(orbitingCircles, id: \.angleOffset) { circle in
-                    let angle = rotationAngle * circle.speedMultiplier + 120
+                    let angle = baseRotation * circle.speedMultiplier + circle.angleOffset
                     let radians = angle * .pi / 180
 
-                    let x = 100 * cos(radians)  // Orbit radius (horizontal)
-                    let y = sin(radians) // Orbit radius (vertical)
-
-                    let depth = sin(radians)  // Simulate depth by scaling
-                    let scale = 0.5 + 0.5 * (1 + depth)  // Scale from 0.5 to 1
+                    let x = 100 * cos(radians)
+                    let y = circle.verticalScale * sin(radians) // <- height variation
+                    let scale = 0.5 + 0.5 * (1 + sin(radians))
 
                     Circle()
                         .fill(circle.color)
                         .frame(width: circle.size * scale, height: circle.size * scale)
                         .offset(x: x, y: y)
-                        .opacity(0.5 + 0.5 * scale)  // Adjust opacity for depth
+                        .opacity(0.4 + 0.6 * scale)
                 }
             }
         }
-    }
-}
-
-// Struct for Orbiting Circles
-struct OrbitingCircle {
-    let angleOffset: Double
-    let size: Double
-    let speedMultiplier: Double
-    let color: Color
-}
-
-// Preview
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        TitleView()
     }
 }

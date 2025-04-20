@@ -3,7 +3,8 @@ import FirebaseAuth
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var context
+    @Environment(\.modelContext) var context
+    @Environment(\.scenePhase) private var scenePhase
 
     @StateObject var viewManager = ViewManager()
     @StateObject var authModel = AuthModel()
@@ -11,8 +12,7 @@ struct ContentView: View {
     let locFuncs = LocFuncs()
 
     @State private var selectedTab = 1
-    @State private var user: UserModel?
-    @State private var isConnected = false
+    @State private var userModel: UserModel?
     @State private var previousView: ViewManager.ViewType?
 
     var body: some View {
@@ -21,17 +21,18 @@ struct ContentView: View {
                 switch viewManager.currentView {
                 case .main:
                     mainTabView
+                        
                 case .login:
                     LoginView(
                         viewManager: viewManager,
                         authModel: authModel,
-                        userModel: $user
+                        userModel: $userModel
                     )
                 case .signup:
                     SignUpView(
                         viewManager: viewManager,
                         authModel: authModel,
-                        userModel: $user
+                        userModel: $userModel
                     )
                 case .welcome:
                     WelcomeView(viewManager: viewManager)
@@ -43,14 +44,27 @@ struct ContentView: View {
         .onChange(of: viewManager.currentView, { oldValue, newValue in
             previousView = viewManager.currentView
         })
-        .onAppear {
-            isConnected = NetworkChecker.shared.isConnected
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            switch newPhase {
+            case .active:
+                print("App is active")
+                try? context.save()
+            case .inactive:
+                print("App is inactive")
+                try? context.save()
+            case .background:
+                print("App moved to background")
+                try? context.save()
+            @unknown default:
+                break
+            }
         }
+        
     }
 
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
-            StatsView(viewManager: viewManager)
+            StatsView(viewManager: viewManager, authModel: authModel, userModel: $userModel)
                 .tabItem {
                     Label("Stats", systemImage: "chart.bar.xaxis")
                 }
@@ -59,7 +73,7 @@ struct ContentView: View {
             MainView(
                 viewManager: viewManager,
                 authModel: authModel,
-                userModel: $user
+                userModel: $userModel
             )
             .tabItem {
                 Label("Home", systemImage: "house.fill")
@@ -74,12 +88,11 @@ struct ContentView: View {
         }
         .onAppear {
             //locFuncs.deletePersistentStore()
-            if isConnected {
-                authModel.saveUserData(user: user!) { _ in }
+            
+            if NetworkChecker.shared.isConnected {
+                authModel.saveUserData(user: userModel!) { _ in }
             }
-            if authModel.user != nil {
-                loadLocalUser()
-            }
+            loadOrCreateUserIfNeeded()
         }
     }
 
@@ -99,20 +112,46 @@ struct ContentView: View {
         }
     }
 
-    private func loadLocalUser() {
-        if let firebaseUser = authModel.user{
-            if let localUser = locFuncs.fetchUser(by: firebaseUser.uid, context: context) {
-                user = localUser
-                print("✅ Local user loaded: \(localUser.name)")
-            } else {
-                print("⚠️ No local user found for \(firebaseUser.uid).")
-            }
-        } else {
-            print("⚠️ No Firebase user found. Will retry shortly...")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.loadLocalUser() // retry after 0.5 seconds
-            }
+    func loadOrCreateUserIfNeeded() {
+        guard let firebaseUser = Auth.auth().currentUser else {
+            print("⚠️ No Firebase user.")
             return
         }
+
+        // Try to load from SwiftData
+        if let localUser = locFuncs.fetchUser(by: firebaseUser.uid, context: context) {
+            print("✅ Loaded local user: \(localUser.mini.name)")
+            userModel = localUser
+        } else {
+            print("⚠️ No local user found. Trying Firebase...")
+
+            // Try from Firebase DB
+            authModel.fetchUserData { model in
+                if let model = model {
+                    context.insert(model)
+                    try? context.save()
+                    print("✅ Loaded from Firebase and saved locally: \(model.mini.name)")
+                    userModel = model
+                } else {
+                    // Create new user if none in Firebase
+                    let newUser = UserModel(
+                        id: firebaseUser.uid, mini: UserModelEssentials(
+                            id: firebaseUser.uid,
+                            name: firebaseUser.displayName ?? "New User",
+                            photoURL: firebaseUser.photoURL
+                        ),
+                        email: firebaseUser.email,
+                        games: []
+                    )
+                    context.insert(newUser)
+                    try? context.save()
+                    authModel.saveUserData(user: newUser) { _ in }
+                    print("🆕 Created and saved new user.")
+                    userModel = newUser
+                }
+            }
+        }
     }
+
+
 }

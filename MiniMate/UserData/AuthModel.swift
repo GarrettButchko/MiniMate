@@ -10,6 +10,8 @@ import FirebaseAuth
 import FirebaseDatabase
 import GoogleSignIn
 import FirebaseCore
+import SwiftUICore
+import FirebaseStorage
 
 /// ViewModel that manages Firebase Authentication and user-related logic
 class AuthModel: ObservableObject {
@@ -73,6 +75,7 @@ class AuthModel: ObservableObject {
     /// Creates a new user with email and password
     func createUser(email: String, password: String, completion: @escaping (Result<User, Error>) -> Void) {
         Auth.auth().createUser(withEmail: email, password: password) { result, error in
+            /// if theres an error sends failure
             if let error = error {
                 completion(.failure(error))
             } else if let user = result?.user {
@@ -119,7 +122,43 @@ class AuthModel: ObservableObject {
             completion(false)
         }
     }
+    
+    /// Saves a UserModel to Firebase Realtime Database
+    func addAndUpdateGame(game: GameModel, completion: @escaping (Bool) -> Void) {
+        let ref = Database.database().reference()
 
+        do {
+            let data = try JSONEncoder().encode(game)
+            let dictionary = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+            ref.child("games").child(game.id).setValue(dictionary) { error, _ in
+                completion(error == nil)
+            }
+        } catch {
+            print("❌ Error encoding game data: \(error.localizedDescription)")
+            completion(false)
+        }
+    }
+    
+    func fetchGameData(gameCode: String, completion: @escaping (GameModel?) -> Void) {
+        let ref = Database.database().reference()
+
+        ref.child("games").child(gameCode).observeSingleEvent(of: .value) { snapshot, _ in
+            guard let data = snapshot.value as? [String: Any] else {
+                completion(nil)
+                return
+            }
+
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: data)
+                let game = try JSONDecoder().decode(GameModel.self, from: jsonData)
+                completion(game)
+            } catch {
+                print("❌ Error decoding game data: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }
+    }
     /// Fetches a UserModel from Firebase Realtime Database
     func fetchUserData(completion: @escaping (UserModel?) -> Void) {
         let ref = Database.database().reference()
@@ -244,6 +283,16 @@ class AuthModel: ObservableObject {
                     self.user = nil
                 }
                 completion("true")
+            }
+        }
+    }
+    func deleteGameData(gameCode: String, completion: @escaping (String?) -> Void) {
+        let ref = Database.database().reference()
+        ref.child("games").child(gameCode).removeValue { error, _ in
+            if let error = error {
+                completion("❌ Error deleting data: \(error.localizedDescription)")
+            } else {
+                completion("✅ Data deleted")
             }
         }
     }

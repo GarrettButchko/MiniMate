@@ -19,6 +19,8 @@ struct WelcomeView: View {
     
     /// Avoids re-triggering transition multiple times
     @State private var animationTriggered = false
+    
+    @State var showLoading = false
 
     var body: some View {
         ZStack {
@@ -44,6 +46,18 @@ struct WelcomeView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 100, height: 100)
+                    .colorScheme(.light)
+                
+                if showLoading{
+                    Text("Trying to reconnect...")
+                        .foregroundStyle(.white)
+                        .onAppear {
+                            pollUntilInternet()
+                        }
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.5) // optional: make it bigger
+                }
             }
         }
         .onAppear {
@@ -61,11 +75,28 @@ struct WelcomeView: View {
 
                 if displayedText == fullText, !animationTriggered {
                     animationTriggered = true
-                    withAnimation {
-                        viewManager.navigateToLogin()
+                    if NetworkChecker.shared.isConnected{
+                        withAnimation {
+                            viewManager.navigateToLogin()
+                        }
+                    } else {
+                        showLoading = true
                     }
                 }
             }
         }
     }
+    
+    func pollUntilInternet() {
+            // Run the check right away
+            if NetworkChecker.shared.isConnected {
+                withAnimation {
+                    viewManager.navigateToLogin()
+                }
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    pollUntilInternet()
+                }
+            }
+        }
 }

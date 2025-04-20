@@ -17,6 +17,7 @@ class ViewManager: ObservableObject {
         case login
         case signup
         case welcome
+        //case scoreCard
     }
 
     /// Currently active view (used to drive view switching in ContentView)
@@ -46,8 +47,14 @@ class ViewManager: ObservableObject {
         currentView = .signup
     }
 
-    /// Navigate to welcome/introduction view (usually first time or logout)
+    /// Navigate to welcome view (usually first time or logout)
     func navigateToWelcome() {
         currentView = .welcome
     }
+    
+    /// Navigate to welcome view (usually first time or logout)
+    //func navigateScoreCard() {
+     //   currentView = .scoreCard
+    //}
 }
+

@@ -137,20 +137,20 @@ struct LoginView: View {
                                             /// if user is in online storage
                                             if let model = model {
                                                 userModel = model
-                                                viewManager.navigateToMain()
                                                 context.insert(userModel!)
+                                                try? context.save()
+                                                viewManager.navigateToMain()
                                             /// if user is not in either online storage or local
                                             } else {
-                                                let newUser = UserModel(id: user.uid, name: name, email: email, games: [])
+                                                let newUser = UserModel(id: user.uid, mini: UserModelEssentials(id: user.uid, name: name, photoURL: user.photoURL), email: email, games: [])
                                                 userModel = newUser
-                                                authModel.saveUserData(user: userModel!) { _ in }
                                                 context.insert(userModel!)
+                                                try? context.save()
+                                                authModel.saveUserData(user: userModel!) { _ in }
                                                 viewManager.navigateToMain()
                                             }
                                         }
-                                        
                                     }
-                                    viewManager.navigateToMain()
                                 } else {
                                     errorRed = true
                                     errorMessage = "Missing Google account information."
@@ -177,10 +177,12 @@ struct LoginView: View {
                             switch result {
                             case .success(let user):
                                 errorMessage = nil
+                                /// If user is in local storage
                                 if let existingUser = locFuncs.fetchUser(by: user.uid, context: context) {
                                     userModel = existingUser
                                     authModel.saveUserData(user: userModel!) { _ in }
                                     viewManager.navigateToMain()
+                                /// if user isn't get from online
                                 } else {
                                     authModel.fetchUserData { model in
                                         if let model = model {

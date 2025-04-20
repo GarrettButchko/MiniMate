@@ -10,13 +10,18 @@ import FirebaseAuth
 
 /// Overlay login screen for account reauthentication before deletion
 struct ReauthViewOverlay: View {
+    @Environment(\.modelContext) private var context
+    
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthModel
     
     @State private var errorMessage: String?
     @State var email: String = ""
     @State var password: String = ""
+    
     @Binding var showLoginOverlay: Bool
+    @Binding var isSheetPresent: Bool
+    @Binding var userModel: UserModel?
     
     let sectionSpacing: CGFloat = 30
     let verticalSpacing: CGFloat = 20
@@ -92,7 +97,14 @@ struct ReauthViewOverlay: View {
                         if message == "true" {
                             withAnimation {
                                 showLoginOverlay = false
+                                /// Removes profile view
+                                isSheetPresent.toggle()
+                                
+                                viewManager.navigateToLogin()
                             }
+                            /// Deletes userModel from local storage
+                            context.delete(userModel!)
+                            
                         } else {
                             errorMessage = message
                         }

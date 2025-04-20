@@ -34,7 +34,7 @@ struct YourApp: App {
     WindowGroup {
         ContentView()
     }
-    .modelContainer(for: UserModel.self)
+    .modelContainer(for: [UserModel.self, GameModel.self, HoleModel.self, UserModelEssentials.self])
   }
 }
 
