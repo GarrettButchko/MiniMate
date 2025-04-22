@@ -67,11 +67,11 @@ struct LoginView: View {
 
                     ZStack {
                         // Background with light fill
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 25)
                             .fill(Color.mainOpp.opacity(0.15)) // Light background
                             .frame(height: 50)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 25)
                                     .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
                             )
 
@@ -95,11 +95,11 @@ struct LoginView: View {
 
                     ZStack {
                         // Background with light fill
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 25)
                             .fill(Color.mainOpp.opacity(0.15))
                             .frame(height: 50)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 25)
                                     .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
                             )
 
@@ -133,7 +133,7 @@ struct LoginView: View {
                                         viewManager.navigateToMain()
                                     } else {
                                         
-                                        authModel.fetchUserData { model in
+                                        authModel.fetchUserData(id: authModel.user!.uid) { model in
                                             /// if user is in online storage
                                             if let model = model {
                                                 userModel = model
@@ -162,7 +162,7 @@ struct LoginView: View {
                         }
                     } label: {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 25)
                                 .frame(width: 50, height: 50)
                                 .foregroundStyle(.ultraThinMaterial)
                             Image("google")
@@ -184,7 +184,7 @@ struct LoginView: View {
                                     viewManager.navigateToMain()
                                 /// if user isn't get from online
                                 } else {
-                                    authModel.fetchUserData { model in
+                                    authModel.fetchUserData(id: authModel.user!.uid) { model in
                                         if let model = model {
                                             userModel = model
                                             viewManager.navigateToMain()
@@ -200,7 +200,7 @@ struct LoginView: View {
                         }
                     } label: {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 25)
                                 .frame(width: 150, height: 50)
                             Text("Login")
                                 .foregroundStyle(.white)

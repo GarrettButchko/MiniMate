@@ -43,7 +43,6 @@ struct MainView: View {
                         }
                         .frame(width: 40, height: 40)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.secondary, lineWidth: 1))
                     }
                     .sheet(isPresented: $isSheetPresented) {
                         ProfileView(
@@ -122,14 +121,15 @@ struct MainView: View {
                                     showHost = true
                                 }
                                 .sheet(isPresented: $showHost) {
-                                    HostView(userModel: $userModel, authModel: authModel, showHost: $showHost)
+                                    HostView(userModel: $userModel, authModel: authModel, showHost: $showHost, viewManager: viewManager)
                                 }
 
                                 gameModeButton(title: "Join", icon: "person.2.fill", color: .orange) {
                                     showJoin = true
                                 }
+                                
                                 .sheet(isPresented: $showJoin) {
-                                    JoinView(userModel: $userModel, authModel: authModel, showHost: $showJoin)
+                                    JoinView(userModel: $userModel, authModel: authModel, showHost: $showJoin, viewManager: viewManager)
                                 }
                             }
                             .transition(.asymmetric(
@@ -179,9 +179,9 @@ struct MainView: View {
                 Text(title)
                     .fontWeight(.semibold)
             }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Capsule().foregroundStyle(color))
+            .padding(10)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(color))
             .foregroundColor(.white)
             .shadow(radius: 4)
         }

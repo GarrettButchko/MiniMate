@@ -62,11 +62,11 @@ struct SignUpView: View {
                             .foregroundStyle(.secondary)
                         
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 25)
                                 .fill(Color.mainOpp.opacity(0.15))
                                 .frame(height: 50)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
+                                    RoundedRectangle(cornerRadius: 25)
                                         .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
                                 )
                             
@@ -92,11 +92,11 @@ struct SignUpView: View {
                                 .foregroundStyle(.secondary)
                             
                             ZStack {
-                                RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 25)
                                     .fill(Color.mainOpp.opacity(0.15))
                                     .frame(height: 50)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
+                                        RoundedRectangle(cornerRadius: 25)
                                             .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
                                     )
                                 
@@ -122,11 +122,11 @@ struct SignUpView: View {
                                 .foregroundStyle(.secondary)
                             
                             ZStack {
-                                RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 25)
                                     .fill(Color.mainOpp.opacity(0.15))
                                     .frame(height: 50)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
+                                        RoundedRectangle(cornerRadius: 25)
                                             .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
                                     )
                                 
@@ -173,7 +173,7 @@ struct SignUpView: View {
                         }
                     } label: {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 25)
                                 .frame(width: 150, height: 50)
                             Text("Sign Up")
                                 .foregroundStyle(.white)

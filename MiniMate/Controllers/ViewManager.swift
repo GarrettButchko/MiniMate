@@ -12,12 +12,12 @@ import FirebaseAuth
 @MainActor
 class ViewManager: ObservableObject {
     /// Defines all possible views the app can present
-    enum ViewType: CaseIterable {
+    enum ViewType: Equatable {
         case main
         case login
         case signup
         case welcome
-        //case scoreCard
+        case scoreCard(GameModel)
     }
 
     /// Currently active view (used to drive view switching in ContentView)
@@ -53,8 +53,8 @@ class ViewManager: ObservableObject {
     }
     
     /// Navigate to welcome view (usually first time or logout)
-    //func navigateScoreCard() {
-     //   currentView = .scoreCard
-    //}
+    func navigateScoreCard(gameModel: GameModel) {
+        currentView = .scoreCard(gameModel)
+    }
 }
 

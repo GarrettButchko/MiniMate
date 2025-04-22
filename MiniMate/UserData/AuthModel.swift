@@ -159,16 +159,12 @@ class AuthModel: ObservableObject {
             }
         }
     }
+    
     /// Fetches a UserModel from Firebase Realtime Database
-    func fetchUserData(completion: @escaping (UserModel?) -> Void) {
+    func fetchUserData(id: String, completion: @escaping (UserModel?) -> Void) {
         let ref = Database.database().reference()
 
-        guard let userId = Auth.auth().currentUser?.uid else {
-            completion(nil)
-            return
-        }
-
-        ref.child("users").child(userId).observeSingleEvent(of: .value) { snapshot, _ in
+        ref.child("users").child(id).observeSingleEvent(of: .value) { snapshot, _ in
             guard let data = snapshot.value as? [String: Any] else {
                 completion(nil)
                 return

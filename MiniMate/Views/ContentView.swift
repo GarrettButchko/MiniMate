@@ -21,7 +21,8 @@ struct ContentView: View {
                 switch viewManager.currentView {
                 case .main:
                     mainTabView
-                        
+                        .ignoresSafeArea(.keyboard)
+                    
                 case .login:
                     LoginView(
                         viewManager: viewManager,
@@ -36,9 +37,13 @@ struct ContentView: View {
                     )
                 case .welcome:
                     WelcomeView(viewManager: viewManager)
+                    
+                case .scoreCard(let gameModel):
+                    ScoreCardView(userModel: $userModel, authModel: authModel, gameModel: gameModel)
                 }
             }
             .transition(currentTransition)
+            .ignoresSafeArea(.keyboard)
         }
         .animation(.easeInOut(duration: 0.4), value: viewManager.currentView)
         .onChange(of: viewManager.currentView, { oldValue, newValue in
@@ -126,7 +131,7 @@ struct ContentView: View {
             print("⚠️ No local user found. Trying Firebase...")
 
             // Try from Firebase DB
-            authModel.fetchUserData { model in
+            authModel.fetchUserData(id: authModel.user!.uid) { model in
                 if let model = model {
                     context.insert(model)
                     try? context.save()
@@ -152,6 +157,4 @@ struct ContentView: View {
             }
         }
     }
-
-
 }

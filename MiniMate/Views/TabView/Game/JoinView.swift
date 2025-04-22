@@ -11,6 +11,7 @@ struct JoinView: View {
     @Binding var userModel: UserModel?
     @StateObject var authModel: AuthModel
     @Binding var showHost: Bool
+    @StateObject var viewManager: ViewManager
 
     @State private var gameStarted = false
     @State private var gameModel: GameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18)
@@ -33,15 +34,18 @@ struct JoinView: View {
             }
             .onChange(of: showHost) { oldValue, newValue in
                 if gameModel.id != "" {
-                    authModel.fetchGameData(gameCode: gameCode) { model in
+                    authModel.fetchGameData(gameCode: gameModel.id) { model in
                         if let model = model {
                             // Remove this player from the game
-                            if let index = model.playerIDs.firstIndex(of: userModel!.mini) {
+                            
+                            let modelCopy = model
+                            
+                            if let index = model.playerIDs.firstIndex(where: { $0.id == userModel!.mini.id }) {
                                 model.playerIDs.remove(at: index)
                             }
-                            
+
                             // Save the updated model
-                            authModel.addAndUpdateGame(game: model) { success in
+                            authModel.addAndUpdateGame(game: modelCopy) { success in
                                 if success {
                                     print("✅ Player removed and game updated")
                                     self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
@@ -183,6 +187,9 @@ struct JoinView: View {
             authModel.fetchGameData(gameCode: gameModel.id) { model in
                 if let model = model {
                     self.gameModel = model
+                    if model.started {
+                        
+                    }
                 } else {
                     self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
                 }

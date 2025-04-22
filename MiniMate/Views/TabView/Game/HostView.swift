@@ -14,8 +14,8 @@ struct HostView: View {
     @Binding var userModel: UserModel?
     @StateObject var authModel: AuthModel
     @Binding var showHost: Bool
+    @StateObject var viewManager: ViewManager
 
-    @State private var gameStarted = false
     @State private var gameModel: GameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18)
     @State private var showAddPlayerAlert = false
     @State private var showDeleteAlert = false
@@ -131,7 +131,12 @@ struct HostView: View {
     private var startGameSection: some View {
         Section {
             Button("Start Game") {
-                gameStarted = true
+                if !gameModel.started {
+                    gameModel.started = true
+                    authModel.addAndUpdateGame(game: gameModel) { _ in }
+                }
+
+                viewManager.navigateScoreCard(gameModel: gameModel)
                 showHost = false
             }
         }
@@ -162,7 +167,9 @@ struct HostView: View {
 
     private func setupGame() {
         gameModel.id = generateGameCode()
-        if let host = userModel?.mini {
+        
+        if let host = userModel?.mini,
+           !gameModel.playerIDs.contains(where: { $0.id == host.id }) {
             gameModel.playerIDs.append(host)
             authModel.addAndUpdateGame(game: gameModel) { _ in }
         }
@@ -181,9 +188,12 @@ struct HostView: View {
 
     private func handleHostDismissal(_ isShowing: Bool) {
         if !isShowing {
-            if gameStarted {
+            if gameModel.started {
                 userModel?.games.append(gameModel)
+            } else if isShowing && gameModel.started {
+                
             } else {
+                gameModel.playerIDs.removeAll { $0.id == userModel?.mini.id }
                 authModel.deleteGameData(gameCode: gameModel.id) { _ in }
             }
         }
@@ -203,12 +213,12 @@ struct HostView: View {
             if let model = model {
                 self.gameModel.playerIDs = model.playerIDs
             }
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                 startPollingForPlayers()
             }
         }
     }
-
 }
 
 // MARK: - Player Icon View
