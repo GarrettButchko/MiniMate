@@ -13,7 +13,7 @@ struct NumberPickerView: View {
     var body: some View {
         VStack {
             Picker("Select a number", selection: $selectedNumber) {
-                ForEach(1...maxNumber, id: \.self) { number in
+                ForEach(0...maxNumber, id: \.self) { number in
                     Text("\(number)").tag(number)
                 }
             }

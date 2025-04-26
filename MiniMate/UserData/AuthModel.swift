@@ -102,84 +102,80 @@ class AuthModel: ObservableObject {
     }
 
     /// Saves a UserModel to Firebase Realtime Database
-    func saveUserData(user: UserModel, completion: @escaping (Bool) -> Void) {
-        let ref = Database.database().reference()
-
-        guard let userId = Auth.auth().currentUser?.uid else {
-            completion(false)
-            return
-        }
-
-        do {
-            let data = try JSONEncoder().encode(user)
-            let dictionary = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
-            ref.child("users").child(userId).setValue(dictionary) { error, _ in
-                completion(error == nil)
-            }
-        } catch {
-            print("❌ Error encoding user data: \(error.localizedDescription)")
-            completion(false)
-        }
-    }
-    
-    /// Saves a UserModel to Firebase Realtime Database
-    func addAndUpdateGame(game: GameModel, completion: @escaping (Bool) -> Void) {
-        let ref = Database.database().reference()
-
-        do {
-            let data = try JSONEncoder().encode(game)
-            let dictionary = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
-            ref.child("games").child(game.id).setValue(dictionary) { error, _ in
-                completion(error == nil)
-            }
-        } catch {
-            print("❌ Error encoding game data: \(error.localizedDescription)")
-            completion(false)
-        }
-    }
-    
-    func fetchGameData(gameCode: String, completion: @escaping (GameModel?) -> Void) {
-        let ref = Database.database().reference()
-
-        ref.child("games").child(gameCode).observeSingleEvent(of: .value) { snapshot, _ in
-            guard let data = snapshot.value as? [String: Any] else {
-                completion(nil)
+    func saveUserData(_ user: UserModel, completion: @escaping (Bool) -> Void) {
+            let ref = Database.database().reference()
+            guard let userId = Auth.auth().currentUser?.uid else {
+                completion(false)
                 return
             }
 
+            let dto = user.toDTO()
             do {
-                let jsonData = try JSONSerialization.data(withJSONObject: data)
-                let game = try JSONDecoder().decode(GameModel.self, from: jsonData)
-                completion(game)
+                let data = try JSONEncoder().encode(dto)
+                let dictionary = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                ref.child("users").child(userId).setValue(dictionary) { error, _ in
+                    completion(error == nil)
+                }
             } catch {
-                print("❌ Error decoding game data: \(error.localizedDescription)")
-                completion(nil)
+                print("❌ Error encoding user DTO: \(error.localizedDescription)")
+                completion(false)
             }
         }
-    }
+    
+    /// Saves a UserModel to Firebase Realtime Database
+    func addOrUpdateGame(_ game: GameModel, completion: @escaping (Bool) -> Void) {
+            let ref = Database.database().reference()
+            let dto = game.toDTO()
+            do {
+                let data = try JSONEncoder().encode(dto)
+                let dictionary = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                ref.child("games").child(game.id).setValue(dictionary) { error, _ in
+                    completion(error == nil)
+                }
+            } catch {
+                print("❌ Error encoding game DTO: \(error.localizedDescription)")
+                completion(false)
+            }
+        }
+    
+    func fetchGameData(gameCode: String, completion: @escaping (GameModel?) -> Void) {
+            let ref = Database.database().reference()
+            ref.child("games").child(gameCode).observeSingleEvent(of: .value) { snapshot, _ in
+                guard let data = snapshot.value as? [String: Any] else {
+                    completion(nil)
+                    return
+                }
+                do {
+                    let jsonData = try JSONSerialization.data(withJSONObject: data)
+                    let dto = try JSONDecoder().decode(GameModelDTO.self, from: jsonData)
+                    let model = GameModel.fromDTO(dto)
+                    completion(model)
+                } catch {
+                    print("❌ Error decoding game DTO: \(error.localizedDescription)")
+                    completion(nil)
+                }
+            }
+        }
     
     /// Fetches a UserModel from Firebase Realtime Database
     func fetchUserData(id: String, completion: @escaping (UserModel?) -> Void) {
-        let ref = Database.database().reference()
-
-        ref.child("users").child(id).observeSingleEvent(of: .value) { snapshot, _ in
-            guard let data = snapshot.value as? [String: Any] else {
-                completion(nil)
-                return
-            }
-
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: data)
-                let user = try JSONDecoder().decode(UserModel.self, from: jsonData)
-                completion(user)
-            } catch {
-                print("❌ Error decoding user data: \(error.localizedDescription)")
-                completion(nil)
+            let ref = Database.database().reference()
+            ref.child("users").child(id).observeSingleEvent(of: .value) { snapshot, _ in
+                guard let data = snapshot.value as? [String: Any] else {
+                    completion(nil)
+                    return
+                }
+                do {
+                    let jsonData = try JSONSerialization.data(withJSONObject: data)
+                    let dto = try JSONDecoder().decode(UserModelDTO.self, from: jsonData)
+                    let model = UserModel.fromDTO(dto)
+                    completion(model)
+                } catch {
+                    print("❌ Error decoding user DTO: \(error.localizedDescription)")
+                    completion(nil)
+                }
             }
         }
-    }
 
     /// Signs out the current user
     func logout() {

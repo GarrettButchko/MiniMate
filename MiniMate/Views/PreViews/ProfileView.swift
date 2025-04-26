@@ -7,7 +7,6 @@
 
 import SwiftUI
 import FirebaseAuth
-import FirebaseStorage
 
 /// Displays and allows editing of the current user's profile
 struct ProfileView: View {
@@ -105,7 +104,7 @@ struct ProfileView: View {
                     
                     EditProfileButton(editProfile: $editProfile) {
                         userModel!.mini.name = name
-                        authModel.saveUserData(user: userModel!) { _ in }
+                        authModel.saveUserData(userModel!) { _ in }
                         editProfile = false
                     } onToggle: {
                         editProfile = true

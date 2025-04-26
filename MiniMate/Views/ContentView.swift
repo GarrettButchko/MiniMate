@@ -13,7 +13,7 @@ struct ContentView: View {
 
     @State private var selectedTab = 1
     @State private var userModel: UserModel?
-    @State private var previousView: ViewManager.ViewType?
+    @State private var previousView: ViewType?
 
     var body: some View {
         ZStack {
@@ -39,7 +39,7 @@ struct ContentView: View {
                     WelcomeView(viewManager: viewManager)
                     
                 case .scoreCard(let gameModel):
-                    ScoreCardView(userModel: $userModel, authModel: authModel, gameModel: gameModel)
+                    ScoreCardView(viewManager: viewManager, userModel: $userModel, authModel: authModel, gameModel: gameModel)
                 }
             }
             .transition(currentTransition)
@@ -95,7 +95,7 @@ struct ContentView: View {
             //locFuncs.deletePersistentStore()
             
             if NetworkChecker.shared.isConnected {
-                authModel.saveUserData(user: userModel!) { _ in }
+                authModel.saveUserData(userModel!) { _ in }
             }
             loadOrCreateUserIfNeeded()
         }
@@ -150,7 +150,7 @@ struct ContentView: View {
                     )
                     context.insert(newUser)
                     try? context.save()
-                    authModel.saveUserData(user: newUser) { _ in }
+                    authModel.saveUserData(newUser) { _ in }
                     print("🆕 Created and saved new user.")
                     userModel = newUser
                 }

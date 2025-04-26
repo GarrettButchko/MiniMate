@@ -162,7 +162,7 @@ struct SignUpView: View {
                                 let newUser = UserModel(id: user.uid, mini: UserModelEssentials(id: user.uid, name: email), email: email, games: [])
                                 userModel = newUser
                                 context.insert(userModel!)
-                                authModel.saveUserData(user: userModel!) { _ in }
+                                authModel.saveUserData(userModel!) { _ in }
                                 viewManager.navigateToMain()
                                 Auth.auth().currentUser?.sendEmailVerification { error in
                                     print("Failed to send verification email.")

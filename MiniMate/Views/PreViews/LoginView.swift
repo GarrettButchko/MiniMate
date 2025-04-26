@@ -129,11 +129,11 @@ struct LoginView: View {
                                     /// If user is in local storage
                                     if let existingUser = locFuncs.fetchUser(by: user.uid, context: context) {
                                         userModel = existingUser
-                                        authModel.saveUserData(user: userModel!) { _ in }
+                                        authModel.saveUserData(userModel!) { _ in }
                                         viewManager.navigateToMain()
                                     } else {
                                         
-                                        authModel.fetchUserData(id: authModel.user!.uid) { model in
+                                        authModel.fetchUserData(id: user.uid) { model in
                                             /// if user is in online storage
                                             if let model = model {
                                                 userModel = model
@@ -146,7 +146,7 @@ struct LoginView: View {
                                                 userModel = newUser
                                                 context.insert(userModel!)
                                                 try? context.save()
-                                                authModel.saveUserData(user: userModel!) { _ in }
+                                                authModel.saveUserData(userModel!) { _ in }
                                                 viewManager.navigateToMain()
                                             }
                                         }
@@ -180,7 +180,7 @@ struct LoginView: View {
                                 /// If user is in local storage
                                 if let existingUser = locFuncs.fetchUser(by: user.uid, context: context) {
                                     userModel = existingUser
-                                    authModel.saveUserData(user: userModel!) { _ in }
+                                    authModel.saveUserData(userModel!) { _ in }
                                     viewManager.navigateToMain()
                                 /// if user isn't get from online
                                 } else {

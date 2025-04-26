@@ -45,7 +45,7 @@ struct JoinView: View {
                             }
 
                             // Save the updated model
-                            authModel.addAndUpdateGame(game: modelCopy) { success in
+                            authModel.addOrUpdateGame(modelCopy) { success in
                                 if success {
                                     print("✅ Player removed and game updated")
                                     self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
@@ -77,7 +77,7 @@ struct JoinView: View {
                                 }
 
                                 // Save the updated model
-                                authModel.addAndUpdateGame(game: modelCopy) { success in
+                                authModel.addOrUpdateGame(modelCopy) { success in
                                     if success {
                                         print("✅ Player removed and game updated")
                                         self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
@@ -103,7 +103,7 @@ struct JoinView: View {
                             if let model = model {
                                 model.playerIDs.append(userModel!.mini)
                                 self.gameModel = model
-                                authModel.addAndUpdateGame(game: model) { success in
+                                authModel.addOrUpdateGame(model) { success in
                                     print(success ? "Updated Game" : "Could not update Game")
                                 }
                             } else {
@@ -188,7 +188,7 @@ struct JoinView: View {
                 if let model = model {
                     self.gameModel = model
                     if model.started {
-                        
+                        viewManager.navigateToScoreCard($gameModel)
                     }
                 } else {
                     self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])

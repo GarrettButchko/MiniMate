@@ -45,7 +45,9 @@ struct HostView: View {
             }
         }
         .onAppear {
-            setupGame()
+            if !gameModel.started{
+                setupGame()
+            }
             startPollingForPlayers()
         }
         .onChange(of: showHost) { oldValue, newValue in
@@ -87,14 +89,14 @@ struct HostView: View {
             
             DatePicker("Date", selection: $gameModel.date, displayedComponents: [.date, .hourAndMinute])
                 .onChange(of: gameModel.date) { _, _ in
-                    authModel.addAndUpdateGame(game: gameModel) { _ in }
+                    authModel.addOrUpdateGame(gameModel) { _ in }
                 }
 
             HStack {
                 Text("Number of Holes:")
                 NumberPickerView(selectedNumber: $gameModel.numberOfHoles, maxNumber: 20)
                     .onChange(of: gameModel.numberOfHoles) { _, _ in
-                        authModel.addAndUpdateGame(game: gameModel) { _ in }
+                        authModel.addOrUpdateGame(gameModel) { _ in }
                     }
             }
         }
@@ -133,11 +135,10 @@ struct HostView: View {
             Button("Start Game") {
                 if !gameModel.started {
                     gameModel.started = true
-                    authModel.addAndUpdateGame(game: gameModel) { _ in }
+                    authModel.addOrUpdateGame(gameModel) { _ in }
                 }
-
-                viewManager.navigateScoreCard(gameModel: gameModel)
                 showHost = false
+                viewManager.navigateToScoreCard($gameModel)
             }
         }
     }
@@ -167,37 +168,50 @@ struct HostView: View {
 
     private func setupGame() {
         gameModel.id = generateGameCode()
-        
+
         if let host = userModel?.mini,
            !gameModel.playerIDs.contains(where: { $0.id == host.id }) {
             gameModel.playerIDs.append(host)
-            authModel.addAndUpdateGame(game: gameModel) { _ in }
         }
+        
+        authModel.addOrUpdateGame(gameModel) { _ in }
     }
+
 
     private func addNewPlayer() {
         let newPlayer = UserModelEssentials(id: generateGameCode(), name: newPlayerName)
         gameModel.playerIDs.append(newPlayer)
-        authModel.addAndUpdateGame(game: gameModel) { _ in }
+        authModel.addOrUpdateGame(gameModel) { _ in }
     }
 
     private func removePlayer(_ player: UserModelEssentials) {
         gameModel.playerIDs.removeAll { $0.id == player.id }
-        authModel.addAndUpdateGame(game: gameModel) { _ in }
+        authModel.addOrUpdateGame(gameModel) { _ in }
     }
 
     private func handleHostDismissal(_ isShowing: Bool) {
         if !isShowing {
             if gameModel.started {
-                userModel?.games.append(gameModel)
-            } else if isShowing && gameModel.started {
-                
+                if userModel?.games.contains(where: { $0.id == gameModel.id }) == false {
+                    // 🔥 Only insert if it hasn't been added yet
+                    gameModel.playerIDs = gameModel.playerIDs.map { player in
+                        UserModelEssentials(
+                            id: player.id.isEmpty ? UUID().uuidString : player.id,
+                            name: player.name.isEmpty ? "Unnamed Player" : player.name,
+                            photoURL: player.photoURL
+                        )
+                    }
+
+                    context.insert(gameModel)
+                    userModel?.games.append(gameModel)
+                }
             } else {
                 gameModel.playerIDs.removeAll { $0.id == userModel?.mini.id }
                 authModel.deleteGameData(gameCode: gameModel.id) { _ in }
             }
         }
     }
+
 
     private func generateGameCode(length: Int = 6) -> String {
         let characters = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
@@ -208,17 +222,19 @@ struct HostView: View {
         guard showHost else { return }  // Don't start if sheet is not showing
 
         print("running polling players...")
-        
+
         authModel.fetchGameData(gameCode: gameModel.id) { model in
             if let model = model {
                 self.gameModel.playerIDs = model.playerIDs
             }
-            
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                guard showHost else { return }  // 🔥 Prevent extra polling if sheet is dismissed
                 startPollingForPlayers()
             }
         }
     }
+
 }
 
 // MARK: - Player Icon View
