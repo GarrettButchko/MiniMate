@@ -1,6 +1,8 @@
 // Models.swift
 import Foundation
 import SwiftData
+import MapKit
+import Contacts
 
 // MARK: - UserModel
 
@@ -139,8 +141,7 @@ struct PlayerDTO: Codable {
 @Model
 class Game: Equatable {
     var id: String
-    var lat: Double?
-    var long: Double?
+    var location: MapItemDTO?
     var date: Date
     var completed: Bool
     var numberOfHoles: Int
@@ -160,8 +161,7 @@ class Game: Equatable {
 
     static func == (lhs: Game, rhs: Game) -> Bool {
         lhs.id             == rhs.id &&
-        lhs.lat            == rhs.lat &&
-        lhs.long           == rhs.long &&
+        lhs.location       == rhs.location &&
         lhs.date           == rhs.date &&
         lhs.completed      == rhs.completed &&
         lhs.numberOfHoles  == rhs.numberOfHoles &&
@@ -177,7 +177,7 @@ class Game: Equatable {
     // MARK: - Persistence Keys
 
     enum CodingKeys: String, CodingKey {
-        case id, lat, long, date, completed,
+        case id, location, date, completed,
              numberOfHoles, started, dismissed,
              totalTime, live, lastUpdated,
              holes, players
@@ -187,8 +187,7 @@ class Game: Equatable {
 
     init(
       id: String,
-      lat: Double? = nil,
-      long: Double? = nil,
+      location: MapItemDTO? = nil,
       date: Date,
       completed: Bool = false,
       numberOfHoles: Int = 18,
@@ -201,8 +200,7 @@ class Game: Equatable {
       players: [Player] = []
     ) {
       self.id             = id
-      self.lat            = lat
-      self.long           = long
+      self.location = location
       self.date           = date
       self.completed      = completed
       self.numberOfHoles  = numberOfHoles
@@ -216,12 +214,13 @@ class Game: Equatable {
     }
 
     // MARK: - DTO Conversion
+    
+    
 
     func toDTO() -> GameDTO {
       return GameDTO(
         id: id,
-        lat: lat,
-        long: long,
+        location: location ?? MapItemDTO(latitude: 0, longitude: 0, name: nil, phoneNumber: nil, url: nil, poiCategory: nil, timeZone: nil, street: nil, city: nil, state: nil, postalCode: nil, country: nil),
         date: date,
         completed: completed,
         numberOfHoles: numberOfHoles,
@@ -238,8 +237,7 @@ class Game: Equatable {
     static func fromDTO(_ dto: GameDTO) -> Game {
       return Game(
         id: dto.id,
-        lat: dto.lat,
-        long: dto.long,
+        location: dto.location,
         date: dto.date,
         completed: dto.completed,
         numberOfHoles: dto.numberOfHoles,
@@ -256,8 +254,7 @@ class Game: Equatable {
 
 struct GameDTO: Codable {
   var id: String
-  var lat: Double?
-  var long: Double?
+    var location: MapItemDTO
   var date: Date
   var completed: Bool
   var numberOfHoles: Int
@@ -270,7 +267,7 @@ struct GameDTO: Codable {
   var players: [PlayerDTO]
 
   enum CodingKeys: String, CodingKey {
-    case id, lat, long, date, completed,
+    case id, location, date, completed,
          numberOfHoles, started, dismissed,
          totalTime, live, lastUpdated,
          holes, players
@@ -280,8 +277,7 @@ struct GameDTO: Codable {
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: CodingKeys.self)
     id             = try c.decode(String.self,     forKey: .id)
-    lat            = try c.decodeIfPresent(Double.self, forKey: .lat)
-    long           = try c.decodeIfPresent(Double.self, forKey: .long)
+      location           = try c.decodeIfPresent(MapItemDTO.self, forKey: .location) ?? MapItemDTO(latitude: 0, longitude: 0, name: nil, phoneNumber: nil, url: nil, poiCategory: nil, timeZone: nil, street: nil, city: nil, state: nil, postalCode: nil, country: nil)
     date           = try c.decodeIfPresent(Date.self,   forKey: .date) ?? Date()
     completed      = try c.decodeIfPresent(Bool.self,   forKey: .completed) ?? false
     numberOfHoles  = try c.decodeIfPresent(Int.self,    forKey: .numberOfHoles) ?? 18
@@ -297,8 +293,7 @@ struct GameDTO: Codable {
   // memberwise initializer
   init(
     id: String,
-    lat: Double?,
-    long: Double?,
+    location: MapItemDTO,
     date: Date,
     completed: Bool,
     numberOfHoles: Int,
@@ -311,9 +306,8 @@ struct GameDTO: Codable {
     players: [PlayerDTO]
   ) {
     self.id             = id
-    self.lat            = lat
-    self.long           = long
-    self.date           = date
+    self.location = location
+      self.date = date
     self.completed      = completed
     self.numberOfHoles  = numberOfHoles
     self.started        = started
@@ -325,6 +319,71 @@ struct GameDTO: Codable {
     self.players        = players
   }
 }
+
+struct MapItemDTO: Codable, Equatable {
+    let latitude: Double
+    let longitude: Double
+    let name: String?
+    let phoneNumber: String?
+    let url: String?
+    let poiCategory: String?
+    let timeZone: String?
+
+    // Address components
+    let street: String?
+    let city: String?
+    let state: String?
+    let postalCode: String?
+    let country: String?
+    
+    static func == (lhs: MapItemDTO, rhs: MapItemDTO) -> Bool {
+        lhs.latitude             == rhs.latitude &&
+        lhs.longitude            == rhs.longitude &&
+        lhs.name           == rhs.name &&
+        lhs.phoneNumber      == rhs.phoneNumber &&
+        lhs.url  == rhs.url &&
+        lhs.poiCategory        == rhs.poiCategory &&
+        lhs.timeZone      == rhs.timeZone &&
+        lhs.street      == rhs.street &&
+        lhs.city           == rhs.city &&
+        lhs.state    == rhs.state &&
+        lhs.postalCode          == rhs.postalCode &&
+        lhs.country        == rhs.country
+    }
+    
+    func dtoToMapItem() -> MKMapItem {
+        let coordinate = CLLocationCoordinate2D(latitude: self.latitude, longitude: self.longitude)
+
+        let address = CNMutablePostalAddress()
+        address.street = self.street ?? ""
+        address.city = self.city ?? ""
+        address.state = self.state ?? ""
+        address.postalCode = self.postalCode ?? ""
+        address.country = self.country ?? ""
+
+        let placemark = MKPlacemark(coordinate: coordinate, postalAddress: address)
+
+        let item = MKMapItem(placemark: placemark)
+        item.name = self.name
+        item.phoneNumber = self.phoneNumber
+        item.url = self.url != nil ? URL(string: self.url!) : nil
+
+        if #available(iOS 13.0, *), let categoryRaw = self.poiCategory {
+            item.pointOfInterestCategory = MKPointOfInterestCategory(rawValue: categoryRaw)
+        }
+
+        if let timeZoneID = self.timeZone {
+            item.timeZone = TimeZone(identifier: timeZoneID)
+        }
+
+        return item
+    }
+    
+}
+
+
+
+
 
 // MARK: - Hole
 
@@ -374,4 +433,34 @@ struct HoleDTO: Codable {
     var number: Int
     var par: Int
     var strokes: Int
+}
+
+extension MKMapItem {
+    
+    var idString: String {
+            "\(placemark.coordinate.latitude)-\(placemark.coordinate.longitude)-\(name ?? "")"
+        }
+    
+    func toDTO() -> MapItemDTO {
+        let placemark = self.placemark
+        let coordinate = placemark.coordinate
+        let address = placemark.postalAddress
+
+        return MapItemDTO(
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            name: self.name,
+            phoneNumber: self.phoneNumber,
+            url: self.url?.absoluteString,
+            poiCategory: self.pointOfInterestCategory?.rawValue,
+            timeZone: self.timeZone?.identifier,
+            street: address?.street,
+            city: address?.city,
+            state: address?.state,
+            postalCode: address?.postalCode,
+            country: address?.country
+        )
+    }
+    
+    
 }

@@ -11,6 +11,7 @@ import Contacts
 class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate{
     
     @Published var mapItems: [MKMapItem] = []
+    @Published var selectedItem: MKMapItem?
     private let manager = CLLocationManager()
     @Published var userLocation: CLLocationCoordinate2D?
     
@@ -21,7 +22,28 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate{
         manager.requestWhenInUseAuthorization()
         manager.startUpdatingLocation()
     }
+    
+    func bindingForSelectedItem() -> Binding<MKMapItem?> {
+        Binding(
+            get: { self.selectedItem },
+            set: { self.selectedItem = $0 }
+        )
+    }
+    
+    func bindingForSelectedItemID() -> Binding<String?> {
+        Binding(
+            get: { self.selectedItem?.idString },
+            set: { newID in
+                self.selectedItem = self.mapItems.first(where: { $0.idString == newID })
+            }
+        )
+    }
 
+    
+    func setSelectedItem(_ item: MKMapItem?){
+        selectedItem = item
+    }
+    
     func performSearch(in region: MKCoordinateRegion, completion: @escaping (Bool) -> Void) {
         // Clear previous results
         self.mapItems.removeAll()
@@ -69,10 +91,17 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate{
         
         
         if let selected = selectedResult {
-            // Zoom to selected result
+            let original = selected.placemark.coordinate
+            
+            // Shift coordinate downward slightly to move camera view up
+            let adjustedCoordinate = CLLocationCoordinate2D(
+                latitude: original.latitude - 0.00042, // tweak this value as needed
+                longitude: original.longitude
+            )
+            
             cameraPosition = .camera(
                 MapCamera(
-                    centerCoordinate: selected.placemark.coordinate,
+                    centerCoordinate: adjustedCoordinate,
                     distance: 500,
                     heading: 0,
                     pitch: 0
@@ -119,10 +148,37 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate{
                                   span: span)
     }
     
+    func getPostalAddress(from mapItem: MKMapItem) -> String {
+        let placemark = mapItem.placemark
+        var components: [String] = []
+
+        if let subThoroughfare = placemark.subThoroughfare { components.append(subThoroughfare) }
+        if let thoroughfare = placemark.thoroughfare { components.append(thoroughfare) }
+        if let locality = placemark.locality { components.append(locality) }
+        if let administrativeArea = placemark.administrativeArea { components.append(administrativeArea) }
+
+        return components.joined(separator: ", ")
+    }
+    
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let loc = locations.last {
             userLocation = loc.coordinate
         }
+    }
+    
+    func setClosestValue() {
+        guard selectedItem == nil, let userLocation = userLocation else { return }
+
+            let region = MKCoordinateRegion(
+                center: userLocation,
+                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+            )
+
+            performSearch(in: region) { result in
+                if result {
+                    self.setSelectedItem(self.mapItems.first)
+                }
+            }
     }
 }

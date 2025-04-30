@@ -12,12 +12,13 @@ import MapKit
 
 struct CourseView: View {
     @StateObject var viewManager: ViewManager
-    @StateObject var locationHandler = LocationHandler()
+    @StateObject var authModel: AuthViewModel
+    @StateObject var locationHandler: LocationHandler
     
-    @State var selectedResult: MKMapItem?
     @State var showSheet: Bool = true
     @State var position: MapCameraPosition = .automatic
     @State var isUpperHalf: Bool = false
+    @State var showHost: Bool = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -40,7 +41,7 @@ struct CourseView: View {
                         
                         Spacer()
                         
-                        LocationButton(cameraPosition: $position, isUpperHalf: $isUpperHalf, selectedResult: $selectedResult, locationHandler: locationHandler)
+                        LocationButton(cameraPosition: $position, isUpperHalf: $isUpperHalf, selectedResult: locationHandler.bindingForSelectedItem(), locationHandler: locationHandler)
                     }
                     
                     Spacer()
@@ -50,7 +51,7 @@ struct CourseView: View {
                         searchButton
                     } else {
                         VStack{
-                            if selectedResult != nil {
+                            if locationHandler.selectedItem != nil {
                                 resultView
                                     .frame(maxHeight: geometry.size.height * 0.4)
                                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -69,18 +70,21 @@ struct CourseView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
+            .onAppear {
+                
+            }
         }
     }
     
     var mapView: some View {
-        Map(position: $position, selection: $selectedResult) {
+        Map(position: $position, selection: locationHandler.bindingForSelectedItem()) {
             ForEach(locationHandler.mapItems, id: \.self) { item in
                 Marker(item.name ?? "Unknown", coordinate: item.placemark.coordinate)
                     .tint(.green)
             }
             UserAnnotation()
         }
-        .onChange(of: selectedResult) { oldValue, newValue in
+        .onChange(of: locationHandler.selectedItem) { oldValue, newValue in
             withAnimation {
                 position = locationHandler.updateCameraPosition(newValue)
             }
@@ -171,8 +175,8 @@ struct CourseView: View {
                             SearchResultRow(item: mapItem, userLocation: userCoord)
                                 .onTapGesture {
                                     withAnimation(){
-                                        selectedResult = mapItem
-                                        position = locationHandler.updateCameraPosition(selectedResult)
+                                        locationHandler.setSelectedItem(mapItem)
+                                        position = locationHandler.updateCameraPosition(locationHandler.bindingForSelectedItem().wrappedValue)
                                     }
                                 }
                         }
@@ -189,13 +193,13 @@ struct CourseView: View {
     var resultView: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(selectedResult?.name ?? "")
+                Text(locationHandler.selectedItem?.name ?? "")
                     .font(.title3).fontWeight(.bold)
                     .foregroundStyle(.mainOpp)
                 Spacer()
                 Button {
                     withAnimation {
-                        selectedResult = nil
+                        locationHandler.setSelectedItem(nil)
                     }
                 } label: {
                     ZStack {
@@ -209,20 +213,47 @@ struct CourseView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    
+                    
+                    Button {
+                        showHost = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                            Text("Host/Start Game Here")
+                                .fontWeight(.semibold)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(.purple))
+                        .foregroundColor(.white)
+                    }
+                    .sheet(isPresented: $showHost) {
+                        HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: true, showLocationPicker: true)
+                            .presentationDetents([.large])
+                    }
+
+                    
+            
+                    
 
                     // MARK: - Contact Info
-                    if selectedResult?.phoneNumber != nil || selectedResult?.url != nil {
-                        HStack{
+                    if let selected = locationHandler.bindingForSelectedItem().wrappedValue,
+                       selected.phoneNumber != nil || selected.url != nil {
+                        
+                        HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "phone.fill")
                                     Text("Contact")
                                         .font(.headline)
                                 }
-                                if let phone = selectedResult?.phoneNumber {
+
+                                if let phone = selected.phoneNumber {
                                     Text("Phone: \(phone)")
                                 }
-                                if let url = selectedResult?.url {
+
+                                if let url = selected.url {
                                     Link("Website", destination: url)
                                 }
                             }
@@ -242,13 +273,13 @@ struct CourseView: View {
                                 Text("Location")
                                     .font(.headline)
                             }
-                            if let name = selectedResult?.name {
+                            if let name = locationHandler.bindingForSelectedItem().wrappedValue?.name {
                                 Text(name)
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                             }
-                            if let selectedResult = selectedResult {
-                                Text(getPostalAddress(from: selectedResult))
+                            if let selectedResult = locationHandler.bindingForSelectedItem().wrappedValue {
+                                Text(locationHandler.getPostalAddress(from: selectedResult))
                                     .font(.callout)
                             }
                         }
@@ -259,7 +290,7 @@ struct CourseView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                     // MARK: - Timezone
-                    if let timeZone = selectedResult?.timeZone {
+                    if let timeZone = locationHandler.bindingForSelectedItem().wrappedValue?.timeZone {
                         HStack {
                             VStack(alignment: .leading, spacing: 4){
                                 HStack(spacing: 8) {
@@ -278,12 +309,14 @@ struct CourseView: View {
                     }
 
                     // MARK: - Directions Button
+                    
+                    
                     Button(action: {
                         let launchOptions = [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking]
-                        selectedResult?.openInMaps(launchOptions: launchOptions)
+                        locationHandler.bindingForSelectedItem().wrappedValue?.openInMaps(launchOptions: launchOptions)
                     }) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 20)
+                            RoundedRectangle(cornerRadius: 15)
                                 .fill(Color.blue)
                             VStack {
                                 Image(systemName: "arrow.turn.up.right")
@@ -304,17 +337,7 @@ struct CourseView: View {
         }
     }
     
-    private func getPostalAddress(from mapItem: MKMapItem) -> String {
-        let placemark = mapItem.placemark
-        var components: [String] = []
-
-        if let subThoroughfare = placemark.subThoroughfare { components.append(subThoroughfare) }
-        if let thoroughfare = placemark.thoroughfare { components.append(thoroughfare) }
-        if let locality = placemark.locality { components.append(locality) }
-        if let administrativeArea = placemark.administrativeArea { components.append(administrativeArea) }
-
-        return components.joined(separator: ", ")
-    }
+    
     
 }
 

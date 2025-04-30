@@ -1,8 +1,10 @@
 import SwiftUI
+import MapKit
 
 struct MainView: View {
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
+    @StateObject var locationHandler: LocationHandler
 
     @State private var isSheetPresented = false
     @State var showLoginOverlay = false
@@ -127,7 +129,7 @@ struct MainView: View {
                                     showHost = true
                                 }
                                 .sheet(isPresented: $showHost) {
-                                    HostView(onlineGame: isOnlineMode, showHost: $showHost, authModel: authModel, viewManager: viewManager)
+                                    HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: isOnlineMode)
                                         .presentationDetents([.large])
                                 }
 
@@ -152,7 +154,7 @@ struct MainView: View {
                                     }
                                 }
                                 .sheet(isPresented: $showHost) {
-                                    HostView(onlineGame: false, showHost: $showHost, authModel: authModel, viewManager: viewManager)
+                                    HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: false)
                                         .presentationDetents([.large])
                                 }
 

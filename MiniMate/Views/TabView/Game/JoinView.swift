@@ -7,7 +7,7 @@ import SwiftUI
 
 struct JoinView: View {
     @Environment(\.modelContext) private var context
-    @State private var game: Game = Game(id: "", lat: nil, long: nil, date: Date())
+    @State private var game: Game = Game(id: "", date: Date())
 
     @StateObject var authModel: AuthViewModel
     
@@ -105,6 +105,15 @@ struct JoinView: View {
                     Spacer()
                     Text(game.date.formatted(date: .abbreviated, time: .shortened))
                 }
+                
+                if let gameLocation = game.location {
+                    HStack {
+                        Text("Location:")
+                        Spacer()
+                        Text(gameLocation.name ?? "Unknown")
+                    }
+                }
+                
                 HStack {
                     Text("Holes:")
                     Spacer()
@@ -156,7 +165,7 @@ struct JoinView: View {
         guard let user = authModel.userModel else { return }
         game.players.removeAll { $0.id == user.id }
         authModel.addOrUpdateGame(game) { _ in }
-        game = Game(id: "", lat: nil, long: nil, date: Date())
+        game = Game(id: "", date: Date())
     }
 
     // MARK: - Helpers

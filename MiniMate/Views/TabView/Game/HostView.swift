@@ -4,18 +4,20 @@
 // Refactored to use new SwiftData models and AuthViewModel
 
 import SwiftUI
+import MapKit
 
 struct HostView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
-    @State private var game: Game = Game(id: "", lat: nil, long: nil, date: Date())
-    var onlineGame: Bool
     @Binding var showHost: Bool
 
     @StateObject var authModel: AuthViewModel
     @StateObject var viewManager: ViewManager
+    @StateObject var locationHandler: LocationHandler
 
+    @State private var game: Game = Game(id: "", date: Date())
+    var onlineGame: Bool
     @State private var showAddPlayerAlert = false
     @State private var showDeleteAlert = false
     @State private var newPlayerName = ""
@@ -28,6 +30,8 @@ struct HostView: View {
     // a one-second ticker
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State  private var timeRemaining: TimeInterval = 20 * 60
+    
+    @State var showLocationPicker: Bool = false
 
     var body: some View {
         VStack {
@@ -95,35 +99,89 @@ struct HostView: View {
     // MARK: - Sections
 
     private var gameInfoSection: some View {
-        Section(header: Text("Game Info")) {
-            if onlineGame {
-                HStack {
-                    Text("Game Code:")
-                    Spacer()
-                    Text(game.id)
+        Group {
+            Section {
+                if onlineGame {
+                    HStack {
+                        Text("Game Code:")
+                        Spacer()
+                        Text(game.id)
+                    }
+
+                    HStack {
+                        Text("Expires in:")
+                        Spacer()
+                        Text(timeString(from: Int(timeRemaining)))
+                            .monospacedDigit()
+                    }
                 }
-                HStack {
-                    Text("Expires in:")
-                    Spacer()
-                    // format MM:SS
-                    Text(timeString(from: Int(timeRemaining)))
-                      .monospacedDigit()
-                  }
-            }
 
-            DatePicker("Date & Time", selection: $game.date)
-                .onChange(of: game.date) { _, _ in pushUpdate() }
-
-            HStack {
-                Text("Holes:")
-                NumberPickerView(selectedNumber: $game.numberOfHoles, minNumber: 9, maxNumber: 21)
-                    .onChange(of: game.numberOfHoles) { _, _ in
-                        updateHoles()
+                DatePicker("Date & Time", selection: $game.date)
+                    .onChange(of: game.date) { _, _ in
                         pushUpdate()
                     }
+
+                if onlineGame {
+                    HStack {
+                        Text("Use Location:")
+                        Spacer()
+                        Toggle("", isOn: $showLocationPicker)
+                            .onChange(of: showLocationPicker) { _, new in
+                                if new, let userCoord = locationHandler.userLocation {
+                                    locationHandler.setClosestValue()
+                                    
+                                        let userLoc = CLLocation(latitude: userCoord.latitude, longitude: userCoord.longitude)
+                                    locationHandler.mapItems = locationHandler.mapItems.sorted {
+                                            let loc1 = CLLocation(latitude: $0.placemark.coordinate.latitude,
+                                                                  longitude: $0.placemark.coordinate.longitude)
+                                            let loc2 = CLLocation(latitude: $1.placemark.coordinate.latitude,
+                                                                  longitude: $1.placemark.coordinate.longitude)
+                                            return loc1.distance(from: userLoc) < loc2.distance(from: userLoc)
+                                        }
+                                    pushUpdate()
+                                } else {
+                                    locationHandler.setSelectedItem(nil)
+                                }
+                            }
+                    }
+                }
+
+                if showLocationPicker, let userLocation = locationHandler.userLocation {
+                    
+                    VStack{
+                        Text("Select a Course:")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        Picker("", selection: locationHandler.bindingForSelectedItemID()) {
+                            ForEach(locationHandler.mapItems, id: \.idString) { item in
+                                MapItemPickerRowView(item: item, userLocation: userLocation)
+                                    .tag(item.idString)
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .onChange(of: locationHandler.selectedItem) { _, _ in
+                            pushUpdate()
+                        }
+                    }
+                }
+
+
+                HStack {
+                    Text("Holes:")
+                    NumberPickerView(selectedNumber: $game.numberOfHoles, minNumber: 9, maxNumber: 21)
+                        .onChange(of: game.numberOfHoles) { _, _ in
+                            updateHoles()
+                            pushUpdate()
+                        }
+                }
+
+            } header: {
+                Text("Game Info")
             }
         }
     }
+
 
     private var playersSection: some View {
         Section(header: Text("Players: \(game.players.count)")) {
@@ -247,6 +305,9 @@ struct HostView: View {
                 authModel.deleteGame(id: game.id) { _ in }
                 game.live = false
             }
+            withAnimation(){
+                locationHandler.setSelectedItem(nil)
+            }
         }
     }
 
@@ -273,6 +334,7 @@ struct HostView: View {
       guard onlineGame else { return }
       game.lastUpdated = Date()          // save into your model too
       lastUpdated       = Date()         // restart our local clock
+        game.location = locationHandler.selectedItem?.toDTO()
       authModel.addOrUpdateGame(game) { _ in }
     }
 
@@ -283,6 +345,19 @@ struct HostView: View {
     }
 }
 
+struct MapItemPickerRowView: View {
+    let item: MKMapItem
+    let userLocation: CLLocationCoordinate2D
+
+    var body: some View {
+        let itemName = item.name ?? "Unknown"
+        let itemLocation = CLLocation(latitude: item.placemark.coordinate.latitude, longitude: item.placemark.coordinate.longitude)
+        let userLoc = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
+        let distanceInMiles = userLoc.distance(from: itemLocation) / 1609.34
+
+        Text("\(itemName) • \(String(format: "%.1f", distanceInMiles)) mi")
+    }
+}
 
 // MARK: - Player Icon View
 

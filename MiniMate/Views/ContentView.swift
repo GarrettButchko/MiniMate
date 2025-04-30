@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 import FirebaseAuth
 import SwiftData
 
@@ -89,7 +90,8 @@ struct MainTabView: View {
     @Environment(\.modelContext) private var context
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
-
+    @StateObject var locationHandler = LocationHandler()
+    
     @State var selectedTab: Int
 
     var body: some View {
@@ -98,11 +100,11 @@ struct MainTabView: View {
                 .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                 .tag(0)
 
-            MainView(viewManager: viewManager, authModel: authModel)
+            MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(1)
 
-            CourseView(viewManager: viewManager)
+            CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
                 .tabItem { Label("Courses", systemImage: "figure.golf") }
                 .tag(2)
         }
