@@ -30,28 +30,39 @@ struct LocFuncs {
     }
 
     /// Deletes the local SwiftData SQLite store (dev use only)
-    /// Use this for resetting persistent storage (e.g., when schema changes cause migration errors)
-    func deletePersistentStore() {
-        let fileManager = FileManager.default
-        let storeBaseURL = URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Library/Application Support")
+    /// Deletes everything in the SwiftData store (SQLite + wal/shm files) and clears UserDefaults.
+    func clearSwiftDataStore() {
+        let fm = FileManager.default
 
-        let storeFilenames = [
-            "default.store",
-            "default.store-wal",
-            "default.store-shm"
-        ]
+        // 1. Locate Application Support/<YourBundleID> directory
+        guard let appSupport = fm.urls(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask
+              ).first else {
+            print("❌ Couldn't find Application Support directory")
+            return
+        }
+        let bundleID = Bundle.main.bundleIdentifier ?? ""
+        let storeFolder = appSupport.appendingPathComponent(bundleID)
 
-        for file in storeFilenames {
-            let fullPath = storeBaseURL.appendingPathComponent(file)
-            if fileManager.fileExists(atPath: fullPath.path) {
+        // 2. Remove the three SQLite files
+        ["default.store", "default.store-wal", "default.store-shm"].forEach { filename in
+            let fileURL = storeFolder.appendingPathComponent(filename)
+            if fm.fileExists(atPath: fileURL.path) {
                 do {
-                    try fileManager.removeItem(at: fullPath)
-                    print("🗑️ Deleted store file: \(file)")
+                    try fm.removeItem(at: fileURL)
+                    print("🗑️ Deleted \(filename)")
                 } catch {
-                    print("❌ Failed to delete \(file): \(error.localizedDescription)")
+                    print("❌ Failed to delete \(filename): \(error)")
                 }
             }
+        }
+
+        // 3. (Optional) Wipe UserDefaults so you don’t pick up any orphaned settings
+        if let domain = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: domain)
+            UserDefaults.standard.synchronize()
+            print("🗑️ Cleared UserDefaults for \(domain)")
         }
     }
 }

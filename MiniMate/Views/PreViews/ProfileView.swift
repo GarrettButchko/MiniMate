@@ -1,9 +1,7 @@
+// ProfileView.swift
+// MiniMate
 //
-//  ProfileView.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 2/3/25.
-//
+// Updated to use UserModel and AuthViewModel
 
 import SwiftUI
 import FirebaseAuth
@@ -11,168 +9,22 @@ import FirebaseAuth
 /// Displays and allows editing of the current user's profile
 struct ProfileView: View {
     @Environment(\.modelContext) private var context
-    
+
     @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthModel
-    
-    /// Controls sheet dismissal
+    @StateObject var authModel: AuthViewModel
+
     @Binding var isSheetPresent: Bool
-    
-    /// The user currently signed in
-    @Binding var userModel: UserModel?
-    
-    /// Toggles between view and edit mode
+    @Binding var showLoginOverlay: Bool
+
     @State private var editProfile: Bool = false
-    
-    @Binding var showLoginOverlay : Bool
-    @State private var showDeleteConfirmation = false
-    
-    /// Form fields (used for editing)
+    @State private var showDeleteConfirmation: Bool = false
+
     @State private var name: String = ""
     @State private var email: String = ""
-    
-    /// for bottom error text
+
     @State private var botMessage: String = ""
-    
-    /// to show password or not
-    @State private var isSecure: Bool = true
-    
-    /// if message is red vs green
     @State private var isRed: Bool = true
-    
-    /// Selected User profile image
-    @State private var selectedImage: UIImage?
-    
-    /// shows photopicker
-    @State private var isShowingImagePicker = false
-    
-    @ViewBuilder
-    private var userDetailsSection: some View {
-        Section("User Details") {
-            if let user = userModel {
-                HStack {
-                    Text("Name:")
-                    if !editProfile {
-                        Text(user.mini.name)
-                    } else {
-                        TextField("Name", text: $name)
-                            .textFieldStyle(.roundedBorder)
-                            .onChange(of: name) { newValue, oldValue in
-                                if newValue.count > 30 {
-                                    name = String(newValue.prefix(30))
-                                }
-                            }
-                    }
-                }
 
-                UserInfoRow(label: "Email", value: user.email!)
-                UserInfoRow(label: "UID", value: user.mini.id)
-
-                if let user = authModel.user, !user.providerData.contains(where: { $0.providerID == "google.com" }) {
-                    
-                    Button("Password Reset") {
-                        Auth.auth().sendPasswordReset(withEmail: email) { error in
-                            if let error = error {
-                                botMessage = error.localizedDescription
-                                isRed = true
-                            } else {
-                                isRed = false
-                                botMessage = "Password reset email sent!"
-                            }
-                        }
-                    }
-                
-                    /// For future update
-                    //Button("Change Photo") {
-                    //    isShowingImagePicker = true
-                    //}
-                    //.fullScreenCover(isPresented: $isShowingImagePicker, content: {
-                    //    ImagePicker(selectedImage: $selectedImage)
-                    //})
-                    //.onChange(of: selectedImage) { newImage, _ in
-                    //    if let image = newImage {
-                    //        authModel.updateProfileImage(image) { result in
-                    //            switch result {
-                    //            case .success(let url):
-                    //                print("✅ Photo updated! URL: \(url)")
-                    //            case .failure(let error):
-                    //                print("❌ Error updating photo: \(error.localizedDescription)")
-                    //            }
-                    //        }
-                    //   }
-                    //}
-                    
-                    EditProfileButton(editProfile: $editProfile) {
-                        userModel!.mini.name = name
-                        authModel.saveUserData(userModel!) { _ in }
-                        editProfile = false
-                    } onToggle: {
-                        editProfile = true
-                    }
-
-                }
-
-            } else {
-                Text("User data not available.")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var accountManagementSection: some View {
-        Section("Account Management") {
-            Button("Logout") {
-                isSheetPresent.toggle()
-                withAnimation {
-                    viewManager.navigateToWelcome()
-                }
-                authModel.logout()
-            }
-            .foregroundColor(.red)
-
-            Button("Delete Account") {
-                if let user = authModel.user, user.providerData.contains(where: { $0.providerID == "google.com" }) {
-                        showDeleteConfirmation = true
-                    } else {
-                        withAnimation {
-                            showLoginOverlay = true
-                    }
-                }
-            }
-            .foregroundColor(.red)
-        }
-        .alert("Are you sure?", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
-                authModel.deleteAccount { result in
-                    if result == "true" {
-                        showDeleteConfirmation = false
-                        isSheetPresent.toggle()
-                        withAnimation {
-                            viewManager.navigateToWelcome()
-                        }
-                        context.delete(userModel!)
-                    } else {
-                        botMessage = result
-                    }
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will permanently delete your account and data.")
-        }
-    }
-
-    @ViewBuilder
-    private var messageSection: some View {
-        if !botMessage.isEmpty {
-            Section("Message") {
-                Text(botMessage)
-                    .foregroundColor(isRed ? .red : .green)
-            }
-        }
-    }
-    
-    
     var body: some View {
         ZStack {
             VStack {
@@ -181,8 +33,8 @@ struct ProfileView: View {
                     .frame(width: 38, height: 6)
                     .foregroundColor(.gray)
                     .padding(10)
-                
-                HStack{
+
+                HStack {
                     Text("Profile")
                         .font(.title)
                         .fontWeight(.bold)
@@ -190,30 +42,147 @@ struct ProfileView: View {
                         .padding(.leading, 30)
                     Spacer()
                 }
-                
+
                 List {
-                    userDetailsSection
-                    accountManagementSection
-                    messageSection
+                    // User Details Section
+                    Section("User Details") {
+                        if let user = authModel.userModel {
+                            HStack {
+                                Text("Name:")
+                                if editProfile {
+                                    TextField("Name", text: $name)
+                                        .textFieldStyle(.roundedBorder)
+                                        .onChange(of: name) { _, newValue in
+                                            if newValue.count > 30 {
+                                                name = String(newValue.prefix(30))
+                                            }
+                                        }
+                                } else {
+                                    Text(user.name)
+                                }
+                            }
+
+                            HStack {
+                                Text("Email:")
+                                Text(user.email ?? "")
+                            }
+
+                            HStack {
+                                Text("UID:")
+                                Text(user.id)
+                            }
+
+                            // Only allow edit/reset for non-Google accounts
+                            if let firebaseUser = authModel.firebaseUser,
+                               !firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
+                                Button(editProfile ? "Save" : "Edit Profile") {
+                                    if editProfile {
+                                        authModel.userModel?.name = name
+                                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                                        editProfile = false
+                                    } else {
+                                        name = user.name
+                                        editProfile = true
+                                    }
+                                }
+
+                                Button("Password Reset") {
+                                    let targetEmail = user.email ?? ""
+                                    Auth.auth().sendPasswordReset(withEmail: targetEmail) { error in
+                                        if let error = error {
+                                            botMessage = error.localizedDescription
+                                            isRed = true
+                                        } else {
+                                            botMessage = "Password reset email sent!"
+                                            isRed = false
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("User data not available.")
+                        }
+                    }
+
+                    // Account Management Section
+                    Section("Account Management") {
+                        Button("Logout") {
+                            isSheetPresent = false
+                            withAnimation {
+                                viewManager.navigateToWelcome()
+                            }
+                            authModel.logout()
+                        }
+                        .foregroundColor(.red)
+
+                        Button("Delete Account") {
+                            if let firebaseUser = authModel.firebaseUser,
+                               firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
+                                showDeleteConfirmation = true
+                            } else {
+                                withAnimation {
+                                    showLoginOverlay = true
+                                }
+                            }
+                        }
+                        .foregroundColor(.red)
+                        .alert("Confirm Deletion", isPresented: $showDeleteConfirmation) {
+                            Button("Delete", role: .destructive) {
+                                authModel.reauthenticateWithGoogle { reauthResult in
+                                    switch reauthResult {
+                                    case .success(let credential):
+                                        authModel.deleteAccount(reauthCredential: credential) { deleteResult in
+                                            switch deleteResult {
+                                            case .success:
+                                                print("✅ Account deleted")
+                                                viewManager.navigateToWelcome()
+                                            case .failure(let error):
+                                                print("❌ Error deleting account: \(error.localizedDescription)")
+                                            }
+                                        }
+                                    case .failure(let error):
+                                        print("❌ Error reauthenticating: \(error.localizedDescription)")
+                                    }
+                                }
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text("This will permanently delete your account and all data.")
+                        }
+                    }
+
+                    // Bot Message Section
+                    if !botMessage.isEmpty {
+                        Section("Message") {
+                            Text(botMessage)
+                                .foregroundColor(isRed ? .red : .green)
+                        }
+                    }
                 }
                 .onAppear {
-                    if let user = userModel {
-                        name = user.mini.name
-                        email = user.email!
+                    if let user = authModel.userModel {
+                        name = user.name
+                        email = user.email ?? ""
                     }
                 }
             }
-            /// LoginOverlay
+
+            // Reauth Overlay
             if showLoginOverlay {
-                ReauthViewOverlay(viewManager: viewManager, authModel: authModel, showLoginOverlay: $showLoginOverlay, isSheetPresent: $isSheetPresent, userModel: $userModel)
+                ReauthViewOverlay(
+                    viewManager: viewManager,
+                    authModel: authModel,
+                    showLoginOverlay: $showLoginOverlay,
+                    isSheetPresent: $isSheetPresent
+                )
                 .cornerRadius(20)
-                .transition(.opacity)
                 .zIndex(1)
             }
         }
     }
 }
 
+// Reusable row for displaying static user info
 struct UserInfoRow: View {
     let label: String
     let value: String
@@ -225,20 +194,3 @@ struct UserInfoRow: View {
         }
     }
 }
-
-struct EditProfileButton: View {
-    @Binding var editProfile: Bool
-    let onSave: () -> Void
-    let onToggle: () -> Void
-
-    var body: some View {
-        Button(editProfile ? "Save" : "Edit Profile") {
-            if editProfile {
-                onSave()
-            } else {
-                onToggle()
-            }
-        }
-    }
-}
-

@@ -4,7 +4,6 @@ struct SyncedScrollViewRepresentable<Content: View>: UIViewRepresentable {
     @Binding var scrollOffset: CGFloat
     @Binding var syncSourceID: UUID?
     let viewID = UUID()
-
     let content: () -> Content
 
     func makeCoordinator() -> Coordinator {
@@ -16,9 +15,14 @@ struct SyncedScrollViewRepresentable<Content: View>: UIViewRepresentable {
         scrollView.delegate = context.coordinator
         scrollView.showsHorizontalScrollIndicator = true
         scrollView.alwaysBounceHorizontal = true
+        scrollView.backgroundColor = .clear  // <-- Clear background for scroll view
 
-        let hostedVC = UIHostingController(rootView: content())
+        let hostedVC = UIHostingController(rootView:
+            content()
+                .background(Color.clear)  // <-- Clear background for SwiftUI content
+        )
         hostedVC.view.translatesAutoresizingMaskIntoConstraints = false
+        hostedVC.view.backgroundColor = .clear  // <-- Clear background for hosted view
 
         scrollView.addSubview(hostedVC.view)
 

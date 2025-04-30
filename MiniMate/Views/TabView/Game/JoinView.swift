@@ -1,21 +1,24 @@
+// JoinView.swift
+// MiniMate
 //
-//  JoinView.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 4/19/25.
-//
+// Refactored to use SwiftData models and AuthViewModel
 
 import SwiftUI
 
 struct JoinView: View {
-    @Binding var userModel: UserModel?
-    @StateObject var authModel: AuthModel
-    @Binding var showHost: Bool
+    @Environment(\.modelContext) private var context
+    @State private var game: Game = Game(id: "", lat: nil, long: nil, date: Date())
+
+    @StateObject var authModel: AuthViewModel
+    
     @StateObject var viewManager: ViewManager
 
-    @State private var gameStarted = false
-    @State private var gameModel: GameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18)
     @State private var gameCode: String = ""
+    
+    @State private var message: String = ""
+    
+    @Binding var showHost: Bool
+    @State private var showExitAlert: Bool = false
 
     var body: some View {
         VStack {
@@ -28,152 +31,100 @@ struct JoinView: View {
                 Text("Join Game")
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(.primary)
                     .padding(.leading, 30)
                 Spacer()
             }
-            .onChange(of: showHost) { oldValue, newValue in
-                if gameModel.id != "" {
-                    authModel.fetchGameData(gameCode: gameModel.id) { model in
-                        if let model = model {
-                            // Remove this player from the game
-                            
-                            let modelCopy = model
-                            
-                            if let index = model.playerIDs.firstIndex(where: { $0.id == userModel!.mini.id }) {
-                                model.playerIDs.remove(at: index)
-                            }
-
-                            // Save the updated model
-                            authModel.addOrUpdateGame(modelCopy) { success in
-                                if success {
-                                    print("✅ Player removed and game updated")
-                                    self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
-                                    
-                                } else {
-                                    print("❌ Could not update game")
-                                }
-                            }
-                        } else {
-                            print("❌ Game not found")
-                        }
-                    }
-                }
-            }
+            .padding(.bottom, 10)
 
             Form {
                 gameInfoSection
-                if gameModel.id != "" {
-                    playersSection
-                    Button {
-                        authModel.fetchGameData(gameCode: gameModel.id) { model in
-                            if let model = model {
-                                // Remove this player from the game
-                                
-                                let modelCopy = model
-                                
-                                if let index = model.playerIDs.firstIndex(where: { $0.id == userModel!.mini.id }) {
-                                    model.playerIDs.remove(at: index)
-                                }
 
-                                // Save the updated model
-                                authModel.addOrUpdateGame(modelCopy) { success in
-                                    if success {
-                                        print("✅ Player removed and game updated")
-                                        self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
-                                        
-                                    } else {
-                                        print("❌ Could not update game")
-                                    }
-                                }
-                            } else {
-                                print("❌ Game not found")
-                            }
+                if !game.id.isEmpty {
+                    playersSection
+
+                    Section {
+                        Button("Exit Game") {
+                            showExitAlert = true
                         }
-                    } label: {
-                        Text("Exit Game")
+                        .foregroundColor(.red)
+                        .alert("Exit Game?", isPresented: $showExitAlert) {
+                            Button("Leave", role: .destructive) {
+                                exitGame()
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        }
                     }
                     .onAppear {
-                        pollingForUpdates()
-                    }
-                    
-                } else {
-                    Button{
-                        authModel.fetchGameData(gameCode: gameCode) { model in
-                            if let model = model {
-                                model.playerIDs.append(userModel!.mini)
-                                self.gameModel = model
-                                authModel.addOrUpdateGame(model) { success in
-                                    print(success ? "Updated Game" : "Could not update Game")
+                        authModel.listenForGameUpdates(id: game.id) { updated in
+                            if let updated = updated {
+                                game = updated
+                                if updated.started {
+                                    authModel.stopListeningForGameUpdates(id: game.id)
+                                    showHost = false
+                                    viewManager.navigateToScoreCard($game, true)
                                 }
-                            } else {
-                                self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
                             }
                         }
-
-                    } label: {
-                        Text("Join Game")
+                    }
+                } else {
+                    Section {
+                        Button("Join Game") {
+                            joinGame()
+                        }
+                        .disabled(gameCode.isEmpty)
                     }
                 }
             }
         }
-        
     }
 
-    // MARK: - View Sections
+    // MARK: - Sections
 
     private var gameInfoSection: some View {
         Section(header: Text("Game Info")) {
-            VStack(alignment: .leading, spacing: 10) {
+            if game.id.isEmpty {
                 HStack {
-                    if gameModel.id == "" {
                     Text("Enter Code:")
                     Spacer()
-                        TextField("Code", text: $gameCode)
-                    } else {
-                        Text("Code: ")
-                        Spacer()
-                        Text(gameModel.id)
+                    TextField("Game Code", text: $gameCode)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 150)
+                    if message != "" {
+                        Text("Error: " + message)
                     }
+                    
                 }
-
-                if gameModel.id != "" {
-                    Divider()
-
-                    HStack {
-                        Text("Date:")
-                        Spacer()
-                        Text(gameModel.date.formatted(date: .abbreviated, time: .shortened))
-                    }
-
-                    HStack {
-                        Text("Number of Holes:")
-                        Spacer()
-                        Text("\(gameModel.numberOfHoles)")
-                    }
+            } else {
+                HStack {
+                    Text("Code:")
+                    Spacer()
+                    Text(game.id)
+                }
+                HStack {
+                    Text("Date:")
+                    Spacer()
+                    Text(game.date.formatted(date: .abbreviated, time: .shortened))
+                }
+                HStack {
+                    Text("Holes:")
+                    Spacer()
+                    Text("\(game.numberOfHoles)")
                 }
             }
-            .padding(.vertical, 4)
         }
     }
 
-
     private var playersSection: some View {
-        Section("Players: \(gameModel.playerIDs.count)") {
+        Section(header: Text("Players: \(game.players.count)")) {
             ScrollView(.horizontal) {
                 HStack {
-                    ForEach(gameModel.playerIDs) { player in
-                        PlayerIconView(player: player, isRemovable: false) {
-                        }
+                    ForEach(game.players) { player in
+                        PlayerIconView(player: player, isRemovable: false) {}
                     }
-
                     VStack {
                         ProgressView()
-                            .frame(width: 40, height: 40)
                             .scaleEffect(1.5)
-                            .progressViewStyle(CircularProgressViewStyle())
-                        Text("Searching...")
-                            .font(.caption)
+                        Text("Waiting...").font(.caption)
                     }
                     .padding(.horizontal)
                 }
@@ -181,22 +132,40 @@ struct JoinView: View {
             .frame(height: 75)
         }
     }
-    
-    private func pollingForUpdates() {
-        if gameModel.id != "" {
-            authModel.fetchGameData(gameCode: gameModel.id) { model in
-                if let model = model {
-                    self.gameModel = model
-                    if model.started {
-                        viewManager.navigateToScoreCard($gameModel)
-                    }
-                } else {
-                    self.gameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18, playerIDs: [])
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                    pollingForUpdates()
-                }
+
+    // MARK: - Actions
+
+    private func joinGame() {
+        authModel.fetchGame(id: gameCode) { fetched in
+            guard let fetched = fetched, let user = authModel.userModel else { return }
+            if !fetched.started && fetched.players.contains(where: { $0.id == user.id }) == false{
+                game = fetched
+                let newPlayer = Player(id: user.id, name: user.name, photoURL: user.photoURL, totalStrokes: 0, inGame: true)
+                initializeHoles(for: newPlayer)
+                game.players.append(newPlayer)
+                authModel.addOrUpdateGame(game) { _ in }
+            } else if fetched.started {
+                message = "Game has already started."
+            } else if fetched.players.contains(where: { $0.id == user.id }) {
+                message = "You are already in this game."
             }
+        }
+    }
+
+    private func exitGame() {
+        guard let user = authModel.userModel else { return }
+        game.players.removeAll { $0.id == user.id }
+        authModel.addOrUpdateGame(game) { _ in }
+        game = Game(id: "", lat: nil, long: nil, date: Date())
+    }
+
+    // MARK: - Helpers
+
+    private func initializeHoles(for player: Player) {
+        player.holes = (0..<game.numberOfHoles).map { idx in
+            let hole = Hole(number: idx + 1, par: 2)
+            hole.player = player
+            return hole
         }
     }
 }

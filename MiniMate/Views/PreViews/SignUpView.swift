@@ -1,9 +1,7 @@
+// SignUpView.swift
+// MiniMate
 //
-//  SignUpView.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 2/3/25.
-//
+// Refactored to use AuthViewModel and UserModel
 
 import SwiftUI
 import FirebaseAuth
@@ -13,206 +11,160 @@ struct SignUpView: View {
     @Environment(\.modelContext) private var context
 
     @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthModel
-    let locFuncs = LocFuncs()
+    @StateObject var authModel: AuthViewModel
 
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var errorMessage: String?
 
-    /// Stores the created user in local database
-    @Binding var userModel: UserModel?
-
     @FocusState private var isTextFieldFocused: Bool
 
-    let sectionSpacing: CGFloat = 30
-    let verticalSpacing: CGFloat = 20
-    let characterLimit: Int = 15
+    private let characterLimit = 15
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             VStack {
                 Spacer()
-
-                // MARK: - Title and Subtitle
+                // Title
                 VStack(spacing: 8) {
                     HStack {
                         Text("Sign Up")
                             .font(.system(size: 40, weight: .bold))
-                            .foregroundStyle(.accent)
+                            .foregroundColor(.accentColor)
                         Spacer()
                     }
                     HStack {
-                        Text("If you are a new user, please sign up here.")
+                        Text("New users sign up here.")
                             .font(.system(size: 20, weight: .light))
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                         Spacer()
                     }
                 }
-
                 Spacer()
 
-                // MARK: - Form Fields
-                VStack(spacing: verticalSpacing) {
-                    // Email Field
+                // Form Fields
+                VStack(spacing: 20) {
                     // Email Field
                     VStack(alignment: .leading) {
                         Text("Email")
-                            .foregroundStyle(.secondary)
-                        
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 25)
-                                .fill(Color.mainOpp.opacity(0.15))
-                                .frame(height: 50)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 25)
-                                        .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
-                                )
-                            
-                            HStack {
-                                Image(systemName: "envelope")
-                                    .foregroundStyle(.secondary)
-                                TextField("example@example", text: $email)
-                                    .autocorrectionDisabled()
-                                    .textInputAutocapitalization(.never)
-                                    .keyboardType(.emailAddress)
-                                    .padding(.trailing, 5)
-                                    .focused($isTextFieldFocused)
-                            }
-                            .padding(.horizontal)
+                            .foregroundColor(.secondary)
+                        HStack {
+                            Image(systemName: "envelope")
+                                .foregroundColor(.secondary)
+                            TextField("example@example", text: $email)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.emailAddress)
+                                .focused($isTextFieldFocused)
                         }
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 25)
+                            .fill(.ultraThinMaterial))
+                        .overlay(RoundedRectangle(cornerRadius: 25)
+                            .stroke(.ultraThickMaterial))
                     }
 
-                    // Password + Confirm Password
-                    HStack(alignment: .top, spacing: 12) {
-                        // Password
-                        VStack(alignment: .leading) {
-                            Text("Password")
-                                .foregroundStyle(.secondary)
-                            
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 25)
-                                    .fill(Color.mainOpp.opacity(0.15))
-                                    .frame(height: 50)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 25)
-                                            .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
-                                    )
-                                
-                                HStack {
-                                    Image(systemName: "lock")
-                                        .foregroundStyle(.secondary)
-                                    SecureField("••••••", text: $password)
-                                        .padding(.trailing, 5)
-                                        .focused($isTextFieldFocused)
-                                        .onChange(of: password) { newValue, oldValue in
-                                            if newValue.count > characterLimit {
-                                                password = String(newValue.prefix(characterLimit))
-                                            }
-                                        }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-
-                        // Confirm Password
-                        VStack(alignment: .leading) {
-                            Text("Confirm")
-                                .foregroundStyle(.secondary)
-                            
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 25)
-                                    .fill(Color.mainOpp.opacity(0.15))
-                                    .frame(height: 50)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 25)
-                                            .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
-                                    )
-                                
-                                HStack {
-                                    Image(systemName: "lock")
-                                        .foregroundStyle(.secondary)
-                                    SecureField("••••••", text: $confirmPassword)
-                                        .padding(.trailing, 5)
-                                        .focused($isTextFieldFocused)
-                                        .onChange(of: confirmPassword) { newValue, oldValue  in
-                                            if newValue.count > characterLimit {
-                                                confirmPassword = String(newValue.prefix(characterLimit))
-                                            }
-                                        }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
+                    // Password + Confirm
+                    HStack(spacing: 12) {
+                        passwordField(title: "Password", text: $password)
+                        passwordField(title: "Confirm", text: $confirmPassword)
                     }
 
-
-                    // MARK: - Sign Up Button
-                    Button {
-                        guard password == confirmPassword else {
-                            errorMessage = "Passwords do not match."
-                            return
-                        }
-                        
-                        authModel.createUser(email: email, password: password) { result in
-                            switch result {
-                            case .success (let user):
-                                errorMessage = nil
-                                let newUser = UserModel(id: user.uid, mini: UserModelEssentials(id: user.uid, name: email), email: email, games: [])
-                                userModel = newUser
-                                context.insert(userModel!)
-                                authModel.saveUserData(userModel!) { _ in }
-                                viewManager.navigateToMain()
-                                Auth.auth().currentUser?.sendEmailVerification { error in
-                                    print("Failed to send verification email.")
-                                }
-                            case .failure(let error):
-                                errorMessage = error.localizedDescription
-                            }
-                        }
-                    } label: {
+                    // Sign Up Button
+                    Button(action: signUp) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 25)
                                 .frame(width: 150, height: 50)
+                                .foregroundColor(.accentColor)
                             Text("Sign Up")
-                                .foregroundStyle(.white)
+                                .foregroundColor(.white)
                         }
                     }
 
-                    // Error message
+                    // Error
                     if let errorMessage = errorMessage {
                         Text(errorMessage)
                             .foregroundColor(.red)
                             .font(.caption)
+                            .multilineTextAlignment(.center)
                     }
                 }
-
                 Spacer()
                 Spacer()
             }
             .padding()
 
-            // MARK: - Back Button
+            // Back Button
             HStack {
-                Button {
+                Button(action: {
                     isTextFieldFocused = false
-                    withAnimation {
-                        viewManager.navigateToLogin()
-                    }
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 40, height: 40)
-                        Image(systemName: "arrow.left")
-                            .fontWeight(.bold)
-                    }
+                    withAnimation { viewManager.navigateToLogin() }
+                }) {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Image(systemName: "arrow.left")
+                                .font(.headline)
+                        )
                 }
                 Spacer()
             }
             .padding()
         }
     }
-}
 
+    // MARK: - Helpers
+
+    private func passwordField(title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading) {
+            Text(title)
+                .foregroundColor(.secondary)
+            HStack {
+                Image(systemName: "lock")
+                    .foregroundColor(.secondary)
+                SecureField("••••••", text: text)
+                    .focused($isTextFieldFocused)
+                    .onChange(of: text.wrappedValue) { _ , newValue in
+                        if newValue.count > characterLimit {
+                            text.wrappedValue = String(newValue.prefix(characterLimit))
+                        }
+                    }
+            }
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 25)
+                .fill(.ultraThinMaterial))
+            .overlay(RoundedRectangle(cornerRadius: 25)
+                .stroke(.ultraThickMaterial))
+        }
+    }
+
+    private func signUp() {
+        guard password == confirmPassword else {
+            errorMessage = "Passwords do not match."
+            return
+        }
+        authModel.createUser(email: email, password: password) { result in
+            switch result {
+            case .success(let user):
+                errorMessage = nil
+                // Create app-specific user model
+                let newUser = UserModel(
+                    id: user.uid,
+                    name: email,
+                    email: email,
+                    games: []
+                )
+                authModel.userModel = newUser
+                context.insert(newUser)
+                authModel.saveUserModel(newUser) { _ in }
+                viewManager.navigateToMain(1)
+                user.sendEmailVerification { _ in }
+
+            case .failure(let error):
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}

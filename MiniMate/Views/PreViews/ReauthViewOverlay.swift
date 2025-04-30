@@ -1,62 +1,55 @@
+// ReauthViewOverlay.swift
+// MiniMate
 //
-//  ReauthViewOverlay.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 2/7/25.
-//
+// Updated to use AuthViewModel.deleteAccount with AuthCredential
 
 import SwiftUI
 import FirebaseAuth
 
-/// Overlay login screen for account reauthentication before deletion
+/// Overlay for reauthentication before account deletion
 struct ReauthViewOverlay: View {
     @Environment(\.modelContext) private var context
-    
+
     @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthModel
-    
-    @State private var errorMessage: String?
-    @State var email: String = ""
-    @State var password: String = ""
-    
+    @StateObject var authModel: AuthViewModel
+
     @Binding var showLoginOverlay: Bool
     @Binding var isSheetPresent: Bool
-    @Binding var userModel: UserModel?
-    
-    let sectionSpacing: CGFloat = 30
-    let verticalSpacing: CGFloat = 20
+
+    @State private var email: String = ""
+    @State private var password: String = ""
+    @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
-            // Dimmed background
+            // Transparent background to disable taps
             Color.black.opacity(0.01)
                 .ignoresSafeArea()
-                .transition(.opacity)
                 .onTapGesture {
-                    withAnimation{
+                    withAnimation {
                         showLoginOverlay = false
                     }
-                } // disables tap-out
+                }
 
-            // Centered dialog box
-            VStack(spacing: verticalSpacing) {
+            // Dialog
+            VStack(spacing: 20) {
                 Text("Reauthenticate")
                     .font(.title2)
                     .fontWeight(.semibold)
-                
-                Text("Enter your account details to delete your account.")
-                    .font(.caption)
 
-                // Email Field
+                Text("Enter your credentials to delete your account.")
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+
+                // Email
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Email")
                         .font(.caption)
                         .foregroundColor(.gray)
-
                     HStack {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
-                        TextField("example@example", text: $email)
+                        TextField("example@example.com", text: $email)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
@@ -70,12 +63,11 @@ struct ReauthViewOverlay: View {
                     )
                 }
 
-                // Password Field
+                // Password
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Password")
                         .font(.caption)
                         .foregroundColor(.gray)
-
                     HStack {
                         Image(systemName: "lock")
                             .foregroundColor(.gray)
@@ -90,26 +82,25 @@ struct ReauthViewOverlay: View {
                     )
                 }
 
-
-                // Reauthenticate Button
-                Button {
-                    authModel.deleteAccount(email: email, password: password) { message in
-                        if message == "true" {
+                // Confirm Deletion
+                Button(action: {
+                    let credential = EmailAuthProvider.credential(withEmail: email, password: password)
+                    authModel.deleteAccount(reauthCredential: credential) { result in
+                        switch result {
+                        case .success:
                             withAnimation {
                                 showLoginOverlay = false
-                                /// Removes profile view
-                                isSheetPresent.toggle()
-                                
-                                viewManager.navigateToLogin()
+                                isSheetPresent = false
+                                viewManager.navigateToWelcome()
                             }
-                            /// Deletes userModel from local storage
-                            context.delete(userModel!)
-                            
-                        } else {
-                            errorMessage = message
+                            if let userModel = authModel.userModel {
+                                context.delete(userModel)
+                            }
+                        case .failure(let error):
+                            errorMessage = error.localizedDescription
                         }
                     }
-                } label: {
+                }) {
                     Text("Confirm Deletion")
                         .frame(maxWidth: .infinity, minHeight: 40)
                         .background(Color.red)
@@ -117,11 +108,11 @@ struct ReauthViewOverlay: View {
                         .cornerRadius(10)
                 }
 
-                // Error Message
+                // Error
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
                         .font(.footnote)
+                        .foregroundColor(.red)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -130,9 +121,8 @@ struct ReauthViewOverlay: View {
             .background(.ultraThinMaterial)
             .cornerRadius(20)
             .shadow(radius: 20)
-            .padding()
         }
-        .ignoresSafeArea(.all)
-        .zIndex(1000)
+        .ignoresSafeArea()
+        .zIndex(1)
     }
 }

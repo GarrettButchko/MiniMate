@@ -2,15 +2,13 @@ import SwiftUI
 
 struct MainView: View {
     @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthModel
+    @StateObject var authModel: AuthViewModel
 
     @State private var isSheetPresented = false
     @State var showLoginOverlay = false
     @State var isOnlineMode = false
     @State var showHost = false
     @State var showJoin = false
-
-    @Binding var userModel: UserModel?
 
     var body: some View {
         ZStack {
@@ -22,7 +20,7 @@ struct MainView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Text(userModel?.mini.name ?? "User")
+                        Text(authModel.userModel?.name ?? "User")
                             .font(.title2)
                             .fontWeight(.semibold)
                     }
@@ -32,31 +30,39 @@ struct MainView: View {
                     Button(action: {
                         isSheetPresented = true
                     }) {
-                        AsyncImage(url: authModel.user?.photoURL) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image.resizable()
-                            default:
+                        if let photoURL = authModel.firebaseUser?.photoURL {
+                            AsyncImage(url: photoURL) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
                                 Image(systemName: "person.crop.circle.fill")
                                     .resizable()
+                                    .scaledToFill()
                             }
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
                         }
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
                     }
                     .sheet(isPresented: $isSheetPresented) {
                         ProfileView(
                             viewManager: viewManager,
                             authModel: authModel,
                             isSheetPresent: $isSheetPresented,
-                            userModel: $userModel,
                             showLoginOverlay: $showLoginOverlay
                         )
+                        
                     }
                 }
 
                 TitleView()
-                    .frame(height: 200)
+                    .frame(height: 150)
 
                 // MARK: - Game Action Buttons
                 GroupBox {
@@ -121,25 +127,33 @@ struct MainView: View {
                                     showHost = true
                                 }
                                 .sheet(isPresented: $showHost) {
-                                    HostView(userModel: $userModel, authModel: authModel, showHost: $showHost, viewManager: viewManager)
+                                    HostView(onlineGame: isOnlineMode, showHost: $showHost, authModel: authModel, viewManager: viewManager)
+                                        .presentationDetents([.large])
                                 }
 
                                 gameModeButton(title: "Join", icon: "person.2.fill", color: .orange) {
                                     showJoin = true
                                 }
-                                
                                 .sheet(isPresented: $showJoin) {
-                                    JoinView(userModel: $userModel, authModel: authModel, showHost: $showJoin, viewManager: viewManager)
+                                    JoinView(authModel: authModel, viewManager: viewManager, showHost: $showJoin)
+                                        .presentationDetents([.large])
                                 }
                             }
                             .transition(.asymmetric(
                                 insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .move(edge: .leading).combined(with: .opacity)
+                                removal: .move(edge: .trailing).combined(with: .opacity)
                             ))
                         } else {
                             HStack(spacing: 16) {
                                 gameModeButton(title: "Offline", icon: "person.fill", color: .blue) {
-                                    // Handle offline
+                                    showHost = true
+                                    withAnimation {
+                                        isOnlineMode = false
+                                    }
+                                }
+                                .sheet(isPresented: $showHost) {
+                                    HostView(onlineGame: false, showHost: $showHost, authModel: authModel, viewManager: viewManager)
+                                        .presentationDetents([.large])
                                 }
 
                                 gameModeButton(title: "Online", icon: "globe", color: .green) {
@@ -149,7 +163,7 @@ struct MainView: View {
                                 }
                             }
                             .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                insertion: .move(edge: .leading).combined(with: .opacity),
                                 removal: .move(edge: .leading).combined(with: .opacity)
                             ))
                         }
@@ -158,18 +172,47 @@ struct MainView: View {
                 }
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 25))
-                .shadow(radius: 3)
-
-                HStack(spacing: 16) {
-                    StatCard(title: "Games Played", value: "2", color: .blue)
-                    StatCard(title: "Wins", value: "1", color: .green)
+                
+                if authModel.firebaseUser != nil{
+                    let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
+                    
+                    if analyzer.hasGames{
+                        SectionStatsView(title: "Last Game") {
+                            HStack{
+                                
+                                HStack{
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Winner")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: analyzer.winnerOfLatestGame?.name ?? "N/A", imageSize: 30, background: .ultraThinMaterial)
+                                        Spacer()
+                                    }
+                                    Spacer()
+                                }
+                                .padding()
+                                .frame(height: 120)
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
+                            }
+                            
+                            BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
+                            
+                        }
+                    } else {
+                        Image("logoOpp")
+                            .resizable()
+                            .frame(width: 50, height: 50)
+                        Spacer()
+                    }
                 }
-                .padding(.top)
-
-                Spacer(minLength: 50)
+                
+                
             }
             .padding()
         }
+        .ignoresSafeArea(.keyboard)
     }
 
     func gameModeButton(title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
@@ -183,31 +226,9 @@ struct MainView: View {
             .frame(maxWidth: .infinity, minHeight: 50)
             .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(color))
             .foregroundColor(.white)
-            .shadow(radius: 4)
         }
     }
 }
 
-struct StatCard: View {
-    var title: String
-    var value: String
-    var color: Color
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundStyle(color)
-            Spacer()
-        }
-        .padding()
-        .frame(height: 120)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 25))
-        .shadow(radius: 3)
-    }
-}
+

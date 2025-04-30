@@ -26,7 +26,7 @@ struct WelcomeView: View {
         ZStack {
             // Background gradient
             Rectangle()
-                .foregroundStyle(Gradient(colors: [.blue, .teal]))
+                .foregroundStyle(Gradient(colors: [.blue, .green]))
                 .ignoresSafeArea()
 
             // Content
@@ -42,7 +42,7 @@ struct WelcomeView: View {
                     }
 
                 // Logo
-                Image("Logo")
+                Image("logo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 100, height: 100)
@@ -59,9 +59,6 @@ struct WelcomeView: View {
                         .scaleEffect(1.5) // optional: make it bigger
                 }
             }
-        }
-        .onAppear {
-            //locFuncs.deletePersistentStore()
         }
     }
 
@@ -89,14 +86,14 @@ struct WelcomeView: View {
     
     func pollUntilInternet() {
             // Run the check right away
-            if NetworkChecker.shared.isConnected {
-                withAnimation {
-                    viewManager.navigateToLogin()
-                }
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                    pollUntilInternet()
-                }
+        if NetworkChecker.shared.isConnected {
+            withAnimation {
+                viewManager.navigateToLogin()
+            }
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                pollUntilInternet()
             }
         }
+    }
 }

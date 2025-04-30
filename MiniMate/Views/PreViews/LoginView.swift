@@ -13,7 +13,7 @@ struct LoginView: View {
     @Environment(\.modelContext) private var context
     
     @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthModel
+    @StateObject var authModel: AuthViewModel
     
     /// Local database helper
     let locFuncs = LocFuncs()
@@ -25,9 +25,6 @@ struct LoginView: View {
     @State var password: String = ""
     
     @State var errorRed : Bool = true
-    
-    /// UserModel binding to sync with app state
-    @Binding var userModel: UserModel?
 
     /// UI constants
     let sectionSpacing: CGFloat = 30
@@ -68,11 +65,11 @@ struct LoginView: View {
                     ZStack {
                         // Background with light fill
                         RoundedRectangle(cornerRadius: 25)
-                            .fill(Color.mainOpp.opacity(0.15)) // Light background
+                            .fill(.ultraThinMaterial) // Light background
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 25)
-                                    .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
+                                    .stroke(.ultraThickMaterial)
                             )
 
                         HStack {
@@ -96,11 +93,11 @@ struct LoginView: View {
                     ZStack {
                         // Background with light fill
                         RoundedRectangle(cornerRadius: 25)
-                            .fill(Color.mainOpp.opacity(0.15))
+                            .fill(.ultraThinMaterial) // Light background
                             .frame(height: 50)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 25)
-                                    .stroke(Color.mainOpp.opacity(0.3), lineWidth: 1)
+                                    .stroke(.ultraThickMaterial)
                             )
 
                         HStack {
@@ -120,34 +117,33 @@ struct LoginView: View {
                     Button {
                         authModel.signInWithGoogle { result in
                             switch result {
-                            case .success(let user):
+                            case .success(let firebaseUser):
                                 errorMessage = nil
                                 
                                 // Validate Google user info
-                                if let name = user.displayName,
-                                   let email = user.email {
+                                if let name = firebaseUser.displayName,
+                                   let email = firebaseUser.email {
                                     /// If user is in local storage
-                                    if let existingUser = locFuncs.fetchUser(by: user.uid, context: context) {
-                                        userModel = existingUser
-                                        authModel.saveUserData(userModel!) { _ in }
-                                        viewManager.navigateToMain()
+                                    if let existingUser = locFuncs.fetchUser(by: firebaseUser.uid, context: context) {
+                                        authModel.userModel = existingUser
+                                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                                        viewManager.navigateToMain(1)
                                     } else {
                                         
-                                        authModel.fetchUserData(id: user.uid) { model in
+                                        authModel.fetchUserModel(id: firebaseUser.uid) { model in
                                             /// if user is in online storage
                                             if let model = model {
-                                                userModel = model
-                                                context.insert(userModel!)
+                                                authModel.userModel = model
+                                                context.insert(authModel.userModel!)
                                                 try? context.save()
-                                                viewManager.navigateToMain()
+                                                viewManager.navigateToMain(1)
                                             /// if user is not in either online storage or local
                                             } else {
-                                                let newUser = UserModel(id: user.uid, mini: UserModelEssentials(id: user.uid, name: name, photoURL: user.photoURL), email: email, games: [])
-                                                userModel = newUser
-                                                context.insert(userModel!)
+                                                authModel.userModel = UserModel(id: firebaseUser.uid, name: name, photoURL: firebaseUser.photoURL, email: email, games: [])
+                                                context.insert(authModel.userModel!)
                                                 try? context.save()
-                                                authModel.saveUserData(userModel!) { _ in }
-                                                viewManager.navigateToMain()
+                                                authModel.saveUserModel(authModel.userModel!) { _ in }
+                                                viewManager.navigateToMain(1)
                                             }
                                         }
                                     }
@@ -175,19 +171,19 @@ struct LoginView: View {
                     Button {
                         authModel.signIn(email: email, password: password) { result in
                             switch result {
-                            case .success(let user):
+                            case .success(let firebaseUser):
                                 errorMessage = nil
                                 /// If user is in local storage
-                                if let existingUser = locFuncs.fetchUser(by: user.uid, context: context) {
-                                    userModel = existingUser
-                                    authModel.saveUserData(userModel!) { _ in }
-                                    viewManager.navigateToMain()
+                                if let existingUser = locFuncs.fetchUser(by: firebaseUser.uid, context: context) {
+                                    authModel.userModel = existingUser
+                                    authModel.saveUserModel(authModel.userModel!) { _ in }
+                                    viewManager.navigateToMain(1)
                                 /// if user isn't get from online
                                 } else {
-                                    authModel.fetchUserData(id: authModel.user!.uid) { model in
+                                    authModel.fetchUserModel(id: firebaseUser.uid) { model in
                                         if let model = model {
-                                            userModel = model
-                                            viewManager.navigateToMain()
+                                            authModel.userModel = model
+                                            viewManager.navigateToMain(1)
                                         } else {
                                             fatalError("User Data Not Found!!!!!!")
                                         }

@@ -30,11 +30,15 @@ struct YourApp: App {
   // register app delegate for Firebase setup
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
+    init(){
+        //LocFuncs().clearSwiftDataStore()
+    }
+    
   var body: some Scene {
     WindowGroup {
         ContentView()
     }
-    .modelContainer(for: [UserModel.self, GameModel.self, HoleModel.self, UserModelEssentials.self])
+    .modelContainer(for: [UserModel.self, Player.self, Game.self, Hole.self])
   }
 }
 

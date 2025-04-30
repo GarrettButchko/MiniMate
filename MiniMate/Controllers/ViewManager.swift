@@ -9,11 +9,12 @@ import SwiftUI
 import FirebaseAuth
 
 enum ViewType {
-    case main
+    case main(Int)
     case login
     case signup
     case welcome
-    case scoreCard(Binding<GameModel>)
+    case scoreCard(Binding<Game>, Bool)
+    case gameReview(Game)
 }
 
 /// Manages app navigation state based on authentication status
@@ -25,14 +26,14 @@ class ViewManager: ObservableObject {
 
     init() {
         if Auth.auth().currentUser != nil {
-            self.currentView = .main
+            self.currentView = .main(1)
         } else {
             self.currentView = .welcome
         }
     }
 
-    func navigateToMain() {
-        currentView = .main
+    func navigateToMain(_ tab: Int) {
+        currentView = .main(tab)
     }
 
     func navigateToLogin() {
@@ -47,8 +48,12 @@ class ViewManager: ObservableObject {
         currentView = .welcome
     }
     
-    func navigateToScoreCard(_ gameModel: Binding<GameModel>) {
-        currentView = .scoreCard(gameModel)
+    func navigateToScoreCard(_ gameModel: Binding<Game>, _ onlineGame: Bool) {
+        currentView = .scoreCard(gameModel, onlineGame)
+    }
+    
+    func navigateToGameReview(_ gameModel: Game) {
+        currentView = .gameReview(gameModel)
     }
     
 }
@@ -60,14 +65,11 @@ extension ViewType: Equatable {
              (.login, .login),
              (.signup, .signup),
              (.welcome, .welcome),
-             (.scoreCard, .scoreCard):
+            (.scoreCard, .scoreCard),
+            (.gameReview, .gameReview):
             return true
         default:
             return false
         }
     }
 }
-
-
-
-

@@ -7,43 +7,44 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @StateObject var viewManager = ViewManager()
-    @StateObject var authModel = AuthModel()
+    @StateObject var authModel = AuthViewModel()
 
     let locFuncs = LocFuncs()
 
     @State private var selectedTab = 1
-    @State private var userModel: UserModel?
     @State private var previousView: ViewType?
 
     var body: some View {
         ZStack {
             Group {
                 switch viewManager.currentView {
-                case .main:
-                    mainTabView
-                        .ignoresSafeArea(.keyboard)
+                case .main(let tab):
+                    MainTabView(viewManager: viewManager, authModel: authModel, selectedTab: tab)
                     
                 case .login:
                     LoginView(
                         viewManager: viewManager,
-                        authModel: authModel,
-                        userModel: $userModel
+                        authModel: authModel
                     )
                 case .signup:
                     SignUpView(
                         viewManager: viewManager,
-                        authModel: authModel,
-                        userModel: $userModel
+                        authModel: authModel
                     )
                 case .welcome:
                     WelcomeView(viewManager: viewManager)
                     
-                case .scoreCard(let gameModel):
-                    ScoreCardView(viewManager: viewManager, userModel: $userModel, authModel: authModel, gameModel: gameModel)
+                case .scoreCard(let gameModel, let onlineGame):
+                    ScoreCardView(viewManager: viewManager, authModel: authModel, game: gameModel, onlineGame: onlineGame)
+
+                
+                case .gameReview(let gameModel):
+                    GameReviewView(viewManager: viewManager, game: gameModel)
                 }
+                
             }
             .transition(currentTransition)
-            .ignoresSafeArea(.keyboard)
+            
         }
         .animation(.easeInOut(duration: 0.4), value: viewManager.currentView)
         .onChange(of: viewManager.currentView, { oldValue, newValue in
@@ -67,40 +68,6 @@ struct ContentView: View {
         
     }
 
-    private var mainTabView: some View {
-        TabView(selection: $selectedTab) {
-            StatsView(viewManager: viewManager, authModel: authModel, userModel: $userModel)
-                .tabItem {
-                    Label("Stats", systemImage: "chart.bar.xaxis")
-                }
-                .tag(0)
-
-            MainView(
-                viewManager: viewManager,
-                authModel: authModel,
-                userModel: $userModel
-            )
-            .tabItem {
-                Label("Home", systemImage: "house.fill")
-            }
-            .tag(1)
-
-            CourseView(viewManager: viewManager)
-                .tabItem {
-                    Label("Courses", systemImage: "figure.golf")
-                }
-                .tag(2)
-        }
-        .onAppear {
-            //locFuncs.deletePersistentStore()
-            
-            if NetworkChecker.shared.isConnected {
-                authModel.saveUserData(userModel!) { _ in }
-            }
-            loadOrCreateUserIfNeeded()
-        }
-    }
-
     // MARK: - Custom transition based on view switch
     private var currentTransition: AnyTransition {
         switch (previousView, viewManager.currentView) {
@@ -116,45 +83,35 @@ struct ContentView: View {
             return .opacity
         }
     }
+}
 
-    func loadOrCreateUserIfNeeded() {
-        guard let firebaseUser = Auth.auth().currentUser else {
-            print("⚠️ No Firebase user.")
-            return
+struct MainTabView: View {
+    @Environment(\.modelContext) private var context
+    @StateObject var viewManager: ViewManager
+    @StateObject var authModel: AuthViewModel
+
+    @State var selectedTab: Int
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            StatsView(viewManager: viewManager, authModel: authModel)
+                .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
+                .tag(0)
+
+            MainView(viewManager: viewManager, authModel: authModel)
+                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tag(1)
+
+            CourseView(viewManager: viewManager)
+                .tabItem { Label("Courses", systemImage: "figure.golf") }
+                .tag(2)
         }
-
-        // Try to load from SwiftData
-        if let localUser = locFuncs.fetchUser(by: firebaseUser.uid, context: context) {
-            print("✅ Loaded local user: \(localUser.mini.name)")
-            userModel = localUser
-        } else {
-            print("⚠️ No local user found. Trying Firebase...")
-
-            // Try from Firebase DB
-            authModel.fetchUserData(id: authModel.user!.uid) { model in
-                if let model = model {
-                    context.insert(model)
-                    try? context.save()
-                    print("✅ Loaded from Firebase and saved locally: \(model.mini.name)")
-                    userModel = model
-                } else {
-                    // Create new user if none in Firebase
-                    let newUser = UserModel(
-                        id: firebaseUser.uid, mini: UserModelEssentials(
-                            id: firebaseUser.uid,
-                            name: firebaseUser.displayName ?? "New User",
-                            photoURL: firebaseUser.photoURL
-                        ),
-                        email: firebaseUser.email,
-                        games: []
-                    )
-                    context.insert(newUser)
-                    try? context.save()
-                    authModel.saveUserData(newUser) { _ in }
-                    print("🆕 Created and saved new user.")
-                    userModel = newUser
-                }
+        .onAppear {
+            if NetworkChecker.shared.isConnected {
+                authModel.saveUserModel(authModel.userModel!) { _ in }
             }
+            authModel.loadOrCreateUserIfNeeded(context)
+            try? context.save()
         }
     }
 }

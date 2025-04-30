@@ -1,9 +1,7 @@
+// HostView.swift
+// MiniMate
 //
-//  GameView.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 4/18/25.
-//
+// Refactored to use new SwiftData models and AuthViewModel
 
 import SwiftUI
 
@@ -11,16 +9,25 @@ struct HostView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
-    @Binding var userModel: UserModel?
-    @StateObject var authModel: AuthModel
+    @State private var game: Game = Game(id: "", lat: nil, long: nil, date: Date())
+    var onlineGame: Bool
     @Binding var showHost: Bool
+
+    @StateObject var authModel: AuthViewModel
     @StateObject var viewManager: ViewManager
 
-    @State private var gameModel: GameModel = GameModel(id: "", lat: nil, long: nil, date: Date(), completed: false, numberOfHoles: 18)
     @State private var showAddPlayerAlert = false
     @State private var showDeleteAlert = false
-    @State private var newPlayerName: String = ""
-    @State private var playerToDelete: UserModelEssentials?
+    @State private var newPlayerName = ""
+    @State private var playerToDelete: String?
+    
+    // how long (in seconds) a game stays live without activity
+    private let ttl: TimeInterval = 20 * 60
+    // when this game was last pushed to Firebase
+    @State private var lastUpdated: Date = Date()
+    // a one-second ticker
+    private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State  private var timeRemaining: TimeInterval = 20 * 60
 
     var body: some View {
         VStack {
@@ -30,10 +37,9 @@ struct HostView: View {
                 .padding(10)
 
             HStack {
-                Text("Hosting Game")
+                Text(onlineGame ? "Hosting Game" : "Game Setup")
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(.primary)
                     .padding(.leading, 30)
                 Spacer()
             }
@@ -45,85 +51,110 @@ struct HostView: View {
             }
         }
         .onAppear {
-            if !gameModel.started{
+            if !game.started {
                 setupGame()
+                if onlineGame {
+                    authModel.listenForGameUpdates(id: game.id) { updatedGame in
+                        if let updatedGame = updatedGame {
+                            game = updatedGame
+                        } else {
+                            showHost = false
+                        }
+                    }
+                }
             }
-            startPollingForPlayers()
         }
-        .onChange(of: showHost) { oldValue, newValue in
+        .onChange(of: showHost) { _, newValue in
             handleHostDismissal(newValue)
         }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .inactive {
-                showHost = false
-            }
-        }
-        .alert("Add another player?", isPresented: $showAddPlayerAlert) {
+        .alert("Add Local Player?", isPresented: $showAddPlayerAlert) {
             TextField("Name", text: $newPlayerName)
-            Button("Add Player") {
-                addNewPlayer()
-            }.disabled(newPlayerName.isEmpty)
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("Please type the name")
+            Button("Add") { addNewPlayer() }
+            Button("Cancel", role: .cancel) {}
         }
-        .alert("Delete this Player?", isPresented: $showDeleteAlert) {
+        .alert("Delete Player?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) {
                 if let player = playerToDelete {
                     removePlayer(player)
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
+        }
+        .onReceive(ticker) { _ in
+          // compute seconds until (lastUpdated + ttl)
+          let expireDate = lastUpdated.addingTimeInterval(ttl)
+          timeRemaining = max(0, expireDate.timeIntervalSinceNow)
+          
+          // if we’ve actually hit zero, you could auto-dismiss:
+          if timeRemaining <= 0 {
+            showHost = false
+          }
         }
     }
 
-    // MARK: - View Sections
+    // MARK: - Sections
 
     private var gameInfoSection: some View {
         Section(header: Text("Game Info")) {
-            HStack {
-                Text("Game Code:")
-                Spacer()
-                Text(gameModel.id)
-            }
-            
-            DatePicker("Date", selection: $gameModel.date, displayedComponents: [.date, .hourAndMinute])
-                .onChange(of: gameModel.date) { _, _ in
-                    authModel.addOrUpdateGame(gameModel) { _ in }
+            if onlineGame {
+                HStack {
+                    Text("Game Code:")
+                    Spacer()
+                    Text(game.id)
                 }
+                HStack {
+                    Text("Expires in:")
+                    Spacer()
+                    // format MM:SS
+                    Text(timeString(from: Int(timeRemaining)))
+                      .monospacedDigit()
+                  }
+            }
+
+            DatePicker("Date & Time", selection: $game.date)
+                .onChange(of: game.date) { _, _ in pushUpdate() }
 
             HStack {
-                Text("Number of Holes:")
-                NumberPickerView(selectedNumber: $gameModel.numberOfHoles, maxNumber: 20)
-                    .onChange(of: gameModel.numberOfHoles) { _, _ in
-                        authModel.addOrUpdateGame(gameModel) { _ in }
+                Text("Holes:")
+                NumberPickerView(selectedNumber: $game.numberOfHoles, minNumber: 9, maxNumber: 21)
+                    .onChange(of: game.numberOfHoles) { _, _ in
+                        updateHoles()
+                        pushUpdate()
                     }
             }
         }
     }
 
     private var playersSection: some View {
-        Section("Players: \(gameModel.playerIDs.count)") {
+        Section(header: Text("Players: \(game.players.count)")) {
             ScrollView(.horizontal) {
                 HStack {
-                    ForEach(gameModel.playerIDs) { player in
-                        PlayerIconView(player: player, isRemovable: player.id.count == 6) {
-                            playerToDelete = player
+                    ForEach(game.players) { player in
+                        PlayerIconView(player: player, isRemovable: player.id.count != 6) {
+                            playerToDelete = player.id
                             showDeleteAlert = true
                         }
                     }
-
-                    addPlayerButton
-
-                    VStack {
-                        ProgressView()
-                            .frame(width: 40, height: 40)
-                            .scaleEffect(1.5)
-                            .progressViewStyle(CircularProgressViewStyle())
-                        Text("Searching...")
-                            .font(.caption)
+                    Button(action: { newPlayerName = ""; showAddPlayerAlert = true }) {
+                        VStack {
+                            ZStack {
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .frame(width: 40, height: 40)
+                                Image(systemName: "plus")
+                            }
+                            Text("Add Player").font(.caption)
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+                    if onlineGame {
+                        VStack {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .frame(width: 40, height: 40)
+                            Text("Searching...").font(.caption)
+                        }.padding(.horizontal)
+                    }
                 }
             }
             .frame(height: 75)
@@ -133,116 +164,133 @@ struct HostView: View {
     private var startGameSection: some View {
         Section {
             Button("Start Game") {
-                if !gameModel.started {
-                    gameModel.started = true
-                    authModel.addOrUpdateGame(gameModel) { _ in }
+                // mark started
+                game.started = true
+                
+                // **only now** create/update in Firebase**
+                if onlineGame {
+                    authModel.addOrUpdateGame(game) { _ in }
                 }
+                
+                // dismiss and navigate
                 showHost = false
-                viewManager.navigateToScoreCard($gameModel)
+                if game.players.count > 1 {
+                    viewManager.navigateToScoreCard($game, onlineGame)
+                } else {
+                    authModel.deleteGame(id: game.id) { _ in }
+                    viewManager.navigateToScoreCard($game, false)
+                }
             }
         }
     }
 
-    private var addPlayerButton: some View {
-        Button {
-            newPlayerName = ""
-            showAddPlayerAlert = true
-        } label: {
-            VStack {
-                ZStack {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "plus")
-                        .frame(width: 30, height: 30)
-                        .foregroundStyle(.primary)
-                }
-                Text("Add Local Player")
-                    .font(.caption)
-            }
-        }
-        .padding(.horizontal)
-    }
 
     // MARK: - Logic
+    
+    private func timeString(from seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        return String(format: "%d:%02d", minutes, secs)
+    }
 
     private func setupGame() {
-        gameModel.id = generateGameCode()
-
-        if let host = userModel?.mini,
-           !gameModel.playerIDs.contains(where: { $0.id == host.id }) {
-            gameModel.playerIDs.append(host)
-        }
+        game.id = generateGameCode()
+        game.numberOfHoles = 18
+        if let user = authModel.userModel {
+            guard !user.id.isEmpty, !user.name.isEmpty else {
+                print("⚠️ Invalid host user, not inserting")
+                return
+            }
+            
+            let host = Player(
+                id: user.id,
+                name: user.name,
+                photoURL: user.photoURL,
+                totalStrokes: 0,
+                inGame: true
+            )
         
-        authModel.addOrUpdateGame(gameModel) { _ in }
+            game.players.append(host)
+            updateHoles()
+        }
+        if onlineGame && !game.live { pushUpdate() }
+        game.live = true
     }
+
 
 
     private func addNewPlayer() {
-        let newPlayer = UserModelEssentials(id: generateGameCode(), name: newPlayerName)
-        gameModel.playerIDs.append(newPlayer)
-        authModel.addOrUpdateGame(gameModel) { _ in }
+        let newPlayer = Player(
+            id: generateGameCode(),
+            name: newPlayerName,
+            photoURL: nil,
+            totalStrokes: 0,
+            inGame: true
+        )
+        print("Host Player - id: \(newPlayer.id), name: \(newPlayer.name)")
+        game.players.append(newPlayer)
+        updateHoles()
+        if onlineGame { pushUpdate() }
     }
 
-    private func removePlayer(_ player: UserModelEssentials) {
-        gameModel.playerIDs.removeAll { $0.id == player.id }
-        authModel.addOrUpdateGame(gameModel) { _ in }
+
+    private func removePlayer(_ id: String) {
+        game.players.removeAll { $0.id == id }
+        if onlineGame { pushUpdate() }
     }
 
     private func handleHostDismissal(_ isShowing: Bool) {
+        authModel.stopListeningForGameUpdates(id: game.id)
+        
         if !isShowing {
-            if gameModel.started {
-                if userModel?.games.contains(where: { $0.id == gameModel.id }) == false {
-                    // 🔥 Only insert if it hasn't been added yet
-                    gameModel.playerIDs = gameModel.playerIDs.map { player in
-                        UserModelEssentials(
-                            id: player.id.isEmpty ? UUID().uuidString : player.id,
-                            name: player.name.isEmpty ? "Unnamed Player" : player.name,
-                            photoURL: player.photoURL
-                        )
-                    }
-
-                    context.insert(gameModel)
-                    userModel?.games.append(gameModel)
-                }
-            } else {
-                gameModel.playerIDs.removeAll { $0.id == userModel?.mini.id }
-                authModel.deleteGameData(gameCode: gameModel.id) { _ in }
+            if onlineGame {
+                authModel.deleteGame(id: game.id) { _ in }
+                game.live = false
             }
         }
+    }
+
+
+    private func updateHoles() {
+        for player in game.players {
+            player.holes = (0..<game.numberOfHoles).map { index in
+                let hole = Hole(number: index + 1, par: 2)
+                hole.player = player
+                return hole
+            }
+        }
+    }
+
+    private func initializeHoles(for player: Player) {
+        player.holes = (0..<game.numberOfHoles).map { index in
+            let hole = Hole(number: index + 1, par: 2)
+            hole.player = player
+            return hole
+        }
+    }
+
+    private func pushUpdate() {
+      guard onlineGame else { return }
+      game.lastUpdated = Date()          // save into your model too
+      lastUpdated       = Date()         // restart our local clock
+      authModel.addOrUpdateGame(game) { _ in }
     }
 
 
     private func generateGameCode(length: Int = 6) -> String {
-        let characters = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
-        return String((0..<length).compactMap { _ in characters.randomElement() })
+        let chars = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
+        return String((0..<length).compactMap { _ in chars.randomElement() })
     }
-    
-    private func startPollingForPlayers() {
-        guard showHost else { return }  // Don't start if sheet is not showing
-
-        print("running polling players...")
-
-        authModel.fetchGameData(gameCode: gameModel.id) { model in
-            if let model = model {
-                self.gameModel.playerIDs = model.playerIDs
-            }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                guard showHost else { return }  // 🔥 Prevent extra polling if sheet is dismissed
-                startPollingForPlayers()
-            }
-        }
-    }
-
 }
+
 
 // MARK: - Player Icon View
 
 struct PlayerIconView: View {
-    let player: UserModelEssentials
+    let player: Player
     var isRemovable: Bool
     var onTap: (() -> Void)?
+    var imageSize: CGFloat = 30
 
     var body: some View {
         Group {
@@ -250,10 +298,10 @@ struct PlayerIconView: View {
                 Button {
                     onTap?()
                 } label: {
-                    PhotoIconView(photoURL: player.photoURL, name: player.name)
+                    PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: imageSize, background: .ultraThinMaterial)
                 }
             } else {
-                PhotoIconView(photoURL: player.photoURL, name: player.name)
+                PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: imageSize, background: .ultraThinMaterial)
             }
         }
         .padding(.horizontal)

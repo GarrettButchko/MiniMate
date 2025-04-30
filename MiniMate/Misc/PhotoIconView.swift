@@ -6,47 +6,53 @@
 //
 import SwiftUI
 
-struct PhotoIconView: View {
+struct PhotoIconView<Background: ShapeStyle>: View {
     let photoURL: URL?
     let name: String
+    let imageSize: CGFloat
+    var background: Background
 
     var body: some View {
         VStack {
             ZStack {
                 /// background circle
+               
                 Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 40, height: 40)
+                    .fill(background)
+                    .frame(width: imageSize + 10, height: imageSize + 10)
+                
+                
                 /// photo
                 AsyncImage(url: photoURL) { phase in
                     switch phase {
                     case .empty:
-                        Image(systemName: "person.fill")
+                        Image("logoOpp")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 20, height: 20)
+                            .frame(width: imageSize, height: imageSize)
                     case .success(let image):
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fit) // show full image
-                            .frame(width: 30, height: 30)
+                            .frame(width: imageSize, height: imageSize)
                             .clipShape(Circle()) // still keeps the round shape
                     case .failure:
-                        Image(systemName: "person.fill")
+                        Image(systemName: "logoOpp")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 20, height: 20)
+                            .frame(width: imageSize, height: imageSize)
                     @unknown default:
-                        Image(systemName: "person.fill")
+                        Image(systemName: "logoOpp")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 20, height: 20)
+                            .frame(width: imageSize, height: imageSize)
                     }
                 }
             }
             /// Name on the bottom
             Text(name)
-                .font(.caption)
+                .font(imageSize >= 30 ? .caption : .caption2)
+                .foregroundStyle(.mainOpp)
         }
     }
 }
