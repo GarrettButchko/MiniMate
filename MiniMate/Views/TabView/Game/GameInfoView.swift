@@ -35,6 +35,10 @@ struct GameInfoView: View {
                         UserInfoRow(label: "Game Code", value: game.id)
                         UserInfoRow(label: "Number of players", value: "\(game.players.count)")
                         UserInfoRow(label: "Number of holes", value: "\(game.numberOfHoles)")
+                        if let location = game.location {
+                            UserInfoRow(label: "Location", value: "\(location.name ?? "No Name")")
+                        }
+                        
                     }
                     
                     Button {

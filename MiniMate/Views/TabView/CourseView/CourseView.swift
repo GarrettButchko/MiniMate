@@ -125,10 +125,10 @@ struct CourseView: View {
                     .fill(Color.blue)
                 HStack {
                     Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.mainOpp)
+                        .foregroundStyle(.white)
                     Text("Search for Nearby Courses")
                         .font(.headline)
-                        .foregroundColor(.mainOpp)
+                        .foregroundColor(.white)
                 }
             }
         }

@@ -11,6 +11,9 @@ struct MainView: View {
     @State var isOnlineMode = false
     @State var showHost = false
     @State var showJoin = false
+    @State var showFirstStage: Bool = false
+    
+    @State var showDonation: Bool = false
 
     var body: some View {
         ZStack {
@@ -63,154 +66,209 @@ struct MainView: View {
                     }
                 }
 
-                TitleView()
-                    .frame(height: 150)
+                
 
                 // MARK: - Game Action Buttons
-                GroupBox {
-                    HStack {
-                        ZStack {
-                            if isOnlineMode {
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.35)) {
-                                        isOnlineMode = false
+                
+                ZStack{
+                    if authModel.firebaseUser != nil{
+                        let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
+                        
+                        ScrollView{
+                            VStack{
+                                Rectangle()
+                                    .fill(Color.clear)
+                                    .frame(height: 310)
+                                    
+                                if analyzer.hasGames{
+                                    SectionStatsView(title: "Last Game") {
+                                        HStack{
+                                            
+                                            HStack{
+                                                VStack(alignment: .leading, spacing: 8) {
+                                                    Text("Winner")
+                                                        .font(.caption)
+                                                        .foregroundStyle(.secondary)
+                                                    PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: analyzer.winnerOfLatestGame?.name ?? "N/A", imageSize: 30, background: .ultraThinMaterial)
+                                                    Spacer()
+                                                }
+                                                Spacer()
+                                            }
+                                            .padding()
+                                            .frame(height: 120)
+                                            .background(.ultraThinMaterial)
+                                            .clipShape(RoundedRectangle(cornerRadius: 25))
+                                            StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
+                                        }
+                                        
+                                        BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
+                                        
                                     }
-                                }) {
-                                    ZStack {
+                                } else {
+                                    Image("logoOpp")
+                                        .resizable()
+                                        .frame(width: 50, height: 50)
+                                    Spacer()
+                                }
+                            }
+                        }
+                    }
+                    
+                    VStack(){
+                        
+                        TitleView()
+                            .frame(height: 150)
+                        
+                        VStack {
+                            HStack {
+                                ZStack {
+                                    if isOnlineMode {
+                                        Button(action: {
+                                            withAnimation(.easeInOut(duration: 0.35)) {
+                                                isOnlineMode = false
+                                            }
+                                        }) {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(.primary)
+                                                    .frame(width: 30, height: 30)
+                                                Image(systemName: "chevron.left")
+                                                    .foregroundStyle(.ultraThickMaterial)
+                                                    .frame(width: 20, height: 20)
+                                            }
+                                        }
+                                    } else {
+                                        // Keep layout aligned using an invisible spacer
                                         Circle()
-                                            .fill(.primary)
+                                            .fill(Color.clear)
                                             .frame(width: 30, height: 30)
-                                        Image(systemName: "chevron.left")
-                                            .foregroundStyle(.ultraThickMaterial)
-                                            .frame(width: 20, height: 20)
                                     }
                                 }
-                            } else {
-                                // Keep layout aligned using an invisible spacer
+
+                                Spacer()
+
+                                ZStack {
+                                    if isOnlineMode {
+                                        Text("Online Options")
+                                            .font(.title)
+                                            .fontWeight(.bold)
+                                            .transition(.opacity.combined(with: .scale))
+                                    } else {
+                                        Text("Start a Game")
+                                            .font(.title)
+                                            .fontWeight(.bold)
+                                            .transition(.opacity.combined(with: .scale))
+                                    }
+                                }
+                                .animation(.easeInOut(duration: 0.35), value: isOnlineMode)
+
+                                Spacer()
+
+                                // Mirror the left spacer for symmetry
                                 Circle()
                                     .fill(Color.clear)
                                     .frame(width: 30, height: 30)
                             }
-                        }
-
-                        Spacer()
-
-                        ZStack {
-                            if isOnlineMode {
-                                Text("Online Options")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .transition(.opacity.combined(with: .scale))
-                            } else {
-                                Text("Start a Game")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .transition(.opacity.combined(with: .scale))
-                            }
-                        }
-                        .animation(.easeInOut(duration: 0.35), value: isOnlineMode)
-
-                        Spacer()
-
-                        // Mirror the left spacer for symmetry
-                        Circle()
-                            .fill(Color.clear)
-                            .frame(width: 30, height: 30)
-                    }
 
 
 
-                    
+                            
 
-                    ZStack {
-                        if isOnlineMode {
-                            HStack(spacing: 16) {
-                                gameModeButton(title: "Host", icon: "antenna.radiowaves.left.and.right", color: .purple) {
-                                    showHost = true
-                                }
-                                .sheet(isPresented: $showHost) {
-                                    HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: isOnlineMode)
-                                        .presentationDetents([.large])
-                                }
+                            ZStack {
+                                if isOnlineMode {
+                                    HStack(spacing: 16) {
+                                        gameModeButton(title: "Host", icon: "antenna.radiowaves.left.and.right", color: .purple) {
+                                            showHost = true
+                                        }
+                                        .sheet(isPresented: $showHost) {
+                                            HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: isOnlineMode)
+                                                .presentationDetents([.large])
+                                        }
 
-                                gameModeButton(title: "Join", icon: "person.2.fill", color: .orange) {
-                                    showJoin = true
-                                }
-                                .sheet(isPresented: $showJoin) {
-                                    JoinView(authModel: authModel, viewManager: viewManager, showHost: $showJoin)
-                                        .presentationDetents([.large])
-                                }
-                            }
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .move(edge: .trailing).combined(with: .opacity)
-                            ))
-                        } else {
-                            HStack(spacing: 16) {
-                                gameModeButton(title: "Offline", icon: "person.fill", color: .blue) {
-                                    showHost = true
-                                    withAnimation {
-                                        isOnlineMode = false
+                                        gameModeButton(title: "Join", icon: "person.2.fill", color: .orange) {
+                                            showJoin = true
+                                        }
+                                        .sheet(isPresented: $showJoin) {
+                                            JoinView(authModel: authModel, viewManager: viewManager, showHost: $showJoin)
+                                                .presentationDetents([.large])
+                                        }
                                     }
-                                }
-                                .sheet(isPresented: $showHost) {
-                                    HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: false)
-                                        .presentationDetents([.large])
-                                }
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .trailing).combined(with: .opacity)
+                                    ))
+                                } else {
+                                    HStack(spacing: 16) {
+                                        gameModeButton(title: "Offline", icon: "person.fill", color: .blue) {
+                                            showHost = true
+                                            withAnimation {
+                                                isOnlineMode = false
+                                            }
+                                        }
+                                        .sheet(isPresented: $showHost) {
+                                            HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: false)
+                                                .presentationDetents([.large])
+                                        }
 
-                                gameModeButton(title: "Online", icon: "globe", color: .green) {
-                                    withAnimation {
-                                        isOnlineMode = true
+                                        gameModeButton(title: "Online", icon: "globe", color: .green) {
+                                            withAnimation {
+                                                isOnlineMode = true
+                                            }
+                                        }
                                     }
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .leading).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
                                 }
                             }
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .leading).combined(with: .opacity),
-                                removal: .move(edge: .leading).combined(with: .opacity)
-                            ))
+                            .animation(.easeInOut(duration: 0.3), value: isOnlineMode)
                         }
-                    }
-                    .animation(.easeInOut(duration: 0.3), value: isOnlineMode)
-                }
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 25))
-                
-                if authModel.firebaseUser != nil{
-                    let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
-                    
-                    if analyzer.hasGames{
-                        SectionStatsView(title: "Last Game") {
-                            HStack{
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                        
+                        Spacer()
+                        
+                        HStack(){
+                            Spacer()
+                            Button{
+                                if !showFirstStage {
+                                    withAnimation(){
+                                        showFirstStage = true
+                                    }
+                                    
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
+                                        if showFirstStage {
+                                            withAnimation {
+                                                showFirstStage = false
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    showDonation = true
+                                }
                                 
+                            } label: {
                                 HStack{
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("Winner")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: analyzer.winnerOfLatestGame?.name ?? "N/A", imageSize: 30, background: .ultraThinMaterial)
-                                        Spacer()
+                                    if showFirstStage {
+                                        Text("Tap to buy me a Soda!")
+                                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                                            .foregroundStyle(.white)
                                     }
-                                    Spacer()
+                                    Text("🥤")
                                 }
                                 .padding()
-                                .frame(height: 120)
-                                .background(.ultraThinMaterial)
+                                .frame(height: 50)
+                                .background(Color.indigo)
                                 .clipShape(RoundedRectangle(cornerRadius: 25))
-                                StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
                             }
-                            
-                            BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
-                            
+                            .sheet(isPresented: $showDonation) {
+                                DonationView()
+                            }
                         }
-                    } else {
-                        Image("logoOpp")
-                            .resizable()
-                            .frame(width: 50, height: 50)
-                        Spacer()
                     }
                 }
-                
-                
             }
             .padding()
         }
