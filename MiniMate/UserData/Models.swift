@@ -140,7 +140,7 @@ struct PlayerDTO: Codable {
 
 @Model
 class Game: Equatable {
-    var id: String
+    @Attribute(.unique) var id: String
     var location: MapItemDTO?
     var date: Date
     var completed: Bool

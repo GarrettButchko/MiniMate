@@ -5,6 +5,7 @@ struct MainView: View {
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
     @StateObject var locationHandler: LocationHandler
+    @StateObject var gameModel: GameViewModel
 
     @State private var isSheetPresented = false
     @State var showLoginOverlay = false
@@ -71,8 +72,8 @@ struct MainView: View {
                 // MARK: - Game Action Buttons
                 
                 ZStack{
-                    if authModel.firebaseUser != nil{
-                        let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
+                    if let user = authModel.userModel{
+                        let analyzer = UserStatsAnalyzer(user: user)
                         
                         ScrollView{
                             VStack{
@@ -179,9 +180,11 @@ struct MainView: View {
                                     HStack(spacing: 16) {
                                         gameModeButton(title: "Host", icon: "antenna.radiowaves.left.and.right", color: .purple) {
                                             showHost = true
+                                            gameModel.createGame(online: true, startingLoc: nil)
                                         }
                                         .sheet(isPresented: $showHost) {
-                                            HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: isOnlineMode)
+                                            
+                                            HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel)
                                                 .presentationDetents([.large])
                                         }
 
@@ -189,7 +192,7 @@ struct MainView: View {
                                             showJoin = true
                                         }
                                         .sheet(isPresented: $showJoin) {
-                                            JoinView(authModel: authModel, viewManager: viewManager, showHost: $showJoin)
+                                            JoinView(authModel: authModel, viewManager: viewManager, gameModel: gameModel, showHost: $showJoin)
                                                 .presentationDetents([.large])
                                         }
                                     }
@@ -200,13 +203,14 @@ struct MainView: View {
                                 } else {
                                     HStack(spacing: 16) {
                                         gameModeButton(title: "Offline", icon: "person.fill", color: .blue) {
+                                            gameModel.createGame(online: false, startingLoc: nil)
                                             showHost = true
                                             withAnimation {
                                                 isOnlineMode = false
                                             }
                                         }
                                         .sheet(isPresented: $showHost) {
-                                            HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: false)
+                                            HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel)
                                                 .presentationDetents([.large])
                                         }
 

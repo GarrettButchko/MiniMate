@@ -15,9 +15,8 @@ struct HostView: View {
     @StateObject var authModel: AuthViewModel
     @StateObject var viewManager: ViewManager
     @StateObject var locationHandler: LocationHandler
+    @StateObject var gameModel: GameViewModel
 
-    @State private var game: Game = Game(id: "", date: Date())
-    var onlineGame: Bool
     @State private var showAddPlayerAlert = false
     @State private var showDeleteAlert = false
     @State private var newPlayerName = ""
@@ -41,7 +40,7 @@ struct HostView: View {
                 .padding(10)
 
             HStack {
-                Text(onlineGame ? "Hosting Game" : "Game Setup")
+                Text(gameModel.onlineGame ? "Hosting Game" : "Game Setup")
                     .font(.title)
                     .fontWeight(.bold)
                     .padding(.leading, 30)
@@ -54,32 +53,20 @@ struct HostView: View {
                 startGameSection
             }
         }
-        .onAppear {
-            if !game.started {
-                setupGame()
-                if onlineGame {
-                    authModel.listenForGameUpdates(id: game.id) { updatedGame in
-                        if let updatedGame = updatedGame {
-                            game = updatedGame
-                        } else {
-                            showHost = false
-                        }
-                    }
-                }
-            }
-        }
         .onChange(of: showHost) { _, newValue in
-            handleHostDismissal(newValue)
+            if !newValue {
+                gameModel.dismissGame()
+            }
         }
         .alert("Add Local Player?", isPresented: $showAddPlayerAlert) {
             TextField("Name", text: $newPlayerName)
-            Button("Add") { addNewPlayer() }
+            Button("Add") { gameModel.addLocalPlayer(named: newPlayerName)}
             Button("Cancel", role: .cancel) {}
         }
         .alert("Delete Player?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) {
                 if let player = playerToDelete {
-                    removePlayer(player)
+                    gameModel.removePlayer(id: player)
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -101,11 +88,11 @@ struct HostView: View {
     private var gameInfoSection: some View {
         Group {
             Section {
-                if onlineGame {
+                if gameModel.onlineGame {
                     HStack {
                         Text("Game Code:")
                         Spacer()
-                        Text(game.id)
+                        Text(gameModel.gameValue.id)
                     }
 
                     HStack {
@@ -116,12 +103,10 @@ struct HostView: View {
                     }
                 }
 
-                DatePicker("Date & Time", selection: $game.date)
-                    .onChange(of: game.date) { _, _ in
-                        pushUpdate()
-                    }
+                DatePicker("Date & Time", selection: gameModel.binding(for: \.date))
+                    
 
-                if onlineGame {
+                if gameModel.onlineGame {
                     HStack {
                         Text("Use Location:")
                         Spacer()
@@ -138,7 +123,6 @@ struct HostView: View {
                                                                   longitude: $1.placemark.coordinate.longitude)
                                             return loc1.distance(from: userLoc) < loc2.distance(from: userLoc)
                                         }
-                                    pushUpdate()
                                 } else {
                                     locationHandler.setSelectedItem(nil)
                                 }
@@ -160,20 +144,17 @@ struct HostView: View {
                             }
                         }
                         .pickerStyle(.wheel)
-                        .onChange(of: locationHandler.selectedItem) { _, _ in
-                            pushUpdate()
-                        }
+                        
                     }
                 }
 
 
                 HStack {
                     Text("Holes:")
-                    NumberPickerView(selectedNumber: $game.numberOfHoles, minNumber: 9, maxNumber: 21)
-                        .onChange(of: game.numberOfHoles) { _, _ in
-                            updateHoles()
-                            pushUpdate()
-                        }
+                    NumberPickerView(
+                        selectedNumber: gameModel.binding(for: \.numberOfHoles),
+                        minNumber: 9, maxNumber: 21
+                    )
                 }
 
             } header: {
@@ -184,10 +165,10 @@ struct HostView: View {
 
 
     private var playersSection: some View {
-        Section(header: Text("Players: \(game.players.count)")) {
+        Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {
             ScrollView(.horizontal) {
                 HStack {
-                    ForEach(game.players) { player in
+                    ForEach(gameModel.gameValue.players) { player in
                         PlayerIconView(player: player, isRemovable: player.id.count != 6) {
                             playerToDelete = player.id
                             showDeleteAlert = true
@@ -205,7 +186,7 @@ struct HostView: View {
                         }
                         .padding(.horizontal)
                     }
-                    if onlineGame {
+                    if gameModel.onlineGame {
                         VStack {
                             ProgressView()
                                 .scaleEffect(1.5)
@@ -222,22 +203,8 @@ struct HostView: View {
     private var startGameSection: some View {
         Section {
             Button("Start Game") {
-                // mark started
-                game.started = true
-                
-                // **only now** create/update in Firebase**
-                if onlineGame {
-                    authModel.addOrUpdateGame(game) { _ in }
-                }
-                
-                // dismiss and navigate
-                showHost = false
-                if game.players.count > 1 {
-                    viewManager.navigateToScoreCard($game, onlineGame)
-                } else {
-                    authModel.deleteGame(id: game.id) { _ in }
-                    viewManager.navigateToScoreCard($game, false)
-                }
+                gameModel.startGame()
+                viewManager.navigateToScoreCard()
             }
         }
     }
@@ -249,99 +216,6 @@ struct HostView: View {
         let minutes = seconds / 60
         let secs = seconds % 60
         return String(format: "%d:%02d", minutes, secs)
-    }
-
-    private func setupGame() {
-        game.id = generateGameCode()
-        game.numberOfHoles = 18
-        if let user = authModel.userModel {
-            guard !user.id.isEmpty, !user.name.isEmpty else {
-                print("⚠️ Invalid host user, not inserting")
-                return
-            }
-            
-            let host = Player(
-                id: user.id,
-                name: user.name,
-                photoURL: user.photoURL,
-                totalStrokes: 0,
-                inGame: true
-            )
-        
-            game.players.append(host)
-            updateHoles()
-        }
-        if onlineGame && !game.live { pushUpdate() }
-        game.live = true
-    }
-
-
-
-    private func addNewPlayer() {
-        let newPlayer = Player(
-            id: generateGameCode(),
-            name: newPlayerName,
-            photoURL: nil,
-            totalStrokes: 0,
-            inGame: true
-        )
-        print("Host Player - id: \(newPlayer.id), name: \(newPlayer.name)")
-        game.players.append(newPlayer)
-        updateHoles()
-        if onlineGame { pushUpdate() }
-    }
-
-
-    private func removePlayer(_ id: String) {
-        game.players.removeAll { $0.id == id }
-        if onlineGame { pushUpdate() }
-    }
-
-    private func handleHostDismissal(_ isShowing: Bool) {
-        authModel.stopListeningForGameUpdates(id: game.id)
-        
-        if !isShowing {
-            if onlineGame {
-                authModel.deleteGame(id: game.id) { _ in }
-                game.live = false
-            }
-            withAnimation(){
-                locationHandler.setSelectedItem(nil)
-            }
-        }
-    }
-
-
-    private func updateHoles() {
-        for player in game.players {
-            player.holes = (0..<game.numberOfHoles).map { index in
-                let hole = Hole(number: index + 1, par: 2)
-                hole.player = player
-                return hole
-            }
-        }
-    }
-
-    private func initializeHoles(for player: Player) {
-        player.holes = (0..<game.numberOfHoles).map { index in
-            let hole = Hole(number: index + 1, par: 2)
-            hole.player = player
-            return hole
-        }
-    }
-
-    private func pushUpdate() {
-      guard onlineGame else { return }
-      game.lastUpdated = Date()          // save into your model too
-      lastUpdated       = Date()         // restart our local clock
-        game.location = locationHandler.selectedItem?.toDTO()
-      authModel.addOrUpdateGame(game) { _ in }
-    }
-
-
-    private func generateGameCode(length: Int = 6) -> String {
-        let chars = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
-        return String((0..<length).compactMap { _ in chars.randomElement() })
     }
 }
 

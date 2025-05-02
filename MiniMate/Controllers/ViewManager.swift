@@ -13,7 +13,7 @@ enum ViewType {
     case login
     case signup
     case welcome
-    case scoreCard(Binding<Game>, Bool)
+    case scoreCard
     case gameReview(Game)
 }
 
@@ -48,8 +48,8 @@ class ViewManager: ObservableObject {
         currentView = .welcome
     }
     
-    func navigateToScoreCard(_ gameModel: Binding<Game>, _ onlineGame: Bool) {
-        currentView = .scoreCard(gameModel, onlineGame)
+    func navigateToScoreCard() {
+        currentView = .scoreCard
     }
     
     func navigateToGameReview(_ gameModel: Game) {

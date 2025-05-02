@@ -7,14 +7,12 @@ import SwiftUI
 
 struct JoinView: View {
     @Environment(\.modelContext) private var context
-    @State private var game: Game = Game(id: "", date: Date())
-
+   
     @StateObject var authModel: AuthViewModel
-    
     @StateObject var viewManager: ViewManager
+    @StateObject var gameModel: GameViewModel
 
     @State private var gameCode: String = ""
-    
     @State private var message: String = ""
     
     @Binding var showHost: Bool
@@ -39,7 +37,7 @@ struct JoinView: View {
             Form {
                 gameInfoSection
 
-                if !game.id.isEmpty {
+                if !gameModel.gameValue.id.isEmpty {
                     playersSection
 
                     Section {
@@ -49,31 +47,33 @@ struct JoinView: View {
                         .foregroundColor(.red)
                         .alert("Exit Game?", isPresented: $showExitAlert) {
                             Button("Leave", role: .destructive) {
-                                exitGame()
+                                gameModel.leaveGame(userId: authModel.userModel!.id)
+                                gameCode = ""
                             }
                             Button("Cancel", role: .cancel) {}
                         }
                     }
                     .onAppear {
-                        authModel.listenForGameUpdates(id: game.id) { updated in
-                            if let updated = updated {
-                                game = updated
-                                if updated.started {
-                                    authModel.stopListeningForGameUpdates(id: game.id)
-                                    showHost = false
-                                    viewManager.navigateToScoreCard($game, true)
-                                }
-                            }
-                        }
+                        
                     }
                 } else {
                     Section {
                         Button("Join Game") {
-                            joinGame()
+                            gameModel.joinGame(id: gameCode)
                         }
                         .disabled(gameCode.isEmpty)
                     }
                 }
+            }
+        }
+        .onChange(of: showHost) { oldValue, newValue in
+            if !gameModel.gameValue.id.isEmpty && !showHost && !gameModel.gameValue.started {
+                gameModel.leaveGame(userId: gameModel.gameValue.id)
+            }
+        }
+        .onChange(of: gameModel.gameValue.started) { oldValue, newValue in
+            if newValue {
+                viewManager.navigateToScoreCard()
             }
         }
     }
@@ -82,7 +82,7 @@ struct JoinView: View {
 
     private var gameInfoSection: some View {
         Section(header: Text("Game Info")) {
-            if game.id.isEmpty {
+            if gameModel.gameValue.id.isEmpty {
                 HStack {
                     Text("Enter Code:")
                     Spacer()
@@ -98,15 +98,15 @@ struct JoinView: View {
                 HStack {
                     Text("Code:")
                     Spacer()
-                    Text(game.id)
+                    Text(gameModel.gameValue.id)
                 }
                 HStack {
                     Text("Date:")
                     Spacer()
-                    Text(game.date.formatted(date: .abbreviated, time: .shortened))
+                    Text(gameModel.gameValue.date.formatted(date: .abbreviated, time: .shortened))
                 }
                 
-                if let gameLocation = game.location {
+                if let gameLocation = gameModel.gameValue.location {
                     HStack {
                         Text("Location:")
                         Spacer()
@@ -117,17 +117,17 @@ struct JoinView: View {
                 HStack {
                     Text("Holes:")
                     Spacer()
-                    Text("\(game.numberOfHoles)")
+                    Text("\(gameModel.gameValue.numberOfHoles)")
                 }
             }
         }
     }
 
     private var playersSection: some View {
-        Section(header: Text("Players: \(game.players.count)")) {
+        Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {
             ScrollView(.horizontal) {
                 HStack {
-                    ForEach(game.players) { player in
+                    ForEach(gameModel.gameValue.players) { player in
                         PlayerIconView(player: player, isRemovable: false) {}
                     }
                     VStack {
@@ -139,42 +139,6 @@ struct JoinView: View {
                 }
             }
             .frame(height: 75)
-        }
-    }
-
-    // MARK: - Actions
-
-    private func joinGame() {
-        authModel.fetchGame(id: gameCode) { fetched in
-            guard let fetched = fetched, let user = authModel.userModel else { return }
-            if !fetched.started && fetched.players.contains(where: { $0.id == user.id }) == false{
-                game = fetched
-                let newPlayer = Player(id: user.id, name: user.name, photoURL: user.photoURL, totalStrokes: 0, inGame: true)
-                initializeHoles(for: newPlayer)
-                game.players.append(newPlayer)
-                authModel.addOrUpdateGame(game) { _ in }
-            } else if fetched.started {
-                message = "Game has already started."
-            } else if fetched.players.contains(where: { $0.id == user.id }) {
-                message = "You are already in this game."
-            }
-        }
-    }
-
-    private func exitGame() {
-        guard let user = authModel.userModel else { return }
-        game.players.removeAll { $0.id == user.id }
-        authModel.addOrUpdateGame(game) { _ in }
-        game = Game(id: "", date: Date())
-    }
-
-    // MARK: - Helpers
-
-    private func initializeHoles(for player: Player) {
-        player.holes = (0..<game.numberOfHoles).map { idx in
-            let hole = Hole(number: idx + 1, par: 2)
-            hole.player = player
-            return hole
         }
     }
 }

@@ -14,6 +14,7 @@ struct CourseView: View {
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
     @StateObject var locationHandler: LocationHandler
+    @StateObject var gameModel: GameViewModel
     
     @State var showSheet: Bool = true
     @State var position: MapCameraPosition = .automatic
@@ -217,6 +218,7 @@ struct CourseView: View {
                     
                     Button {
                         showHost = true
+                        gameModel.createGame(online: false, startingLoc: locationHandler.selectedItem)
                     } label: {
                         HStack {
                             Image(systemName: "antenna.radiowaves.left.and.right")
@@ -229,13 +231,10 @@ struct CourseView: View {
                         .foregroundColor(.white)
                     }
                     .sheet(isPresented: $showHost) {
-                        HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, onlineGame: true, showLocationPicker: true)
+                        HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel, showLocationPicker: true)
                             .presentationDetents([.large])
                     }
 
-                    
-            
-                    
 
                     // MARK: - Contact Info
                     if let selected = locationHandler.bindingForSelectedItem().wrappedValue,

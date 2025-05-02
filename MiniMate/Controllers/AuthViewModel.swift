@@ -181,6 +181,8 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
+    
+    
 
     /// Adds or updates a Game in Realtime Database
     func addOrUpdateGame(_ game: Game, completion: @escaping (Bool) -> Void) {

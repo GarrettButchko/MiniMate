@@ -7,20 +7,40 @@ struct ContentView: View {
     @Environment(\.modelContext) var context
     @Environment(\.scenePhase) private var scenePhase
 
-    @StateObject var viewManager = ViewManager()
-    @StateObject var authModel = AuthViewModel()
+    @StateObject private var viewManager = ViewManager()
+    @StateObject private var authModel: AuthViewModel
+    @StateObject private var gameModel: GameViewModel
 
     let locFuncs = LocFuncs()
 
     @State private var selectedTab = 1
     @State private var previousView: ViewType?
+    
+    init() {
+        
+        // 1) create your AuthViewModel first
+        let auth = AuthViewModel()
+        _authModel = StateObject(wrappedValue: auth)
+
+        // 2) create an initial Game (or fetch one from your context)
+        let initialGame =  Game(id: "", date: Date(), completed: false, numberOfHoles: 18, started: false, dismissed: false, live: false, lastUpdated: Date(), holes: [], players: [])
+
+        // 3) now inject both into your GameViewModel
+        _gameModel = StateObject(
+          wrappedValue: GameViewModel(
+            game: initialGame,
+            authModel: auth,
+            onlineGame: true
+          )
+        )
+      }
 
     var body: some View {
         ZStack {
             Group {
                 switch viewManager.currentView {
                 case .main(let tab):
-                    MainTabView(viewManager: viewManager, authModel: authModel, selectedTab: tab)
+                    MainTabView(viewManager: viewManager, authModel: authModel, gameModel: gameModel, selectedTab: tab)
                     
                 case .login:
                     LoginView(
@@ -35,9 +55,9 @@ struct ContentView: View {
                 case .welcome:
                     WelcomeView(viewManager: viewManager)
                     
-                case .scoreCard(let gameModel, let onlineGame):
-                    ScoreCardView(viewManager: viewManager, authModel: authModel, game: gameModel, onlineGame: onlineGame)
-
+                case .scoreCard:
+                   ScoreCardView(viewManager: viewManager, authModel: authModel, gameModel: gameModel)
+                    
                 
                 case .gameReview(let gameModel):
                     GameReviewView(viewManager: viewManager, game: gameModel)
@@ -90,6 +110,7 @@ struct MainTabView: View {
     @Environment(\.modelContext) private var context
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
+    @StateObject var gameModel: GameViewModel
     @StateObject var locationHandler = LocationHandler()
     
     @State var selectedTab: Int
@@ -100,11 +121,11 @@ struct MainTabView: View {
                 .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                 .tag(0)
 
-            MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
+            MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(1)
 
-            CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
+            CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
                 .tabItem { Label("Courses", systemImage: "figure.golf") }
                 .tag(2)
         }
