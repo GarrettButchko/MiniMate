@@ -12,10 +12,10 @@ struct HostView: View {
 
     @Binding var showHost: Bool
 
-    @StateObject var authModel: AuthViewModel
-    @StateObject var viewManager: ViewManager
-    @StateObject var locationHandler: LocationHandler
-    @StateObject var gameModel: GameViewModel
+    @ObservedObject var authModel: AuthViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var locationHandler: LocationHandler
+    @ObservedObject var gameModel: GameViewModel
 
     @State private var showAddPlayerAlert = false
     @State private var showDeleteAlert = false
@@ -106,48 +106,7 @@ struct HostView: View {
                 DatePicker("Date & Time", selection: gameModel.binding(for: \.date))
                     
 
-                if gameModel.onlineGame {
-                    HStack {
-                        Text("Use Location:")
-                        Spacer()
-                        Toggle("", isOn: $showLocationPicker)
-                            .onChange(of: showLocationPicker) { _, new in
-                                if new, let userCoord = locationHandler.userLocation {
-                                    locationHandler.setClosestValue()
-                                    
-                                        let userLoc = CLLocation(latitude: userCoord.latitude, longitude: userCoord.longitude)
-                                    locationHandler.mapItems = locationHandler.mapItems.sorted {
-                                            let loc1 = CLLocation(latitude: $0.placemark.coordinate.latitude,
-                                                                  longitude: $0.placemark.coordinate.longitude)
-                                            let loc2 = CLLocation(latitude: $1.placemark.coordinate.latitude,
-                                                                  longitude: $1.placemark.coordinate.longitude)
-                                            return loc1.distance(from: userLoc) < loc2.distance(from: userLoc)
-                                        }
-                                } else {
-                                    locationHandler.setSelectedItem(nil)
-                                }
-                            }
-                    }
-                }
-
-                if showLocationPicker, let userLocation = locationHandler.userLocation {
-                    
-                    VStack{
-                        Text("Select a Course:")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        Picker("", selection: locationHandler.bindingForSelectedItemID()) {
-                            ForEach(locationHandler.mapItems, id: \.idString) { item in
-                                MapItemPickerRowView(item: item, userLocation: userLocation)
-                                    .tag(item.idString)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        
-                    }
-                }
-
+                locationSection
 
                 HStack {
                     Text("Holes:")
@@ -163,13 +122,68 @@ struct HostView: View {
         }
     }
 
+    private var locationSection: some View {
+        Group{
+            if gameModel.onlineGame {
+                HStack {
+                    Text("Use Location:")
+                    Spacer()
+                    Toggle("", isOn: $showLocationPicker)
+                        .onChange(of: showLocationPicker) { _, new in
+                            if new, let userCoord = locationHandler.userLocation {
+                                locationHandler.setClosestValue()
+                                
+                                let userLoc = CLLocation(latitude: userCoord.latitude, longitude: userCoord.longitude)
+                                locationHandler.mapItems = locationHandler.mapItems.sorted {
+                                    let loc1 = CLLocation(latitude: $0.placemark.coordinate.latitude,
+                                                          longitude: $0.placemark.coordinate.longitude)
+                                    let loc2 = CLLocation(latitude: $1.placemark.coordinate.latitude,
+                                                          longitude: $1.placemark.coordinate.longitude)
+                                    return loc1.distance(from: userLoc) < loc2.distance(from: userLoc)
+                                }
+                                
+                            } else {
+                                gameModel.setLocation(MapItemDTO(latitude: 0, longitude: 0, name: nil, phoneNumber: nil, url: nil, poiCategory: nil, timeZone: nil, street: nil, city: nil, state: nil, postalCode: nil, country: nil))
+                                locationHandler.setSelectedItem(nil)
+                            }
+                        }
+                }
+            }
+            
+            if showLocationPicker, let userLocation = locationHandler.userLocation {
+                
+                VStack{
+                    Text("Select a Course:")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    
+                    Picker("", selection: locationHandler.bindingForSelectedItemID()) {
+                        ForEach(locationHandler.mapItems, id: \.idString) { item in
+                            MapItemPickerRowView(item: item, userLocation: userLocation)
+                                .tag(item.idString)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .onChange(of: locationHandler.bindingForSelectedItemID().wrappedValue) {_ ,  newID in
+                        // newID is a String? — either the selected id, or nil if cleared
+                        if let id = newID,
+                           let selected = locationHandler.mapItems.first(where: { $0.idString == id }) {
+                          // convert your MKMapItem into your DTO and write it into the game VM
+                            gameModel.setLocation(selected.toDTO())
+                            gameModel.pushUpdate()
+                        }
+                      }
+                }
+            }
+        }
+    }
 
     private var playersSection: some View {
         Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {
             ScrollView(.horizontal) {
                 HStack {
                     ForEach(gameModel.gameValue.players) { player in
-                        PlayerIconView(player: player, isRemovable: player.id.count != 6) {
+                        PlayerIconView(player: player, isRemovable: player.id.count == 6) {
                             playerToDelete = player.id
                             showDeleteAlert = true
                         }

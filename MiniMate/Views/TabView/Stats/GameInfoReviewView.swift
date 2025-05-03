@@ -43,14 +43,6 @@ struct GameInfoReviewView: View {
                             UserInfoRow(label: "Location:", value: "\(location.name ?? "No Name")")
                         }
                     }
-                    
-                    Button {
-                        isSheetPresent = false
-                        viewManager.navigateToMain(0)
-                    } label: {
-                        Text("Back to Stats")
-                    }
-
                 }
             }
         }

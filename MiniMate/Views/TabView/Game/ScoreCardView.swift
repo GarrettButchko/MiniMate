@@ -11,12 +11,14 @@ struct ScoreCardView: View {
     
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
-    @StateObject var gameModel: GameViewModel
+    @ObservedObject var gameModel: GameViewModel
     
     @State private var scrollOffset: CGFloat = 0
     @State private var uuid: UUID? = nil
     
     @State var showInfoView: Bool = false
+    
+    @State private var hasUploaded = false   // renamed for clarity
     
     var body: some View {
         VStack {
@@ -29,13 +31,13 @@ struct ScoreCardView: View {
             GameInfoView(game: gameModel.bindingForGame(), isSheetPresent: $showInfoView)
         }
         .onChange(of: gameModel.gameValue.completed) { old, new in
-            if new {
-                viewManager.navigateToMain(1)
-                let game = gameModel.gameValue
-                context.insert(game)
-                authModel.userModel!.games.append(game)
-                gameModel.completeGame()
-            }
+            guard new, !hasUploaded else { return }
+                hasUploaded = true
+                  // 1️⃣ Persist
+                  gameModel.finishAndPersistGame(in: context)
+            
+                // 2️⃣ Then navigate back
+                  viewManager.navigateToMain(1)
         }
     }
     
@@ -147,9 +149,17 @@ struct ScoreCardView: View {
     // MARK: Footer complete game button and timer
     private var footerView: some View {
         HStack {
-            Button{
-                
-            } label: {
+            Button {
+                // 1️⃣ Prevent double-taps
+                        guard !hasUploaded else { return }
+                        hasUploaded = true
+
+                        // 2️⃣ Deep-clone & save *this* game (exactly once)
+                        gameModel.finishAndPersistGame(in: context)
+                //gameModel.clearAllGames(in: context)
+                        // 3️⃣ Navigate back
+                        viewManager.navigateToMain(1)
+            }  label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 25)
                         .fill(Color.blue)
@@ -160,8 +170,6 @@ struct ScoreCardView: View {
             }
         }
     }
-    
-    
     
     private func timeString(from seconds: Int) -> String {
         let minutes = seconds / 60
@@ -180,16 +188,14 @@ struct PlayerScoreColumnView: View {
     
     var body: some View {
         VStack {
-            ForEach(player.holes.sorted(by: { $0.number < $1.number }), id: \.number) { hole in
-                if let index = player.holes.firstIndex(where: { $0.id == hole.id }) {
-                    HoleRowView(hole: $player.holes[index])
-                        .onChange(of: player.holes[index].strokes) { _, _ in
-                            if onlineGame {
-                                game.lastUpdated = Date()
-                                authModel.addOrUpdateGame(game) { _ in }
-                            }
-                        }
-                }
+            ForEach($player.holes.sorted(by: {$0.number.wrappedValue < $1.number.wrappedValue}), id: \.id) { $hole in
+                HoleRowView(hole: $hole)
+                  .onChange(of: hole.strokes) { new, old in
+                    if onlineGame {
+                      game.lastUpdated = Date()
+                      authModel.addOrUpdateGame(game) { _ in }
+                    }
+                  }
             }
         }
     }

@@ -11,10 +11,10 @@ import MapKit
 // MARK: - CourseView
 
 struct CourseView: View {
-    @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthViewModel
-    @StateObject var locationHandler: LocationHandler
-    @StateObject var gameModel: GameViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var authModel: AuthViewModel
+    @ObservedObject var locationHandler: LocationHandler
+    @ObservedObject var gameModel: GameViewModel
     
     @State var showSheet: Bool = true
     @State var position: MapCameraPosition = .automatic
@@ -218,7 +218,7 @@ struct CourseView: View {
                     
                     Button {
                         showHost = true
-                        gameModel.createGame(online: false, startingLoc: locationHandler.selectedItem)
+                        gameModel.createGame(online: true, startingLoc: locationHandler.selectedItem)
                     } label: {
                         HStack {
                             Image(systemName: "antenna.radiowaves.left.and.right")

@@ -12,8 +12,8 @@ import FirebaseAuth
 struct LoginView: View {
     @Environment(\.modelContext) private var context
     
-    @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var authModel: AuthViewModel
     
     /// Local database helper
     let locFuncs = LocFuncs()

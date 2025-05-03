@@ -10,8 +10,8 @@ import FirebaseAuth
 struct SignUpView: View {
     @Environment(\.modelContext) private var context
 
-    @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var authModel: AuthViewModel
 
     @State private var email = ""
     @State private var password = ""

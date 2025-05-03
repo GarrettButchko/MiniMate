@@ -432,7 +432,7 @@ struct BarChartView: View {
             AxisMarks(position: .leading, values: .stride(by: 5))
         }
         .chartXAxisLabel(position: .bottom, alignment: .center) {
-          Text("Average Strokes")
+          Text(title)
             .font(.caption2)
             .foregroundColor(.secondary)
         }

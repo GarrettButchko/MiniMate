@@ -17,7 +17,6 @@ struct ContentView: View {
     @State private var previousView: ViewType?
     
     init() {
-        
         // 1) create your AuthViewModel first
         let auth = AuthViewModel()
         _authModel = StateObject(wrappedValue: auth)
@@ -108,10 +107,10 @@ struct ContentView: View {
 
 struct MainTabView: View {
     @Environment(\.modelContext) private var context
-    @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthViewModel
-    @StateObject var gameModel: GameViewModel
-    @StateObject var locationHandler = LocationHandler()
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var authModel: AuthViewModel
+    @ObservedObject var gameModel: GameViewModel
+    @ObservedObject var locationHandler = LocationHandler()
     
     @State var selectedTab: Int
 

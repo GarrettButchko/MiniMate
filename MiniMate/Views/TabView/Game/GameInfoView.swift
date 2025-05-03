@@ -35,20 +35,10 @@ struct GameInfoView: View {
                         UserInfoRow(label: "Game Code", value: game.id)
                         UserInfoRow(label: "Number of players", value: "\(game.players.count)")
                         UserInfoRow(label: "Number of holes", value: "\(game.numberOfHoles)")
-                        if let location = game.location {
+                        if let location = game.location, location.latitude != 0 {
                             UserInfoRow(label: "Location", value: "\(location.name ?? "No Name")")
                         }
-                        
                     }
-                    
-                    Button {
-                        isSheetPresent = false
-                        game.dismissed = true
-                    } label: {
-                        Text("End and Delete Game")
-                            .foregroundStyle(Color.red)
-                    }
-
                 }
             }
         }

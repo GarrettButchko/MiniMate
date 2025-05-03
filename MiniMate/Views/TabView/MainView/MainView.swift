@@ -2,10 +2,10 @@ import SwiftUI
 import MapKit
 
 struct MainView: View {
-    @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthViewModel
-    @StateObject var locationHandler: LocationHandler
-    @StateObject var gameModel: GameViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var authModel: AuthViewModel
+    @ObservedObject var locationHandler: LocationHandler
+    @ObservedObject var gameModel: GameViewModel
 
     @State private var isSheetPresented = false
     @State var showLoginOverlay = false
@@ -190,6 +190,7 @@ struct MainView: View {
 
                                         gameModeButton(title: "Join", icon: "person.2.fill", color: .orange) {
                                             showJoin = true
+                                            gameModel.resetGame()
                                         }
                                         .sheet(isPresented: $showJoin) {
                                             JoinView(authModel: authModel, viewManager: viewManager, gameModel: gameModel, showHost: $showJoin)

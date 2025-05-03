@@ -10,8 +10,8 @@ import FirebaseAuth
 struct ProfileView: View {
     @Environment(\.modelContext) private var context
 
-    @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var authModel: AuthViewModel
 
     @Binding var isSheetPresent: Bool
     @Binding var showLoginOverlay: Bool
@@ -135,6 +135,9 @@ struct ProfileView: View {
                                             switch deleteResult {
                                             case .success:
                                                 print("✅ Account deleted")
+                                                if let userModel = authModel.userModel {
+                                                    context.delete(userModel)
+                                                }
                                                 viewManager.navigateToWelcome()
                                             case .failure(let error):
                                                 print("❌ Error deleting account: \(error.localizedDescription)")

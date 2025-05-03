@@ -9,7 +9,7 @@ import SwiftUI
 
 /// Intro screen that displays animated text before transitioning to login
 struct WelcomeView: View {
-    @StateObject var viewManager: ViewManager
+    @ObservedObject var viewManager: ViewManager
     @State private var displayedText = ""
     
     let locFuncs = LocFuncs()

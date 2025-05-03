@@ -10,8 +10,8 @@ import FirebaseAuth
 struct ReauthViewOverlay: View {
     @Environment(\.modelContext) private var context
 
-    @StateObject var viewManager: ViewManager
-    @StateObject var authModel: AuthViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var authModel: AuthViewModel
 
     @Binding var showLoginOverlay: Bool
     @Binding var isSheetPresent: Bool

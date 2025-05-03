@@ -8,14 +8,15 @@ import SwiftUI
 struct JoinView: View {
     @Environment(\.modelContext) private var context
    
-    @StateObject var authModel: AuthViewModel
-    @StateObject var viewManager: ViewManager
-    @StateObject var gameModel: GameViewModel
+    @ObservedObject var authModel: AuthViewModel
+    @ObservedObject var viewManager: ViewManager
+    @ObservedObject var gameModel: GameViewModel
 
     @State private var gameCode: String = ""
     @State private var message: String = ""
     
     @Binding var showHost: Bool
+    @State var inGame: Bool = false
     @State private var showExitAlert: Bool = false
 
     var body: some View {
@@ -37,43 +38,62 @@ struct JoinView: View {
             Form {
                 gameInfoSection
 
-                if !gameModel.gameValue.id.isEmpty {
-                    playersSection
-
-                    Section {
-                        Button("Exit Game") {
-                            showExitAlert = true
-                        }
-                        .foregroundColor(.red)
-                        .alert("Exit Game?", isPresented: $showExitAlert) {
-                            Button("Leave", role: .destructive) {
-                                gameModel.leaveGame(userId: authModel.userModel!.id)
-                                gameCode = ""
+                if inGame {
+                    Group{
+                        playersSection
+                        Section {
+                            Button("Exit Game") {
+                                showExitAlert = true
                             }
-                            Button("Cancel", role: .cancel) {}
+                            .foregroundColor(.red)
+                            .alert("Exit Game?", isPresented: $showExitAlert) {
+                                Button("Leave", role: .destructive) {
+                                    gameModel.leaveGame(userId: authModel.userModel!.id)
+                                    gameCode = ""
+                                    inGame = false
+                                }
+                                Button("Cancel", role: .cancel) {}
+                            }
                         }
                     }
-                    .onAppear {
-                        
-                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    
                 } else {
                     Section {
                         Button("Join Game") {
-                            gameModel.joinGame(id: gameCode)
+                            gameModel.joinGame(id: gameCode){ result in
+                                if result {
+                                    withAnimation{
+                                        inGame = true
+                                    }
+                                }
+                            }
                         }
                         .disabled(gameCode.isEmpty)
                     }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
         .onChange(of: showHost) { oldValue, newValue in
             if !gameModel.gameValue.id.isEmpty && !showHost && !gameModel.gameValue.started {
                 gameModel.leaveGame(userId: gameModel.gameValue.id)
+                withAnimation{
+                    inGame = false
+                }
             }
         }
         .onChange(of: gameModel.gameValue.started) { oldValue, newValue in
             if newValue {
                 viewManager.navigateToScoreCard()
+            }
+        }
+        .onChange(of: gameModel.gameValue.dismissed) { oldValue, newValue in
+            if newValue {
+                gameCode = ""
+                withAnimation{
+                    inGame = false
+                }
             }
         }
     }
@@ -82,7 +102,7 @@ struct JoinView: View {
 
     private var gameInfoSection: some View {
         Section(header: Text("Game Info")) {
-            if gameModel.gameValue.id.isEmpty {
+            if !inGame {
                 HStack {
                     Text("Enter Code:")
                     Spacer()
@@ -106,11 +126,11 @@ struct JoinView: View {
                     Text(gameModel.gameValue.date.formatted(date: .abbreviated, time: .shortened))
                 }
                 
-                if let gameLocation = gameModel.gameValue.location {
+                if let gameModel = gameModel.gameValue.location, gameModel.latitude != 0 {
                     HStack {
                         Text("Location:")
                         Spacer()
-                        Text(gameLocation.name ?? "Unknown")
+                        Text(gameModel.name!)
                     }
                 }
                 
