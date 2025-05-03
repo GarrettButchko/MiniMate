@@ -15,11 +15,12 @@ import Contacts
 
 @Model
 class Player: Identifiable, Equatable {
-    @Attribute(.unique) var id: String
+    @Attribute(.unique) var id: String = UUID().uuidString
+    var userId: String
     var inGame: Bool = false
     var name: String
     var photoURL: URL?
-    var totalStrokes: Int = 0
+    var totalStrokes: Int
     
     @Relationship(deleteRule: .nullify)
       var game: Game?
@@ -29,6 +30,7 @@ class Player: Identifiable, Equatable {
 
     static func == (lhs: Player, rhs: Player) -> Bool {
         lhs.id == rhs.id &&
+        lhs.userId == rhs.userId &&
         lhs.name == rhs.name &&
         lhs.photoURL == rhs.photoURL &&
         lhs.totalStrokes == rhs.totalStrokes &&
@@ -37,11 +39,12 @@ class Player: Identifiable, Equatable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, photoURL, totalStrokes, inGame, holes
+        case id, userId, name, photoURL, totalStrokes, inGame, holes
     }
 
-    init(id: String, name: String, photoURL: URL? = nil, totalStrokes: Int = 0, inGame: Bool = false, holes: [Hole] = []) {
+    init(id: String = UUID().uuidString, userId: String, name: String, photoURL: URL? = nil, totalStrokes: Int = 0, inGame: Bool = false, holes: [Hole] = []) {
         self.id = id
+        self.userId = userId
         self.name = name
         self.photoURL = photoURL
         self.totalStrokes = totalStrokes
@@ -56,6 +59,7 @@ class Player: Identifiable, Equatable {
     func toDTO() -> PlayerDTO {
         return PlayerDTO(
             id: id,
+            userId: userId,
             name: name,
             photoURL: photoURL,
             totalStrokes: totalStrokes,
@@ -66,7 +70,7 @@ class Player: Identifiable, Equatable {
 
     static func fromDTO(_ dto: PlayerDTO) -> Player {
         return Player(
-            id: dto.id,
+            userId: dto.userId,
             name: dto.name,
             photoURL: dto.photoURL,
             totalStrokes: dto.totalStrokes,
@@ -78,6 +82,7 @@ class Player: Identifiable, Equatable {
 
 struct PlayerDTO: Codable {
     var id: String
+    var userId: String
     var name: String
     var photoURL: URL?
     var totalStrokes: Int

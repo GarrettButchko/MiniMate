@@ -156,7 +156,7 @@ struct ScoreCardView: View {
 
                         // 2️⃣ Deep-clone & save *this* game (exactly once)
                         gameModel.finishAndPersistGame(in: context)
-                //gameModel.clearAllGames(in: context)
+                
                         // 3️⃣ Navigate back
                         viewManager.navigateToMain(1)
             }  label: {

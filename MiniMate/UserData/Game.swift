@@ -51,9 +51,9 @@ class Game: Equatable {
     // MARK: - Init
 
     init(
-      id: String,
+      id: String = "",
       location: MapItemDTO? = nil,
-      date: Date,
+      date: Date = Date(),
       completed: Bool = false,
       numberOfHoles: Int = 18,
       started: Bool = false,

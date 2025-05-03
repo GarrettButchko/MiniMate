@@ -44,38 +44,56 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate{
         selectedItem = item
     }
     
-    func performSearch(in region: MKCoordinateRegion, completion: @escaping (Bool) -> Void) {
-        // Clear previous results
-        self.mapItems.removeAll()
+    func performSearch(
+      in region: MKCoordinateRegion,
+      completion: @escaping (Bool) -> Void
+    ) {
+      // 1️⃣ Build the request
+      let request = MKLocalSearch.Request()
+      request.naturalLanguageQuery = "mini golf"
+      request.region               = region
+      if #available(iOS 16.0, *) {
+        request.pointOfInterestFilter = .init(including: [.miniGolf])
+      }
 
-        let searchRequest = MKLocalSearch.Request()
-        searchRequest.naturalLanguageQuery = "mini golf"
-        searchRequest.region = region
-
-        // Filter to mini golf category on iOS 16+
-        if #available(iOS 16.0, *) {
-            searchRequest.pointOfInterestFilter = MKPointOfInterestFilter(including: [.miniGolf])
+      // 2️⃣ Start the search
+      let search = MKLocalSearch(request: request)
+      search.start { response, error in
+        if let error = error {
+          print("Error during search: \(error.localizedDescription)")
+          DispatchQueue.main.async { completion(false) }
+          return
+        }
+        guard let items = response?.mapItems else {
+          print("No response or no mapItems.")
+          DispatchQueue.main.async { completion(false) }
+          return
         }
 
-        let search = MKLocalSearch(request: searchRequest)
-        search.start { (response, error) in
-            if let error = error {
-                print("Error during search: \(error.localizedDescription)")
-                completion(false)
-                return
-            }
-
-            guard let response = response else {
-                print("No response received.")
-                completion(false)
-                return
-            }
-
-            // Update published map items
-            self.mapItems = response.mapItems
-            completion(true)
+        // 3️⃣ Optionally sort by distance from userLocation
+        let sorted: [MKMapItem]
+        if let coord = self.userLocation {
+          let userLoc = CLLocation(latitude: coord.latitude,
+                                   longitude: coord.longitude)
+          sorted = items.sorted { a, b in
+            let la = CLLocation(latitude: a.placemark.coordinate.latitude,
+                                longitude: a.placemark.coordinate.longitude)
+            let lb = CLLocation(latitude: b.placemark.coordinate.latitude,
+                                longitude: b.placemark.coordinate.longitude)
+            return la.distance(from: userLoc) < lb.distance(from: userLoc)
+          }
+        } else {
+          sorted = items
         }
+
+        // 4️⃣ Publish back on the main thread
+        DispatchQueue.main.async {
+          self.mapItems = sorted
+          completion(true)
+        }
+      }
     }
+
 
 
 
@@ -86,7 +104,7 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate{
         return newRegion
     }
     
-    func updateCameraPosition(_ selectedResult: MKMapItem?) -> MapCameraPosition {
+    func updateCameraPosition(_ selectedResult: MKMapItem? = nil) -> MapCameraPosition {
         var cameraPosition: MapCameraPosition = .automatic
         
         
@@ -180,5 +198,17 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate{
                     self.setSelectedItem(self.mapItems.first)
                 }
             }
+    }
+    
+    /// Returns a region centered on `coord` that spans `radiusInMeters * 2` in each direction.
+    func makeRegion(
+      centeredOn coord: CLLocationCoordinate2D,
+      radiusInMeters: CLLocationDistance = 5000
+    ) -> MKCoordinateRegion {
+      MKCoordinateRegion(
+        center: coord,
+        latitudinalMeters: radiusInMeters * 2,
+        longitudinalMeters: radiusInMeters * 2
+      )
     }
 }

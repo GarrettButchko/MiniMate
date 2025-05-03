@@ -85,6 +85,11 @@ struct ContentView: View {
                 break
             }
         }
+        .onAppear {
+              // Only for debugging! Remove this in production.
+              //gameModel.clearAllGames(in: context)
+              //print("🗑️ Cleared all games at launch")
+            }
         
     }
 
@@ -110,7 +115,7 @@ struct MainTabView: View {
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var gameModel: GameViewModel
-    @ObservedObject var locationHandler = LocationHandler()
+    @StateObject var locationHandler = LocationHandler()
     
     @State var selectedTab: Int
 

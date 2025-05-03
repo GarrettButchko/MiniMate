@@ -66,7 +66,7 @@ struct HostView: View {
         .alert("Delete Player?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) {
                 if let player = playerToDelete {
-                    gameModel.removePlayer(id: player)
+                    gameModel.removePlayer(userId: player)
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -122,60 +122,77 @@ struct HostView: View {
         }
     }
 
-    private var locationSection: some View {
-        Group{
-            if gameModel.onlineGame {
-                HStack {
-                    Text("Use Location:")
-                    Spacer()
-                    Toggle("", isOn: $showLocationPicker)
-                        .onChange(of: showLocationPicker) { _, new in
-                            if new, let userCoord = locationHandler.userLocation {
-                                locationHandler.setClosestValue()
-                                
-                                let userLoc = CLLocation(latitude: userCoord.latitude, longitude: userCoord.longitude)
-                                locationHandler.mapItems = locationHandler.mapItems.sorted {
-                                    let loc1 = CLLocation(latitude: $0.placemark.coordinate.latitude,
-                                                          longitude: $0.placemark.coordinate.longitude)
-                                    let loc2 = CLLocation(latitude: $1.placemark.coordinate.latitude,
-                                                          longitude: $1.placemark.coordinate.longitude)
-                                    return loc1.distance(from: userLoc) < loc2.distance(from: userLoc)
-                                }
-                                
-                            } else {
-                                gameModel.setLocation(MapItemDTO(latitude: 0, longitude: 0, name: nil, phoneNumber: nil, url: nil, poiCategory: nil, timeZone: nil, street: nil, city: nil, state: nil, postalCode: nil, country: nil))
-                                locationHandler.setSelectedItem(nil)
-                            }
-                        }
-                }
+    // MARK: – Subviews
+
+    private var locationToggleView: some View {
+      HStack {
+        Text("Use Location:")
+        Spacer()
+        Toggle("", isOn: $showLocationPicker)
+          .onChange(of: showLocationPicker) { _, new in
+            if new {
+              performInitialSearchIfNeeded()
+            } else {
+              // clearing out
+              locationHandler.setSelectedItem(nil)
+              gameModel.setLocation(MapItemDTO(latitude: 0, longitude: 0, name: nil, phoneNumber: nil, url: nil, poiCategory: nil, timeZone: nil, street: nil, city: nil, state: nil, postalCode: nil, country: nil))
             }
-            
-            if showLocationPicker, let userLocation = locationHandler.userLocation {
-                
-                VStack{
-                    Text("Select a Course:")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    Picker("", selection: locationHandler.bindingForSelectedItemID()) {
-                        ForEach(locationHandler.mapItems, id: \.idString) { item in
-                            MapItemPickerRowView(item: item, userLocation: userLocation)
-                                .tag(item.idString)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .onChange(of: locationHandler.bindingForSelectedItemID().wrappedValue) {_ ,  newID in
-                        // newID is a String? — either the selected id, or nil if cleared
-                        if let id = newID,
-                           let selected = locationHandler.mapItems.first(where: { $0.idString == id }) {
-                          // convert your MKMapItem into your DTO and write it into the game VM
-                            gameModel.setLocation(selected.toDTO())
-                            gameModel.pushUpdate()
-                        }
-                      }
-                }
-            }
+          }
+      }
+    }
+
+    private var locationPickerView: some View {
+      // only called when `showLocationPicker == true` and we have a userLocation
+      VStack {
+        Text("Select a Course:")
+          .font(.headline)
+          .foregroundColor(.secondary)
+
+        Picker("", selection: locationHandler.bindingForSelectedItemID()) {
+          ForEach(locationHandler.mapItems, id: \.idString) { item in
+            MapItemPickerRowView(item: item,
+                                 userLocation: locationHandler.userLocation!)
+              .tag(item.idString)
+          }
         }
+        .pickerStyle(.wheel)
+        .onAppear { performInitialSearchIfNeeded() }
+        .onChange(of: locationHandler.selectedItem) { _, newItem in
+          guard let mapItem = newItem else { return }
+          gameModel.setLocation(mapItem.toDTO())
+        }
+      }
+    }
+
+    // helper to kick off the first search
+    private func performInitialSearchIfNeeded() {
+      guard showLocationPicker,
+            locationHandler.mapItems.isEmpty,
+            let coord = locationHandler.userLocation
+      else { return }
+
+      let region = locationHandler.makeRegion(centeredOn: coord, radiusInMeters: 500)
+      locationHandler.performSearch(in: region) { success in
+        if success {
+          locationHandler.setClosestValue()
+        }
+      }
+    }
+
+    // MARK: – Composed Section
+
+    private var locationSection: some View {
+      Group {
+        if gameModel.onlineGame {
+          locationToggleView
+        }
+
+        if showLocationPicker,
+           locationHandler.userLocation != nil
+        {
+          locationPickerView
+        }
+      }
     }
 
     private var playersSection: some View {
@@ -183,8 +200,8 @@ struct HostView: View {
             ScrollView(.horizontal) {
                 HStack {
                     ForEach(gameModel.gameValue.players) { player in
-                        PlayerIconView(player: player, isRemovable: player.id.count == 6) {
-                            playerToDelete = player.id
+                        PlayerIconView(player: player, isRemovable: player.userId.count == 6) {
+                            playerToDelete = player.userId
                             showDeleteAlert = true
                         }
                     }

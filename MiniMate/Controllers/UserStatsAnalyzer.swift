@@ -18,15 +18,15 @@ struct UserStatsAnalyzer {
     }
 
     var totalPlayersFaced: Int {
-        Set(user.games.flatMap { $0.players.map { $0.id } }).count
+        Set(user.games.flatMap { $0.players.map { $0.userId } }).count
     }
 
     var totalStrokes: Int {
-        user.games.flatMap { $0.players }.filter { $0.id == user.id }.flatMap { $0.holes }.map { $0.strokes }.reduce(0, +)
+        user.games.flatMap { $0.players }.filter { $0.userId == user.id }.flatMap { $0.holes }.map { $0.strokes }.reduce(0, +)
     }
 
     var totalHolesPlayed: Int {
-        user.games.flatMap { $0.players }.filter { $0.id == user.id }.flatMap { $0.holes }.count
+        user.games.flatMap { $0.players }.filter { $0.userId == user.id }.flatMap { $0.holes }.count
     }
 
     var averageStrokesPerGame: Double {
@@ -43,13 +43,13 @@ struct UserStatsAnalyzer {
 
     var bestGameStrokes: Int? {
         user.games.compactMap { game in
-            game.players.first(where: { $0.id == user.id })?.holes.map { $0.strokes }.reduce(0, +)
+            game.players.first(where: { $0.userId == user.id })?.holes.map { $0.strokes }.reduce(0, +)
         }.min()
     }
 
     var worstGameStrokes: Int? {
         user.games.compactMap { game in
-            game.players.first(where: { $0.id == user.id })?.holes.map { $0.strokes }.reduce(0, +)
+            game.players.first(where: { $0.userId == user.id })?.holes.map { $0.strokes }.reduce(0, +)
         }.max()
     }
     
@@ -58,7 +58,7 @@ struct UserStatsAnalyzer {
 
     var holeInOneCount: Int {
         user.games.flatMap { $0.players }
-            .filter { $0.id == user.id }
+            .filter { $0.userId == user.id }
             .flatMap { $0.holes }
             .filter { $0.strokes == 1 }
             .count
@@ -99,7 +99,7 @@ struct UserStatsAnalyzer {
 
             // Go through all games, all players, all holes
             for game in user.games {
-                if let player = game.players.first(where: { $0.id == user.id }) {
+                if let player = game.players.first(where: { $0.userId == user.id }) {
                     for hole in player.holes {
                         guard hole.number <= numberOfHoles else { continue }
                         holeStrokesDict[hole.number, default: []].append(hole.strokes)
@@ -129,11 +129,11 @@ struct UserStatsAnalyzer {
     }
     
     var usersScoreOfLatestGame: Int {
-        latestGame?.players.first(where: {$0.id == user.id})?.totalStrokes ?? 0
+        latestGame?.players.first(where: {$0.userId == user.id})?.totalStrokes ?? 0
     }
     
     var usersHolesOfLatestGame: [Hole] {
-        latestGame?.players.first(where: {$0.id == user.id})?.holes ?? []
+        latestGame?.players.first(where: {$0.userId == user.id})?.holes ?? []
     }
     
     var hasGames: Bool {

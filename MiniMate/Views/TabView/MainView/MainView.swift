@@ -15,7 +15,7 @@ struct MainView: View {
     @State var showFirstStage: Bool = false
     
     @State var showDonation: Bool = false
-
+    
     var body: some View {
         ZStack {
             VStack(spacing: 24) {
@@ -66,8 +66,6 @@ struct MainView: View {
                         
                     }
                 }
-
-                
 
                 // MARK: - Game Action Buttons
                 
@@ -171,16 +169,12 @@ struct MainView: View {
                                     .frame(width: 30, height: 30)
                             }
 
-
-
-                            
-
                             ZStack {
                                 if isOnlineMode {
                                     HStack(spacing: 16) {
                                         gameModeButton(title: "Host", icon: "antenna.radiowaves.left.and.right", color: .purple) {
-                                            showHost = true
                                             gameModel.createGame(online: true, startingLoc: nil)
+                                            showHost = true
                                         }
                                         .sheet(isPresented: $showHost) {
                                             
@@ -189,8 +183,8 @@ struct MainView: View {
                                         }
 
                                         gameModeButton(title: "Join", icon: "person.2.fill", color: .orange) {
-                                            showJoin = true
                                             gameModel.resetGame()
+                                            showJoin = true
                                         }
                                         .sheet(isPresented: $showJoin) {
                                             JoinView(authModel: authModel, viewManager: viewManager, gameModel: gameModel, showHost: $showJoin)

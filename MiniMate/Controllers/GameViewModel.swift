@@ -70,8 +70,7 @@ final class GameViewModel: ObservableObject {
     
     // MARK: - Public Actions
     func resetGame() {
-        objectWillChange.send()
-        game = Game(id: "", date: Date(), completed: false, numberOfHoles: 18, started: false, dismissed: false, live: false, lastUpdated: Date(), players: [])
+        game = Game()
     }
     
     func setGame(_ newGame: Game) {
@@ -210,7 +209,7 @@ final class GameViewModel: ObservableObject {
             }
 
             // 4) append any brand‐new players
-            for remote in incoming.players where !self.game.players.contains(where: { $0.id == remote.id }) {
+            for remote in incoming.players where !self.game.players.contains(where: { $0.userId == remote.id }) {
     
                 initializeHoles(for: remote)
                 self.game.players.append(remote)
@@ -262,7 +261,7 @@ final class GameViewModel: ObservableObject {
     func addLocalPlayer(named name: String) {
         objectWillChange.send()
         let newPlayer = Player(
-            id: generateGameCode(),
+            userId: generateGameCode(),
             name: name,
             photoURL: nil,
             totalStrokes: 0,
@@ -276,11 +275,11 @@ final class GameViewModel: ObservableObject {
     func addUser() {
       guard let user = authModel.userModel else { return }
       // don’t add the same user twice
-      guard !game.players.contains(where: { $0.id == user.id }) else { return }
+      guard !game.players.contains(where: { $0.userId == user.id }) else { return }
 
       objectWillChange.send()
       let newPlayer = Player(
-        id: user.id,
+        userId: user.id,
         name: user.name,
         photoURL: user.photoURL,
         totalStrokes: 0,
@@ -292,9 +291,9 @@ final class GameViewModel: ObservableObject {
     }
 
 
-    func removePlayer(id: String) {
+    func removePlayer(userId: String) {
         objectWillChange.send()
-        game.players.removeAll { $0.id == id }
+        game.players.removeAll { $0.userId == userId }
         pushUpdate()
     }
     
@@ -317,7 +316,7 @@ final class GameViewModel: ObservableObject {
         guard onlineGame else { return }
         objectWillChange.send()
         stopListening()
-        self.removePlayer(id: userId)
+        self.removePlayer(userId: userId)
         pushUpdate()
         resetGame()
     }
@@ -356,7 +355,6 @@ final class GameViewModel: ObservableObject {
     func dismissGame() {
         guard !game.dismissed else { return }
         objectWillChange.send()
-
         stopListening()         // tear down any existing listener
         game.dismissed = true
         pushUpdate()            // push the “dismissed” flag
@@ -371,40 +369,12 @@ final class GameViewModel: ObservableObject {
       // 1️⃣ Tear down real-time syncing
       stopListening()
 
-      // 2️⃣ Manually deep-copy the entire game graph
-      let finished = Game(
-        id: game.id,
-        date: game.date,
-        completed: game.completed,
-        numberOfHoles: game.numberOfHoles,
-        started: game.started,
-        dismissed: game.dismissed,
-        live: game.live,
-        lastUpdated: game.lastUpdated,
-        players: game.players.map { player in
-          // copy player
-          let newPlayer = Player(
-            id: player.id,
-            name: player.name,
-            photoURL: player.photoURL,
-            totalStrokes: player.totalStrokes,
-            inGame: player.inGame
-          )
-          // copy holes and re-attach to newPlayer
-          newPlayer.holes = player.holes.map { hole in
-            let newHole = Hole(number: hole.number, par: hole.par)
-            newHole.strokes = hole.strokes
-            newHole.player = newPlayer
-            return newHole
-          }
-          return newPlayer
-        }
-      )
-        let holeCount = finished.players.first?.holes.count ?? 0
-          print("🔍 Persisting game \(finished.id) with \(holeCount) holes")
+      
+        let holeCount = game.players.first?.holes.count ?? 0
+          print("🔍 Persisting game \(game.id) with \(holeCount) holes")
 
       // 3️⃣ Persist into SwiftData
-      context.insert(finished)
+      context.insert(game)
       do {
         try context.save()
         print("✅ Finished game saved locally")
@@ -414,7 +384,7 @@ final class GameViewModel: ObservableObject {
       }
 
       // 4️⃣ Push into the user’s history
-      authModel.userModel?.games.append(finished)
+      authModel.userModel?.games.append(game)
       authModel.saveUserModel(authModel.userModel!) { success in
         print(success
           ? "✅ UserModel updated with new game"
@@ -426,32 +396,21 @@ final class GameViewModel: ObservableObject {
       resetGame()
     }
     
-    /// A quick dump of every Game, its Players and their Hole strokes
-    func debugPrintContext(_ context: ModelContext) {
-        // 1️⃣ Fetch all Game objects
-        let allGames: [Game] = try! context.fetch(FetchDescriptor<Game>())
-
-        print("🗄️ ModelContext contains \(allGames.count) games:")
-        for game in allGames {
-            print("– Game \(game.id) (completed: \(game.completed), date: \(game.date))")
-            for player in game.players {
-                let strokes = player.holes.map { $0.strokes }
-                print("    • Player \(player.name) (\(player.id)): hole-strokes = \(strokes)")
+    // MARK: - Debug
+        /// A quick dump of every Game, its Players, and detailed Hole model info
+        func debugPrintContext(_ context: ModelContext) {
+            let allGames: [Game] = (try? context.fetch(FetchDescriptor<Game>())) ?? []
+            print("🗄️ ModelContext contains \(allGames.count) games:")
+            for game in allGames {
+                let totalHoles = game.players.reduce(0) { $0 + $1.holes.count }
+                print("– Game \(game.id) (completed: \(game.completed), date: \(game.date), totalHoles: \(totalHoles))")
+                for player in game.players {
+                    print("    • Player \(player.name) (id: \(player.id)) has \(player.holes.count) holes:")
+                    let sortedHoles = player.holes.sorted { $0.number < $1.number }
+                    for hole in sortedHoles {
+                        print("      – Hole #\(hole.number) [id: \(hole.id)] par=\(hole.par), strokes=\(hole.strokes), playerId=\(hole.player?.id ?? "nil")")
+                    }
+                }
             }
         }
-    }
-    /// In your GameViewModel (or anywhere you have `context`)
-    func clearAllGames(in context: ModelContext) {
-      // Fetch every Game
-      let all: [Game] = try! context.fetch(FetchDescriptor<Game>())
-      // Delete them
-      for g in all { context.delete(g) }
-      // Persist
-      do {
-        try context.save()
-        print("🗑️ Cleared \(all.count) games from SwiftData")
-      } catch {
-        print("❌ Failed to clear games:", error)
-      }
-    }
 }

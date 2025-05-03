@@ -71,9 +71,14 @@ struct CourseView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
-            .onAppear {
-                
+            .sheet(isPresented: $showHost) {
+                HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel, showLocationPicker: true)
             }
+        }
+        .onAppear(){
+            locationHandler.mapItems = []
+            locationHandler.selectedItem = nil
+            position = locationHandler.updateCameraPosition()
         }
     }
     
@@ -160,17 +165,8 @@ struct CourseView: View {
             ScrollView {
                 VStack(alignment: .leading) {
                     if let userCoord = locationHandler.userLocation {
-                        let userLoc = CLLocation(latitude: userCoord.latitude, longitude: userCoord.longitude)
-                        let sortedItems = locationHandler.mapItems.sorted {
-                            let loc1 = CLLocation(latitude: $0.placemark.coordinate.latitude,
-                                                  longitude: $0.placemark.coordinate.longitude)
-                            let loc2 = CLLocation(latitude: $1.placemark.coordinate.latitude,
-                                                  longitude: $1.placemark.coordinate.longitude)
-                            return loc1.distance(from: userLoc) < loc2.distance(from: userLoc)
-                        }
-                        
-                        ForEach(sortedItems, id: \.self) { mapItem in
-                            if mapItem != sortedItems[0]{
+                        ForEach(locationHandler.mapItems, id: \.self) { mapItem in
+                            if mapItem != locationHandler.mapItems[0]{
                                 Divider()
                             }
                             SearchResultRow(item: mapItem, userLocation: userCoord)
@@ -230,10 +226,7 @@ struct CourseView: View {
                         .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(.purple))
                         .foregroundColor(.white)
                     }
-                    .sheet(isPresented: $showHost) {
-                        HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel, showLocationPicker: true)
-                            .presentationDetents([.large])
-                    }
+                    
 
 
                     // MARK: - Contact Info
