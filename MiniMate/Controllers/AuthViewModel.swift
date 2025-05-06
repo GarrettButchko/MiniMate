@@ -10,6 +10,8 @@ import GoogleSignIn
 import FirebaseCore
 import FirebaseStorage
 import SwiftData
+import AuthenticationServices
+import CryptoKit
 
 /// ViewModel that manages Firebase Authentication and app-specific user data
 class AuthViewModel: ObservableObject {
@@ -18,67 +20,276 @@ class AuthViewModel: ObservableObject {
     /// The user's app-specific data model
     @Published var userModel: UserModel?
     private var gameListenerHandle: DatabaseHandle?
+    var currentNonce: String?
+    /// The true Apple “user” string, exactly what Apple gives you.
+    // ★ persist this across launches
+    private(set) var rawAppleUserID: String? {
+        didSet {
+            UserDefaults.standard.set(rawAppleUserID, forKey: "rawAppleUserID")
+        }
+    }
+    /// A sanitized version you can safely use as a Firebase key.
+    var appleUserID: String? {
+        rawAppleUserID?
+            .replacingOccurrences(of: ".", with: "")  // replace illegal chars
+            .replacingOccurrences(of: "$", with: "")
+    }
+    
+    /// The key we use for all our DB reads/writes.
+    var currentUserIdentifier: String? {
+        appleUserID ?? firebaseUser?.uid
+    }
     
     private let loc = LocFuncs()
-
+    
     init() {
         self.firebaseUser = Auth.auth().currentUser
+        self.rawAppleUserID = UserDefaults.standard.string(forKey: "rawAppleUserID")
     }
-
+    
     // MARK: - Firebase Authentication
     
-    func loadOrCreateUserIfNeeded(_ context: ModelContext) {
+    func setRawAppleId(_ rawAppleUserID: String?) {
+        self.rawAppleUserID = rawAppleUserID
+    }
+    
+    /// Attempts to load the UserModel from SwiftData or Realtime DB, creating it if missing.
+    /// - Parameters:
+    ///   - user:       an optional freshly-signed-in Firebase `User` (e.g. after Apple sign-in)
+    ///   - name:       an optional “preferred” name to use if we have to create the record
+    ///   - context:    the SwiftData `ModelContext` for local persistence
+    ///   - completion: called on the main thread as soon as `self.userModel` is set
+    func loadOrCreateUserIfNeeded(
+        user: User? = nil,
+        name: String? = nil,
+        in context: ModelContext,
+        completion: @escaping () -> Void
+    ) {
+        // 1️⃣ Make sure we have a signed-in Firebase user
         guard let firebaseUser = Auth.auth().currentUser else {
             print("⚠️ No Firebase user.")
             return
         }
+        // If caller passed in the freshly-signed-in user, update our published state
+        if let u = user {
+            self.firebaseUser = u
+        }
 
-        // Try to load from SwiftData
-        if let localUser = loc.fetchUser(by: firebaseUser.uid, context: context) {
-            let all = try? context.fetch(FetchDescriptor<UserModel>())
-            print("🔍 Total users in store: \(all?.count ?? -1)")
-            print("✅ Loaded local user: \(localUser.name)")
-            userModel = localUser
+        // 2️⃣ Figure out which key we’re using (Apple ID or Firebase UID)
+        guard let uid = currentUserIdentifier else {
+            completion()
+            return
+        }
+
+        // 3️⃣ Try local first
+        if let local = loc.fetchUser(by: uid, context: context) {
+            print("✅ Loaded local user: \(local.name)")
+            self.userModel = local
+            completion()    // ← DONE
         } else {
-            print("⚠️ No local user found. Trying Firebase...")
-
-            // Try from Firebase DB
-            fetchUserModel(id: firebaseUser.uid) { [self] model in
-                if let model = model {
-                    context.insert(model)
+            // 4️⃣ Fall back to Realtime DB
+            fetchUserModel(id: uid) { [weak self] remote in
+                guard let self = self else { return }
+                if let remote = remote {
+                    // Found it remotely → save locally
+                    context.insert(remote)
                     try? context.save()
-                    print("✅ Loaded from Firebase and saved locally: \(model.name)")
-                    self.userModel = model
+                    print("✅ Loaded from Firebase and saved locally: \(remote.name)")
+                    self.userModel = remote
+                    completion()  // ← DONE
                 } else {
-                    // Create new user if none in Firebase
-                    let newUser = UserModel(id: firebaseUser.uid, name: firebaseUser.displayName!, photoURL: firebaseUser.photoURL, email: firebaseUser.email, games: [])
+                    // 🚀 Doesn’t exist anywhere → create new
+                    let finalName  = name ?? firebaseUser.displayName ?? ""
+                    let finalEmail = firebaseUser.email ?? ""
+                    let newUser = UserModel(
+                        id:       uid,
+                        name:     finalName,
+                        photoURL: firebaseUser.photoURL,
+                        email:    finalEmail,
+                        games:    []
+                    )
+                    // Insert locally
                     context.insert(newUser)
                     try? context.save()
-                    saveUserModel(newUser) { _ in }
-                    print("🆕 Created and saved new user.")
-                    userModel = newUser
+                    // Persist remotely
+                    self.saveUserModel(newUser) { _ in
+                        print("🆕 Created and saved new user: \(newUser.name)")
+                        self.userModel = newUser
+                        completion()  // ← DONE
+                    }
                 }
             }
         }
     }
 
+    
+    /// Generates a random alphanumeric nonce of the given length.
+    func randomNonceString(length: Int = 32) -> String {
+        precondition(length > 0)
+        let charset: [Character] =
+        Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remainingLength = length
+        
+        while remainingLength > 0 {
+            // 16 bytes at a time
+            let randoms = (0..<16).map { _ in UInt8.random(in: 0...255) }
+            randoms.forEach { byte in
+                if remainingLength == 0 { return }
+                if byte < charset.count {
+                    result.append(charset[Int(byte)])
+                    remainingLength -= 1
+                }
+            }
+        }
+        
+        return result
+    }
+    
+    /// Hashes input with SHA256 and returns the hex string.
+    func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashed = SHA256.hash(data: inputData)
+        return hashed.compactMap { String(format: "%02x", $0) }.joined()
+    }
+    
+    func handleSignInWithAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
+        request.requestedScopes = [.fullName, .email]
+        let nonce = randomNonceString()
+        currentNonce = nonce
+        request.nonce = sha256(nonce)
+    }
+    
+    func signInWithApple(_ authorization: ASAuthorization, context: ModelContext, completion: @escaping (Result<User, Error>, String?) -> Void) {
+        // 1️⃣ Extract the Apple credential + nonce
+        guard
+            let cred      = authorization.credential as? ASAuthorizationAppleIDCredential,
+            let nonce     = currentNonce,
+            let tokenData = cred.identityToken,
+            let idToken   = String(data: tokenData, encoding: .utf8)
+        else {
+            return completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid Apple credential"]
+            )), nil)
+        }
+        
+        // 2️⃣ Build the OAuth credential & sign in
+        let accessToken = cred.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
+        let oauthCred = OAuthProvider.credential(
+            providerID: .apple,
+            idToken:    idToken,
+            rawNonce:   nonce,
+            accessToken: accessToken
+        )
+        
+        Auth.auth().signIn(with: oauthCred) { [self] authResult, error in
+            if let error = error {
+                return completion(.failure(error), nil)
+            }
+            if let result = authResult {
+                rawAppleUserID = cred.user
+                updateDisplayName(to: (cred.fullName?.formatted())!) { error in
+                    if error != nil {
+                        print("Error")
+                    } else {
+                        print("Successfully")
+                    }
+                }
+                completion(.success(result.user), cred.fullName?.formatted())
+            }
+        }
+    }
+    
+    func uploadProfilePhoto(
+        _ image: UIImage,
+        completion: @escaping (Result<URL, Error>) -> Void
+    ) {
+        guard let user = firebaseUser else {
+            return completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "No signed-in user"]
+            )))
+        }
+        guard let data = image.jpegData(compressionQuality: 0.8) else {
+            return completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Image conversion failed"]
+            )))
+        }
+        
+        let key = currentUserIdentifier!
+        let ref = Storage.storage()
+            .reference()
+            .child("profile_pictures")
+            .child("\(key).jpg")
+        
+        // 1️⃣ upload
+        ref.putData(data, metadata: nil) { meta, error in
+            if let error = error {
+                return completion(.failure(error))
+            }
+            // 2️⃣ get download URL
+            ref.downloadURL { result in
+                switch result {
+                case .failure(let error):
+                    return completion(.failure(error))
+                case .success(let url):
+                    // 3️⃣ update Firebase Auth
+                    let changeReq = user.createProfileChangeRequest()
+                    changeReq.photoURL = url
+                    changeReq.commitChanges { err in
+                        if let err = err {
+                            print("⚠️ Failed to set Auth photoURL:", err)
+                            // we'll still proceed to save to DB though
+                        }
+                        
+                        // 4️⃣ Update your UserModel and Realtime DB
+                        DispatchQueue.main.async {
+                            // update SwiftData model
+                            if let local = self.userModel {
+                                local.photoURL = url
+                            }
+                            
+                            // push to Realtime DB
+                            if let model = self.userModel {
+                                model.photoURL = url
+                                self.saveUserModel(model) { _ in
+                                    // 5️⃣ return URL in completion
+                                    completion(.success(url))
+                                }
+                            } else {
+                                completion(.success(url))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+
+    
     /// Signs in the user using Google Sign-In and Firebase
-    func signInWithGoogle(completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
+    func signInWithGoogle(context: ModelContext, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             completion(.failure(NSError(domain: "AuthViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing Firebase client ID"])))
             return
         }
         let config = GIDConfiguration(clientID: clientID)
         GIDSignIn.sharedInstance.configuration = config
-
+        
         guard let rootVC = UIApplication.shared.connectedScenes
-                .compactMap({ ($0 as? UIWindowScene)?.windows.first?.rootViewController })
-                .first else {
+            .compactMap({ ($0 as? UIWindowScene)?.windows.first?.rootViewController })
+            .first else {
             completion(.failure(NSError(domain: "AuthViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to access rootViewController"])))
             return
         }
-
-        GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { [weak self] signInResult, error in
+        
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { signInResult, error in
             if let error = error {
                 completion(.failure(error)); return
             }
@@ -93,16 +304,15 @@ class AuthViewModel: ObservableObject {
             )
             Auth.auth().signIn(with: credential) { authResult, error in
                 if let error = error {
-                    completion(.failure(error)); return
+                    return completion(.failure(error))
                 }
-                if let firebaseUser = authResult?.user {
-                    DispatchQueue.main.async { self?.firebaseUser = firebaseUser }
-                    completion(.success(firebaseUser))
+                if let result = authResult {
+                    completion(.success(result.user))
                 }
             }
         }
     }
-
+    
     /// Creates a new user with email and password
     func createUser(email: String, password: String, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
@@ -115,7 +325,7 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
-
+    
     /// Signs in an existing user with email and password
     func signIn(email: String, password: String, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
         Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
@@ -128,7 +338,7 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
-
+    
     /// Signs out the current user
     func logout() {
         do {
@@ -136,19 +346,20 @@ class AuthViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.firebaseUser = nil
                 self.userModel = nil
+                if self.appleUserID != nil {
+                    self.rawAppleUserID = nil
+                }
             }
         } catch {
             print("❌ Sign-out error: \(error.localizedDescription)")
         }
     }
-
+    
     // MARK: - App Data Persistence
-
+    
     /// Saves or updates the UserModel in Realtime Database
     func saveUserModel(_ model: UserModel, completion: @escaping (Bool) -> Void) {
-        guard let uid = firebaseUser?.uid else {
-            completion(false); return
-        }
+        guard let uid = currentUserIdentifier else { return }
         let ref = Database.database().reference().child("users").child(uid)
         let dto = model.toDTO()
         do {
@@ -163,7 +374,7 @@ class AuthViewModel: ObservableObject {
             completion(false)
         }
     }
-
+    
     /// Fetches UserModel by ID
     func fetchUserModel(id: String, completion: @escaping (UserModel?) -> Void) {
         let ref = Database.database().reference().child("users").child(id)
@@ -183,7 +394,7 @@ class AuthViewModel: ObservableObject {
     }
     
     
-
+    
     /// Adds or updates a Game in Realtime Database
     func addOrUpdateGame(_ game: Game, completion: @escaping (Bool) -> Void) {
         let ref = Database.database().reference().child("games").child(game.id)
@@ -200,7 +411,7 @@ class AuthViewModel: ObservableObject {
             completion(false)
         }
     }
-
+    
     /// Fetches a Game by code once
     func fetchGame(id: String, completion: @escaping (Game?) -> Void) {
         let ref = Database.database().reference().child("games").child(id)
@@ -216,47 +427,7 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
-
-    /// Listens for real-time Game updates
-    func listenForGameUpdates(id: String, onUpdate: @escaping (Game?) -> Void) {
-        let ref = Database.database().reference()
-                        .child("games")
-                        .child(id)
-        // keep the handle around if you need to remove it later
-        gameListenerHandle = ref.observe(.value) { snapshot in
-            // 1) if there’s simply no node at that path, bail out with nil
-            guard snapshot.exists() else {
-                DispatchQueue.main.async { onUpdate(nil) }
-                return
-            }
-
-            // 2) try to decode your DTO; if it fails, send nil
-            do {
-                // if you’re using the FirebaseDatabaseSwift helper
-                let dto: GameDTO? = try snapshot.data(as: GameDTO.self)
-                if let dto = dto {
-                    let model = Game.fromDTO(dto)
-                    DispatchQueue.main.async { onUpdate(model) }
-                } else {
-                    // decode succeeded but data was empty/malformed
-                    DispatchQueue.main.async { onUpdate(nil) }
-                }
-            } catch {
-                print("❌ Real-time decode error:", error)
-                DispatchQueue.main.async { onUpdate(nil) }
-            }
-        }
-    }
-
-    /// Stops listening for Game updates
-    func stopListeningForGameUpdates(id: String) {
-        if let handle = gameListenerHandle {
-            let ref = Database.database().reference().child("games").child(id)
-            ref.removeObserver(withHandle: handle)
-            gameListenerHandle = nil
-        }
-    }
-
+    
     /// Deletes the user's account after reauthentication
     func deleteAccount(reauthCredential: AuthCredential, completion: @escaping (Result<Void, Error>) -> Void) {
         guard let user = Auth.auth().currentUser else {
@@ -277,67 +448,119 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
-
+    
+    /// Reauthenticates the current user with Apple credentials, then deletes their account.
+    /// - Parameters:
+    ///   - authorization: the ASAuthorization returned by your Apple reauth flow
+    ///   - completion: called with success or failure once deletion is done
+    func deleteAppleAccount(
+        using authorization: ASAuthorization,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        // 1️⃣ Extract the AppleID credential & your stored nonce
+        guard let appleCred = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let nonce     = currentNonce,
+              let tokenData = appleCred.identityToken,
+              let idToken   = String(data: tokenData, encoding: .utf8)
+        else {
+            return completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid Apple credential"]
+            )))
+        }
+        
+        // 2️⃣ Build the OAuthProvider credential (no accessToken needed here)
+        let oauthCred = OAuthProvider.credential(
+            providerID:   .apple,
+            idToken:      idToken,
+            rawNonce:     nonce,
+            accessToken:  nil
+        )
+        
+        // 3️⃣ Call your existing deleteAccount method
+        deleteAccount(reauthCredential: oauthCred, completion: completion)
+    }
+    
     /// Reauthenticate a Google user and hand back the `AuthCredential`
     func reauthenticateWithGoogle(completion: @escaping (Result<AuthCredential, Error>) -> Void) {
-      guard let clientID = FirebaseApp.app()?.options.clientID else {
-        completion(.failure(NSError(
-          domain: "AuthViewModel",
-          code: -1,
-          userInfo: [NSLocalizedDescriptionKey: "Missing Firebase client ID"]
-        )))
-        return
-      }
-
-      let config = GIDConfiguration(clientID: clientID)
-      GIDSignIn.sharedInstance.configuration = config
-
-      guard let rootVC = UIApplication.shared.connectedScenes
-              .compactMap({ ($0 as? UIWindowScene)?.windows.first?.rootViewController })
-              .first
-      else {
-        completion(.failure(NSError(
-          domain: "AuthViewModel",
-          code: -1,
-          userInfo: [NSLocalizedDescriptionKey: "Unable to access rootViewController"]
-        )))
-        return
-      }
-
-      GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { signInResult, error in
-        if let error = error {
-          completion(.failure(error))
-          return
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Missing Firebase client ID"]
+            )))
+            return
         }
-        guard
-          let user    = signInResult?.user,
-          let idToken = user.idToken?.tokenString
+        
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+        
+        guard let rootVC = UIApplication.shared.connectedScenes
+            .compactMap({ ($0 as? UIWindowScene)?.windows.first?.rootViewController })
+            .first
         else {
-          completion(.failure(NSError(
-            domain: "AuthViewModel",
-            code: -1,
-            userInfo: [NSLocalizedDescriptionKey: "Google re-authentication failed"]
-          )))
-          return
+            completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Unable to access rootViewController"]
+            )))
+            return
         }
-
-        // `tokenString` on `accessToken` is non-optional, so just grab it directly:
-        let accessToken = user.accessToken.tokenString
-
-        let credential = GoogleAuthProvider.credential(
-          withIDToken:    idToken,
-          accessToken:    accessToken
-        )
-        completion(.success(credential))
-      }
+        
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { signInResult, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard
+                let user    = signInResult?.user,
+                let idToken = user.idToken?.tokenString
+            else {
+                completion(.failure(NSError(
+                    domain: "AuthViewModel",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Google re-authentication failed"]
+                )))
+                return
+            }
+            
+            // `tokenString` on `accessToken` is non-optional, so just grab it directly:
+            let accessToken = user.accessToken.tokenString
+            
+            let credential = GoogleAuthProvider.credential(
+                withIDToken:    idToken,
+                accessToken:    accessToken
+            )
+            completion(.success(credential))
+        }
     }
-
-
+    
+    
     /// Deletes a Game from Realtime Database
     func deleteGame(id: String, completion: @escaping (Bool) -> Void) {
         let ref = Database.database().reference().child("games").child(id)
         ref.removeValue { error, _ in
             completion(error == nil)
         }
+    }
+    
+    func updateDisplayName(to newName: String, completion: @escaping (Error?) -> Void) {
+      guard let user = Auth.auth().currentUser else {
+        completion(NSError(domain: "Auth", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No signed-in user"]))
+        return
+      }
+
+      let changeRequest = user.createProfileChangeRequest()
+      changeRequest.displayName = newName
+      changeRequest.commitChanges { error in
+        if let error = error {
+          print("❌ Failed to update displayName:", error)
+        } else {
+          print("✅ displayName updated to:", newName)
+        }
+        completion(error)
+      }
     }
 }

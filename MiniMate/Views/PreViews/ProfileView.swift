@@ -5,6 +5,7 @@
 
 import SwiftUI
 import FirebaseAuth
+import AuthenticationServices
 
 /// Displays and allows editing of the current user's profile
 struct ProfileView: View {
@@ -17,13 +18,19 @@ struct ProfileView: View {
     @Binding var showLoginOverlay: Bool
 
     @State private var editProfile: Bool = false
-    @State private var showDeleteConfirmation: Bool = false
+    @State private var showGoogleDeleteConfirmation: Bool = false
+    @State private var showAppleDeleteConfirmation: Bool = false
 
     @State private var name: String = ""
     @State private var email: String = ""
 
     @State private var botMessage: String = ""
     @State private var isRed: Bool = true
+    
+    @State private var reauthCoordinator = AppleReauthCoordinator { _ in }
+    
+    @State private var showingPhotoPicker = false
+    @State private var pickedImage: UIImage? = nil
 
     var body: some View {
         ZStack {
@@ -41,8 +48,45 @@ struct ProfileView: View {
                         .foregroundColor(.primary)
                         .padding(.leading, 30)
                     Spacer()
+                    Button {
+                        showingPhotoPicker = true
+                    } label: {
+                        if let photoURL = authModel.firebaseUser?.photoURL {
+                            AsyncImage(url: photoURL) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                Image("logoOpp")
+                                    .resizable()
+                                    .scaledToFill()
+                            }
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+                        } else {
+                            Image("logoOpp")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 40, height: 40)
+                        }
+                    }
+                    .padding(.trailing, 30)
                 }
-
+                .sheet(isPresented: $showingPhotoPicker) {
+                    PhotoPicker(image: $pickedImage)
+                        .onChange(of: pickedImage) { old ,newImage in
+                            guard let img = newImage else { return }
+                            authModel.uploadProfilePhoto(img) { result in
+                                switch result {
+                                case .success(let url):
+                                    print("✅ Photo URL:", url)
+                                case .failure(let error):
+                                    print("❌ Photo upload failed:", error)
+                                }
+                            }
+                        }
+                }
+                
                 List {
                     // User Details Section
                     Section("User Details") {
@@ -72,9 +116,9 @@ struct ProfileView: View {
                                 Text(user.id)
                             }
 
-                            // Only allow edit/reset for non-Google accounts
+                            // Only allow edit/reset for non-social accounts
                             if let firebaseUser = authModel.firebaseUser,
-                               !firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
+                               !firebaseUser.providerData.contains(where: { $0.providerID == "google.com" || $0.providerID == "apple.com" }) {
                                 Button(editProfile ? "Save" : "Edit Profile") {
                                     if editProfile {
                                         authModel.userModel?.name = name
@@ -103,6 +147,8 @@ struct ProfileView: View {
                             Text("User data not available.")
                         }
                     }
+                    
+                    
 
                     // Account Management Section
                     Section("Account Management") {
@@ -116,17 +162,21 @@ struct ProfileView: View {
                         .foregroundColor(.red)
 
                         Button("Delete Account") {
-                            if let firebaseUser = authModel.firebaseUser,
-                               firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
-                                showDeleteConfirmation = true
+                            guard let firebaseUser = authModel.firebaseUser else {
+                                showLoginOverlay = true
+                                return
+                            }
+                            if firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
+                                showGoogleDeleteConfirmation = true
+                            } else if firebaseUser.providerData.contains(where: { $0.providerID == "apple.com" }) {
+                                showAppleDeleteConfirmation = true
                             } else {
-                                withAnimation {
-                                    showLoginOverlay = true
-                                }
+                                showLoginOverlay = true
                             }
                         }
                         .foregroundColor(.red)
-                        .alert("Confirm Deletion", isPresented: $showDeleteConfirmation) {
+                        // Google delete confirmation
+                        .alert("Confirm Deletion", isPresented: $showGoogleDeleteConfirmation) {
                             Button("Delete", role: .destructive) {
                                 authModel.reauthenticateWithGoogle { reauthResult in
                                     switch reauthResult {
@@ -134,19 +184,29 @@ struct ProfileView: View {
                                         authModel.deleteAccount(reauthCredential: credential) { deleteResult in
                                             switch deleteResult {
                                             case .success:
-                                                print("✅ Account deleted")
+                                                viewManager.navigateToWelcome()
                                                 if let userModel = authModel.userModel {
                                                     context.delete(userModel)
                                                 }
-                                                viewManager.navigateToWelcome()
                                             case .failure(let error):
-                                                print("❌ Error deleting account: \(error.localizedDescription)")
+                                                botMessage = error.localizedDescription
+                                                isRed = true
                                             }
                                         }
                                     case .failure(let error):
-                                        print("❌ Error reauthenticating: \(error.localizedDescription)")
+                                        botMessage = error.localizedDescription
+                                        isRed = true
                                     }
                                 }
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text("This will permanently delete your account and all data.")
+                        }
+                        // Apple delete confirmation
+                        .alert("Confirm Deletion", isPresented: $showAppleDeleteConfirmation) {
+                            Button("Delete", role: .destructive) {
+                                startAppleReauthAndDelete()
                             }
                             Button("Cancel", role: .cancel) {}
                         } message: {
@@ -182,6 +242,54 @@ struct ProfileView: View {
                 .zIndex(1)
             }
         }
+    }
+
+    /// Starts Sign in with Apple solely to reauthenticate, then deletes the account.
+    private func startAppleReauthAndDelete() {
+        let provider = ASAuthorizationAppleIDProvider()
+        let request  = provider.createRequest()
+        request.requestedScopes = []
+
+        let nonce = authModel.randomNonceString()
+        authModel.currentNonce = nonce
+        request.nonce = authModel.sha256(nonce)
+
+        // Install handler
+        reauthCoordinator.onAuthorize = { result in
+            switch result {
+            case .failure(let err):
+                botMessage = err.localizedDescription
+                isRed = true
+                showAppleDeleteConfirmation = false
+
+            case .success(let authorization):
+                authModel.deleteAppleAccount(using: authorization) { deletionResult in
+                    switch deletionResult {
+                    case .success():
+                        viewManager.navigateToWelcome()
+                        
+                        if let userModel = authModel.userModel {
+                            let model = UserModel(id: userModel.id, name: userModel.name, photoURL: nil, email: userModel.email, games: [])
+                            for game in userModel.games {
+                                context.delete(game)
+                              }
+                                authModel.saveUserModel(model) { _ in
+                                    authModel.setRawAppleId(nil)
+                            }
+                        }
+                    case .failure(let err):
+                        botMessage = err.localizedDescription
+                        isRed = true
+                    }
+                    showAppleDeleteConfirmation = false
+                }
+            }
+        }
+
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = reauthCoordinator
+        controller.presentationContextProvider = reauthCoordinator
+        controller.performRequests()
     }
 }
 

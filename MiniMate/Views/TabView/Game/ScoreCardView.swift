@@ -31,13 +31,7 @@ struct ScoreCardView: View {
             GameInfoView(game: gameModel.bindingForGame(), isSheetPresent: $showInfoView)
         }
         .onChange(of: gameModel.gameValue.completed) { old, new in
-            guard new, !hasUploaded else { return }
-                hasUploaded = true
-                  // 1️⃣ Persist
-                  gameModel.finishAndPersistGame(in: context)
-            
-                // 2️⃣ Then navigate back
-                  viewManager.navigateToMain(1)
+            endGame()
         }
     }
     
@@ -73,24 +67,38 @@ struct ScoreCardView: View {
     
     /// Player Row
     private var playerHeaderRow: some View {
+      // If there’s no host yet, render nothing (or a placeholder)
+      guard let firstPlayer = gameModel.gameValue.players.first else {
+        return AnyView(EmptyView())
+      }
+
+      return AnyView(
         HStack {
-            Text("Name")
-                .frame(width: 100, height: 60)
-                .font(.title3).fontWeight(.semibold)
-            Divider()
-            SyncedScrollViewRepresentable(scrollOffset: $scrollOffset, syncSourceID: $uuid) {
-                HStack {
-                    ForEach(gameModel.gameValue.players) { player in
-                        if player.id != gameModel.gameValue.players[0].id { Divider() }
-                        PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 30, background: .ultraThinMaterial)
-                            .frame(width: 100, height: 60)
-                    }
+          Text("Name")
+            .frame(width: 100, height: 60)
+            .font(.title3).fontWeight(.semibold)
+          Divider()
+          SyncedScrollViewRepresentable(scrollOffset: $scrollOffset, syncSourceID: $uuid) {
+            HStack {
+              ForEach(gameModel.gameValue.players) { player in
+                // now this is safe — firstPlayer is non-nil
+                if player.id != firstPlayer.id {
+                  Divider()
                 }
+                PhotoIconView(photoURL: player.photoURL,
+                              name: player.name,
+                              imageSize: 30,
+                              background: .ultraThinMaterial)
+                  .frame(width: 100, height: 60)
+              }
             }
+          }
         }
         .frame(height: 60)
         .padding(.top)
+      )
     }
+
     
     /// Score columns and hole icons
     private var scoreRows: some View {
@@ -129,15 +137,17 @@ struct ScoreCardView: View {
                 .frame(width: 100, height: 60)
                 .font(.title3).fontWeight(.semibold)
             Divider()
-            SyncedScrollViewRepresentable(scrollOffset: $scrollOffset, syncSourceID: $uuid) {
+            SyncedScrollViewRepresentable(
+                scrollOffset:   $scrollOffset,
+                syncSourceID:   $uuid
+            ) {
                 HStack {
                     ForEach(gameModel.gameValue.players) { player in
-                        if player.id != gameModel.gameValue.players[0].id { Divider() }
-                        Text("Total: \(player.holes.reduce(0) { $0 + $1.strokes })")
+                        if player.id != gameModel.gameValue.players.first?.id {
+                            Divider()
+                        }
+                        Text("Total: \(player.totalStrokes)")
                             .frame(width: 100, height: 60)
-                            .onChange(of: player.holes.reduce(0) { $0 + $1.strokes }) { oldValue, newValue in
-                                player.totalStrokes = newValue
-                            }
                     }
                 }
             }
@@ -145,20 +155,14 @@ struct ScoreCardView: View {
         .frame(height: 60)
         .padding(.bottom)
     }
+
     
     // MARK: Footer complete game button and timer
     private var footerView: some View {
         HStack {
             Button {
-                // 1️⃣ Prevent double-taps
-                        guard !hasUploaded else { return }
-                        hasUploaded = true
-
-                        // 2️⃣ Deep-clone & save *this* game (exactly once)
-                        gameModel.finishAndPersistGame(in: context)
-                
-                        // 3️⃣ Navigate back
-                        viewManager.navigateToMain(1)
+                gameModel.setCompletedGame(true)
+                endGame()
             }  label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 25)
@@ -176,6 +180,15 @@ struct ScoreCardView: View {
         let secs = seconds % 60
         return String(format: "%d:%02d", minutes, secs)
     }
+    
+    private func endGame() {
+        guard !hasUploaded else { return }
+        hasUploaded = true
+        // 1️⃣ finish-and-persist before we pop the view
+        gameModel.finishAndPersistGame(in: context)
+        // 2️⃣ now it’s safe to navigate
+        viewManager.navigateToMain(1)
+    }
 }
 
 // MARK: - PlayerScoreColumnView
@@ -189,13 +202,13 @@ struct PlayerScoreColumnView: View {
     var body: some View {
         VStack {
             ForEach($player.holes.sorted(by: {$0.number.wrappedValue < $1.number.wrappedValue}), id: \.id) { $hole in
-                HoleRowView(hole: $hole)
-                  .onChange(of: hole.strokes) { new, old in
-                    if onlineGame {
-                      game.lastUpdated = Date()
-                      authModel.addOrUpdateGame(game) { _ in }
-                    }
-                  }
+                    HoleRowView(hole: $hole)
+                      .onChange(of: hole.strokes) { new, old in
+                        if onlineGame {
+                          game.lastUpdated = Date()
+                          authModel.addOrUpdateGame(game) { _ in }
+                        }
+                      }
             }
         }
     }

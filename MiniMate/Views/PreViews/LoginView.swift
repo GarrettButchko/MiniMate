@@ -7,10 +7,12 @@
 
 import SwiftUI
 import FirebaseAuth
+import _AuthenticationServices_SwiftUI
 
 /// Login screen allowing existing users to sign in with email or Google
 struct LoginView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.colorScheme) private var colorScheme
     
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
@@ -25,11 +27,11 @@ struct LoginView: View {
     @State var password: String = ""
     
     @State var errorRed : Bool = true
-
+    
     /// UI constants
     let sectionSpacing: CGFloat = 30
     let verticalSpacing: CGFloat = 20
-
+    
     var body: some View {
         VStack {
             Spacer()
@@ -42,7 +44,7 @@ struct LoginView: View {
                         .foregroundStyle(.accent)
                     Spacer()
                 }
-
+                
                 HStack {
                     Text("If you are an existing user, please login here.")
                         .font(.system(size: 20, weight: .light))
@@ -51,9 +53,9 @@ struct LoginView: View {
                     Spacer()
                 }
             }
-
+            
             Spacer()
-
+            
             // MARK: - Email & Password Fields
             VStack(spacing: verticalSpacing) {
                 // Email Field
@@ -61,7 +63,7 @@ struct LoginView: View {
                 VStack(alignment: .leading) {
                     Text("Email")
                         .foregroundStyle(.secondary)
-
+                    
                     ZStack {
                         // Background with light fill
                         RoundedRectangle(cornerRadius: 25)
@@ -71,7 +73,7 @@ struct LoginView: View {
                                 RoundedRectangle(cornerRadius: 25)
                                     .stroke(.ultraThickMaterial)
                             )
-
+                        
                         HStack {
                             Image(systemName: "envelope")
                                 .foregroundStyle(.secondary)
@@ -84,12 +86,12 @@ struct LoginView: View {
                         .padding(.horizontal)
                     }
                 }
-
+                
                 // Password Field
                 VStack(alignment: .leading) {
                     Text("Password")
                         .foregroundStyle(.secondary)
-
+                    
                     ZStack {
                         // Background with light fill
                         RoundedRectangle(cornerRadius: 25)
@@ -99,7 +101,7 @@ struct LoginView: View {
                                 RoundedRectangle(cornerRadius: 25)
                                     .stroke(.ultraThickMaterial)
                             )
-
+                        
                         HStack {
                             Image(systemName: "lock")
                                 .foregroundStyle(.secondary)
@@ -109,64 +111,12 @@ struct LoginView: View {
                         .padding(.horizontal)
                     }
                 }
-
-
+                
+                
                 // MARK: - Auth Buttons
-                HStack(spacing: 16) {
+                VStack(spacing: 16) {
                     // Google Sign-In Button
-                    Button {
-                        authModel.signInWithGoogle { result in
-                            switch result {
-                            case .success(let firebaseUser):
-                                errorMessage = nil
-                                
-                                // Validate Google user info
-                                if let name = firebaseUser.displayName,
-                                   let email = firebaseUser.email {
-                                    /// If user is in local storage
-                                    if let existingUser = locFuncs.fetchUser(by: firebaseUser.uid, context: context) {
-                                        authModel.userModel = existingUser
-                                        authModel.saveUserModel(authModel.userModel!) { _ in }
-                                        viewManager.navigateToMain(1)
-                                    } else {
-                                        
-                                        authModel.fetchUserModel(id: firebaseUser.uid) { model in
-                                            /// if user is in online storage
-                                            if let model = model {
-                                                authModel.userModel = model
-                                                context.insert(authModel.userModel!)
-                                                try? context.save()
-                                                viewManager.navigateToMain(1)
-                                            /// if user is not in either online storage or local
-                                            } else {
-                                                authModel.userModel = UserModel(id: firebaseUser.uid, name: name, photoURL: firebaseUser.photoURL, email: email, games: [])
-                                                context.insert(authModel.userModel!)
-                                                try? context.save()
-                                                authModel.saveUserModel(authModel.userModel!) { _ in }
-                                                viewManager.navigateToMain(1)
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    errorRed = true
-                                    errorMessage = "Missing Google account information."
-                                }
-
-                            case .failure(let error):
-                                errorMessage = error.localizedDescription
-                            }
-                        }
-                    } label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 25)
-                                .frame(width: 50, height: 50)
-                                .foregroundStyle(.ultraThinMaterial)
-                            Image("google")
-                                .resizable()
-                                .frame(width: 30, height: 30)
-                        }
-                    }
-
+                    
                     // Email/Password Login Button
                     Button {
                         authModel.signIn(email: email, password: password) { result in
@@ -174,22 +124,10 @@ struct LoginView: View {
                             case .success(let firebaseUser):
                                 errorMessage = nil
                                 /// If user is in local storage
-                                if let existingUser = locFuncs.fetchUser(by: firebaseUser.uid, context: context) {
-                                    authModel.userModel = existingUser
-                                    authModel.saveUserModel(authModel.userModel!) { _ in }
+                                authModel.loadOrCreateUserIfNeeded(user: firebaseUser, name: email, in: context) {
                                     viewManager.navigateToMain(1)
-                                /// if user isn't get from online
-                                } else {
-                                    authModel.fetchUserModel(id: firebaseUser.uid) { model in
-                                        if let model = model {
-                                            authModel.userModel = model
-                                            viewManager.navigateToMain(1)
-                                        } else {
-                                            fatalError("User Data Not Found!!!!!!")
-                                        }
-                                    }
                                 }
-
+                                
                             case .failure(let error):
                                 errorMessage = error.localizedDescription
                             }
@@ -203,7 +141,70 @@ struct LoginView: View {
                         }
                     }
                 }
-
+                
+                Text("or")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                HStack{
+                    
+                    Button {
+                        authModel.signInWithGoogle(context: context) { result in
+                            switch result {
+                            case .success(let firebaseUser):
+                                errorMessage = nil
+                                /// If user is in local storage
+                                authModel.loadOrCreateUserIfNeeded(user: firebaseUser, in: context) {
+                                    viewManager.navigateToMain(1)
+                                }
+                            case .failure(let error):
+                                errorMessage = error.localizedDescription
+                            }
+                          }
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 25)
+                                .frame(height: 50)
+                                .foregroundStyle(.ultraThinMaterial)
+                            HStack{
+                                Image("google")
+                                    .resizable()
+                                    .frame(width: 20, height: 20)
+                                Text("Sign in with Google")
+                                    .foregroundStyle(.mainOpp)
+                                    .font(.caption)
+                            }
+                            
+                        }
+                    }
+                    
+                    SignInWithAppleButton { request in
+                        authModel.handleSignInWithAppleRequest(request)
+                    } onCompletion: { result in
+                        switch result {
+                        case .failure(let err):
+                            errorMessage = err.localizedDescription
+                            
+                        case .success(let authorization):
+                            authModel.signInWithApple(authorization, context: context) { signInResult, name in
+                                switch signInResult {
+                                case .failure(let err):
+                                    errorMessage = err.localizedDescription
+                                    
+                                case .success(let firebaseUser):
+                                    errorMessage = nil
+                                    authModel.loadOrCreateUserIfNeeded(user: firebaseUser, name: name, in: context) {
+                                        viewManager.navigateToMain(1)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .signInWithAppleButtonStyle(colorScheme == .light ? .black : .white)
+                    .frame(height: 50)
+                    .cornerRadius(25)
+                }
+                
                 // Error Message
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
@@ -212,11 +213,11 @@ struct LoginView: View {
                         .padding(.top, 8)
                 }
             }
-
-            Spacer()
-
             
-                
+            Spacer()
+            
+            
+            
             Button {
                 if email != "" {
                     Auth.auth().sendPasswordReset(withEmail: email) { error in
@@ -249,7 +250,7 @@ struct LoginView: View {
                     Text("sign up here")
                 }
             }
-
+            
             Spacer()
         }
         .padding()

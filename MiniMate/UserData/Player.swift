@@ -13,6 +13,8 @@ import Contacts
 
 // MARK: - Player
 
+// MARK: - Player
+
 @Model
 class Player: Identifiable, Equatable {
     @Attribute(.unique) var id: String = UUID().uuidString
@@ -20,10 +22,14 @@ class Player: Identifiable, Equatable {
     var inGame: Bool = false
     var name: String
     var photoURL: URL?
-    var totalStrokes: Int
     
+    // Computed property: sum of strokes across all holes
+    var totalStrokes: Int {
+        holes.reduce(0) { $0 + $1.strokes }
+    }
+
     @Relationship(deleteRule: .nullify)
-      var game: Game?
+    var game: Game?
 
     @Relationship(deleteRule: .cascade, inverse: \Hole.player)
     var holes: [Hole] = []
@@ -33,21 +39,26 @@ class Player: Identifiable, Equatable {
         lhs.userId == rhs.userId &&
         lhs.name == rhs.name &&
         lhs.photoURL == rhs.photoURL &&
-        lhs.totalStrokes == rhs.totalStrokes &&
         lhs.inGame == rhs.inGame &&
         lhs.holes == rhs.holes
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, userId, name, photoURL, totalStrokes, inGame, holes
+        case id, userId, name, photoURL, inGame, holes
     }
 
-    init(id: String = UUID().uuidString, userId: String, name: String, photoURL: URL? = nil, totalStrokes: Int = 0, inGame: Bool = false, holes: [Hole] = []) {
+    init(
+        id: String = UUID().uuidString,
+        userId: String,
+        name: String,
+        photoURL: URL? = nil,
+        inGame: Bool = false,
+        holes: [Hole] = []
+    ) {
         self.id = id
         self.userId = userId
         self.name = name
         self.photoURL = photoURL
-        self.totalStrokes = totalStrokes
         self.inGame = inGame
         self.holes = holes
 
@@ -70,10 +81,10 @@ class Player: Identifiable, Equatable {
 
     static func fromDTO(_ dto: PlayerDTO) -> Player {
         return Player(
+            id: dto.id,
             userId: dto.userId,
             name: dto.name,
             photoURL: dto.photoURL,
-            totalStrokes: dto.totalStrokes,
             inGame: dto.inGame,
             holes: dto.holes.map { Hole.fromDTO($0) }
         )

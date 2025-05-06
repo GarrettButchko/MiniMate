@@ -114,7 +114,7 @@ struct GameReviewView: View {
                 HStack {
                     ForEach(game.players) { player in
                         if player.id != game.players[0].id { Divider() }
-                        Text("Total: \(player.holes.reduce(0) { $0 + $1.strokes })")
+                        Text("Total: \(player.totalStrokes)")
                             .frame(width: 100, height: 60)
                     }
                 }
@@ -127,7 +127,6 @@ struct GameReviewView: View {
     // MARK: Footer complete game button and timer
     private var footerView: some View {
         HStack {
-            Spacer()
             Button {
                 viewManager.navigateToMain(0)
             } label: {
@@ -139,10 +138,6 @@ struct GameReviewView: View {
                         .foregroundColor(.white).fontWeight(.bold)
                 }
             }
-            Spacer()
-            Text(timeString(from: game.totalTime))
-                .frame(minWidth: 50)
-            Spacer()
         }
     }
     

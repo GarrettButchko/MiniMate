@@ -49,7 +49,7 @@ struct ReauthViewOverlay: View {
                     HStack {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
-                        TextField("example@example.com", text: $email)
+                        TextField("example@example", text: $email)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)

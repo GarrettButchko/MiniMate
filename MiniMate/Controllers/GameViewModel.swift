@@ -70,7 +70,7 @@ final class GameViewModel: ObservableObject {
     
     // MARK: - Public Actions
     func resetGame() {
-        game = Game()
+        setGame(Game())
     }
     
     func setGame(_ newGame: Game) {
@@ -197,7 +197,6 @@ final class GameViewModel: ObservableObject {
                     return true
                 }
                 // still present → update their fields
-                local.totalStrokes = remote.totalStrokes
                 local.inGame       = remote.inGame
 
                 // merge holes
@@ -209,7 +208,7 @@ final class GameViewModel: ObservableObject {
             }
 
             // 4) append any brand‐new players
-            for remote in incoming.players where !self.game.players.contains(where: { $0.userId == remote.id }) {
+            for remote in incoming.players where !self.game.players.contains(where: { $0.id == remote.id }) {
     
                 initializeHoles(for: remote)
                 self.game.players.append(remote)
@@ -245,6 +244,7 @@ final class GameViewModel: ObservableObject {
     // MARK: - Helpers
     private func initializeHoles(for player: Player) {
         guard player.holes.count != game.numberOfHoles else { return }
+        player.holes = []
         player.holes = (0..<game.numberOfHoles).map {
             let hole = Hole(number: $0 + 1, par: 2)
             hole.player = player
@@ -264,7 +264,6 @@ final class GameViewModel: ObservableObject {
             userId: generateGameCode(),
             name: name,
             photoURL: nil,
-            totalStrokes: 0,
             inGame: true
         )
         initializeHoles(for: newPlayer)
@@ -282,7 +281,6 @@ final class GameViewModel: ObservableObject {
         userId: user.id,
         name: user.name,
         photoURL: user.photoURL,
-        totalStrokes: 0,
         inGame: true
       )
       initializeHoles(for: newPlayer)
@@ -299,6 +297,7 @@ final class GameViewModel: ObservableObject {
     
     func joinGame(id: String, completion: @escaping (Bool) -> Void) {
         guard onlineGame else { return }
+        resetGame()
         authModel.fetchGame(id: id) { game in
             if let game = game, !game.dismissed, !game.started, !game.completed {
                 self.setGame(game)
@@ -334,8 +333,8 @@ final class GameViewModel: ObservableObject {
     
     func createGame(online: Bool ,startingLoc: MKMapItem?) {
         guard !game.live else { return }
-        resetGame()
         objectWillChange.send()
+        resetGame()
         game.live = true
         onlineGame = online
         game.id = generateGameCode()
@@ -344,12 +343,20 @@ final class GameViewModel: ObservableObject {
         listenForUpdates()
     }
     
-    func startGame() {
+    func startGame(showHost: Binding<Bool>) {
         guard !game.started else { return }
+
         objectWillChange.send()
+        for player in game.players {
+            initializeHoles(for: player)
+        }
         game.started = true
         pushUpdate()
+
+        // Flip the binding to false
+        showHost.wrappedValue = false
     }
+
     
     // MARK: Game State
     func dismissGame() {
@@ -366,35 +373,43 @@ final class GameViewModel: ObservableObject {
     
     /// Deep-clone the game you just finished, persist it locally & remotely, then reset.
     func finishAndPersistGame(in context: ModelContext) {
-      // 1️⃣ Tear down real-time syncing
       stopListening()
 
-      
-        let holeCount = game.players.first?.holes.count ?? 0
-          print("🔍 Persisting game \(game.id) with \(holeCount) holes")
+      // Clone all fields into a fresh Game instance
+      let finished = Game(
+        id:           game.id,
+        date:         game.date,
+        numberOfHoles: game.numberOfHoles,
+        players:      game.players.map { player in
+          // likewise clone each player/hole…
+          Player(
+            id:       player.id,
+            userId:   player.userId,
+            name:     player.name,
+            photoURL: player.photoURL,
+            holes:    player.holes.map { Hole(number: $0.number, par: 2, strokes: $0.strokes) }
+          )
+        }
+        // …any other properties…
+      )
 
-      // 3️⃣ Persist into SwiftData
-      context.insert(game)
+      // Now insert this *new* object
+      context.insert(finished)
       do {
         try context.save()
         print("✅ Finished game saved locally")
-          debugPrintContext(context)    // ← dump everything
       } catch {
         print("❌ Failed to save finished game locally:", error)
       }
 
-      // 4️⃣ Push into the user’s history
-      authModel.userModel?.games.append(game)
-      authModel.saveUserModel(authModel.userModel!) { success in
-        print(success
-          ? "✅ UserModel updated with new game"
-          : "❌ Failed to update UserModel")
-      }
+      authModel.userModel?.games.append(finished)
+      authModel.saveUserModel(authModel.userModel!) { _ in }
 
-      // 5️⃣ Finally reset the live game
       objectWillChange.send()
       resetGame()
     }
+
+
     
     // MARK: - Debug
         /// A quick dump of every Game, its Players, and detailed Hole model info

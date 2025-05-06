@@ -54,7 +54,7 @@ struct HostView: View {
             }
         }
         .onChange(of: showHost) { _, newValue in
-            if !newValue {
+            if !newValue && !gameModel.started {
                 gameModel.dismissGame()
             }
         }
@@ -234,7 +234,7 @@ struct HostView: View {
     private var startGameSection: some View {
         Section {
             Button("Start Game") {
-                gameModel.startGame()
+                gameModel.startGame(showHost: $showHost)
                 viewManager.navigateToScoreCard()
             }
         }

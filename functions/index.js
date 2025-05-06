@@ -1,6 +1,8 @@
 // functions/index.js
 const admin = require("firebase-admin");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {onRequest} = require("firebase-functions/v2/https");
+
 
 // Initialize with your project’s defaults (no need to pass databaseURL
 // if you’ve already set up your Firebase project via the CLI)
@@ -32,5 +34,16 @@ exports.expireStaleGames = onSchedule(
       console.log("Deleting stale games:", Object.keys(updates));
       await gamesRef.update(updates);
     }
+  },
+);
+
+exports.appleNotifications = onRequest(
+  {
+    region: "us-central1",   // same region as your scheduler, if you like
+  },
+  (req, res) => {
+    console.log("🍏 Apple notification:", req.body);
+    // TODO: verify the JWT in req.body, handle req.body.notificationType, etc.
+    res.status(200).send("OK");
   },
 );

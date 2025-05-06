@@ -31,7 +31,13 @@ class UserModel: Identifiable, Equatable {
         lhs.games == rhs.games
     }
 
-    init(id: String, name: String, photoURL: URL? = nil, email: String? = nil, games: [Game] = []) {
+    init(
+        id: String,
+        name: String,
+        photoURL: URL? = nil,
+        email: String? = nil,
+        games: [Game] = []
+    ) {
         self.id = id
         self.name = name
         self.photoURL = photoURL

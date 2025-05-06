@@ -42,18 +42,17 @@ struct MainView: View {
                                     .resizable()
                                     .scaledToFill()
                             } placeholder: {
-                                Image(systemName: "person.crop.circle.fill")
+                                Image("logoOpp")
                                     .resizable()
                                     .scaledToFill()
                             }
                             .frame(width: 40, height: 40)
                             .clipShape(Circle())
                         } else {
-                            Image(systemName: "person.crop.circle.fill")
+                            Image("logoOpp")
                                 .resizable()
                                 .scaledToFill()
                                 .frame(width: 40, height: 40)
-                                .clipShape(Circle())
                         }
                     }
                     .sheet(isPresented: $isSheetPresented) {

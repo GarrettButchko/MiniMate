@@ -221,10 +221,6 @@ struct StatsView: View {
                 
                 SectionStatsView(title: "Misc Stats") {
                     HStack{
-                        StatCard(title: "Completed Games", value: "\(analyzer.completedGamesCount)", color: .green)
-                        StatCard(title: "Average Time Per Game", value: "\(analyzer.averageTimePerGame) ", color: .green)
-                    }
-                    HStack{
                         StatCard(title: "Best Game", value: "\(analyzer.bestGameStrokes ?? 0)", color: .blue)
                         StatCard(title: "Worst Game", value: "\(analyzer.worstGameStrokes ?? 0)", color: .green)
                         StatCard(title: "Hole in One's", value: "\(analyzer.holeInOneCount)", color: .blue)

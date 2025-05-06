@@ -134,11 +134,12 @@ struct MainTabView: View {
                 .tag(2)
         }
         .onAppear {
-            if NetworkChecker.shared.isConnected {
-                authModel.saveUserModel(authModel.userModel!) { _ in }
+            authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
+                try? context.save()
+                if NetworkChecker.shared.isConnected {
+                    authModel.saveUserModel(authModel.userModel!) { _ in }
+                }
             }
-            authModel.loadOrCreateUserIfNeeded(context)
-            try? context.save()
         }
     }
 }
