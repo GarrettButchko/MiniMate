@@ -1,0 +1,128 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "ADF108F3",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "6745531826",
+      "localizations" : [
+        {
+          "description" : "A refreshing $1 boost",
+          "displayName" : "Quick Sip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "donation_1",
+      "promotionalImageID" : "2C452C14",
+      "referenceName" : "Donation $1",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "6745531608",
+      "localizations" : [
+        {
+          "description" : "You're the MVP 🙌",
+          "displayName" : "Full Pitcher",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "donation_10",
+      "promotionalImageID" : "071539D1",
+      "referenceName" : "Donation $10",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "6745531711",
+      "localizations" : [
+        {
+          "description" : "Enough to power an extra bug fix",
+          "displayName" : "Tall Cup",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "donation_5",
+      "promotionalImageID" : "FDD32135",
+      "referenceName" : "Donation $5",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6745438125",
+    "_developerTeamID" : "PCUSPZK2L4",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 768275170.54587305,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

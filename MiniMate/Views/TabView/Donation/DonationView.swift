@@ -27,8 +27,7 @@ struct DonationView: View {
     let options: [DonationOption] = [
         .init(title: "Quick Sip", subtitle: "A refreshing $1 boost", amount: "$0.99", productID: "donation_1", color: .blue),
         .init(title: "Tall Cup", subtitle: "Enough to power an extra bug fix", amount: "$4.99", productID: "donation_5", color: .green),
-        .init(title: "Full Pitcher", subtitle: "You're the MVP 🙌", amount: "$9.99", productID: "donation_10", color: .orange),
-        .init(title: "Custom Gift", subtitle: "Set your own amount", amount: "💸", productID: "donation_custom", color: .gray)
+        .init(title: "Full Pitcher", subtitle: "You're the MVP 🙌", amount: "$9.99", productID: "donation_10", color: .orange)
     ]
 
     var body: some View {
@@ -99,10 +98,11 @@ struct DonationView: View {
                 Spacer()
                 
                 
-                HStack(alignment: .top) {
+                HStack(alignment: .center) {
                     VStack(alignment: .leading) {
                         Text("A Word from the Developer")
                             .font(.headline)
+                            .padding(.bottom)
                         
                         Text("""
                 Hi! I'm Garrett, a 19-year-old indie developer from Ohio. I built MiniMate to make tracking mini golf stats fun and simple — and as a passion project to grow my skills. If you feel inclined to donate, thank you so much 🙏 — or just email me with ideas to make this app better!
@@ -142,18 +142,12 @@ struct DonationView: View {
                     }
                 }
                 .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(16)
+                .background(.ultraThinMaterial)
+                .cornerRadius(25)
                 .padding(.horizontal)
-                
-                
-                
                 
             }
         }
-            .sheet(isPresented: $showCustom) {
-                CustomDonationView()
-            }
             .task {
                 await loadProducts()
             }
@@ -161,7 +155,8 @@ struct DonationView: View {
 
     func loadProducts() async {
         do {
-            let ids = options.filter { $0.productID != "donation_custom" }.map { $0.productID }
+            let ids = options.map { $0.productID }
+            print("Fetched IAP IDs:", products.map { $0.id })
             products = try await Product.products(for: ids)
         } catch {
             errorMessage = "Failed to load products"

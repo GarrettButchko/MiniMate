@@ -12,6 +12,8 @@
 		210340142DBC4D5200F78FBF /* MiniMateWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 21033FFE2DBC4D5100F78FBF /* MiniMateWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		211D23372D556B3C00558873 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 211D23362D556B3C00558873 /* GoogleSignIn */; };
 		211D23392D556B3C00558873 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 211D23382D556B3C00558873 /* GoogleSignInSwift */; };
+		2129B9962DCAF27A000D9C8F /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2129B9952DCAF27A000D9C8F /* StoreKit.framework */; };
+		2129B9982DCAF2E0000D9C8F /* StoreKitConfig.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */; };
 		215679982D5175D9001BE574 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 215679972D5175D9001BE574 /* FirebaseAnalytics */; };
 		2156799A2D5175D9001BE574 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 215679992D5175D9001BE574 /* FirebaseAnalyticsOnDeviceConversion */; };
 		2156799C2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 2156799B2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport */; };
@@ -66,6 +68,8 @@
 		21033FFE2DBC4D5100F78FBF /* MiniMateWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MiniMateWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		210340002DBC4D5100F78FBF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		210340022DBC4D5100F78FBF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		2129B9952DCAF27A000D9C8F /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
 		213F26F62D4D639100579FAE /* MiniMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiniMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -137,6 +141,7 @@
 				215679B42D5175D9001BE574 /* FirebaseFunctionsCombine-Community in Frameworks */,
 				211D23372D556B3C00558873 /* GoogleSignIn in Frameworks */,
 				215679A02D5175D9001BE574 /* FirebaseAppDistribution-Beta in Frameworks */,
+				2129B9962DCAF27A000D9C8F /* StoreKit.framework in Frameworks */,
 				215679BC2D5175D9001BE574 /* FirebaseMLModelDownloader in Frameworks */,
 				2156799C2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
 				215679B62D5175D9001BE574 /* FirebaseInAppMessaging-Beta in Frameworks */,
@@ -154,6 +159,7 @@
 		21033FFF2DBC4D5100F78FBF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				2129B9952DCAF27A000D9C8F /* StoreKit.framework */,
 				210340002DBC4D5100F78FBF /* WidgetKit.framework */,
 				210340022DBC4D5100F78FBF /* SwiftUI.framework */,
 			);
@@ -163,6 +169,7 @@
 		213F26ED2D4D639100579FAE = {
 			isa = PBXGroup;
 			children = (
+				2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */,
 				213F26F82D4D639100579FAE /* MiniMate */,
 				210340042DBC4D5100F78FBF /* MiniMateWidget */,
 				21033FFF2DBC4D5100F78FBF /* Frameworks */,
@@ -308,6 +315,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2129B9982DCAF2E0000D9C8F /* StoreKitConfig.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

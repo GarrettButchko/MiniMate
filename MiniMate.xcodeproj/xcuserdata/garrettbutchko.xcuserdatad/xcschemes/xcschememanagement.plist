@@ -17,7 +17,20 @@
 		<key>Promises (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>2</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>21033FFD2DBC4D5100F78FBF</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>213F26F52D4D639100579FAE</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>
