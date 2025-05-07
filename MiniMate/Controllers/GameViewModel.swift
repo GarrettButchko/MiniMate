@@ -105,11 +105,6 @@ final class GameViewModel: ObservableObject {
                 listenForUpdates()
             }
         }
-
-    
-    func setOnlineGame(_ onlineGame: Bool) {
-        self.onlineGame = onlineGame
-    }
     
     func setCompletedGame(_ completedGame: Bool) {
         objectWillChange.send() // notify before mutating
@@ -226,20 +221,6 @@ final class GameViewModel: ObservableObject {
             }
         }
     }
-    
-    func saveToUser(){
-        guard authModel.userModel != nil else { return }
-        authModel.userModel!.games.append(game)
-        if onlineGame {
-            authModel.saveUserModel(authModel.userModel!) { result in
-                if result {
-                    print("Saved User to Firebase")
-                } else {
-                    print("Failed to save User to Firebase")
-                }
-            }
-        }
-    }
 
     // MARK: - Helpers
     private func initializeHoles(for player: Player) {
@@ -320,16 +301,8 @@ final class GameViewModel: ObservableObject {
         resetGame()
     }
     
-    // MARK: Game State
-    func startHostedGame(online: Bool, startingLoc: MKMapItem?) {
-        createGame(online: online, startingLoc: startingLoc)
-        listenForUpdates()
-    }
     
     // MARK: Game State
-    func stopHostedGame() {
-        dismissGame()
-    }
     
     func createGame(online: Bool ,startingLoc: MKMapItem?) {
         guard !game.live else { return }
@@ -408,24 +381,4 @@ final class GameViewModel: ObservableObject {
       objectWillChange.send()
       resetGame()
     }
-
-
-    
-    // MARK: - Debug
-        /// A quick dump of every Game, its Players, and detailed Hole model info
-        func debugPrintContext(_ context: ModelContext) {
-            let allGames: [Game] = (try? context.fetch(FetchDescriptor<Game>())) ?? []
-            print("🗄️ ModelContext contains \(allGames.count) games:")
-            for game in allGames {
-                let totalHoles = game.players.reduce(0) { $0 + $1.holes.count }
-                print("– Game \(game.id) (completed: \(game.completed), date: \(game.date), totalHoles: \(totalHoles))")
-                for player in game.players {
-                    print("    • Player \(player.name) (id: \(player.id)) has \(player.holes.count) holes:")
-                    let sortedHoles = player.holes.sorted { $0.number < $1.number }
-                    for hole in sortedHoles {
-                        print("      – Hole #\(hole.number) [id: \(hole.id)] par=\(hole.par), strokes=\(hole.strokes), playerId=\(hole.player?.id ?? "nil")")
-                    }
-                }
-            }
-        }
 }

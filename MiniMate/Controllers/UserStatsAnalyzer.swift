@@ -63,26 +63,6 @@ struct UserStatsAnalyzer {
             .filter { $0.strokes == 1 }
             .count
     }
-
-    // MARK: - Game Completion Stats
-
-    var completedGamesCount: Int {
-        user.games.filter { $0.completed }.count
-    }
-
-    // MARK: - Time Stats
-
-    var averageTimePerGame: String {
-        let totalTime = user.games.map { $0.totalTime }.reduce(0, +)
-        guard totalGamesPlayed > 0 else { return "0:00" }
-        
-        func timeString(from seconds: Int) -> String {
-            let minutes = seconds / 60
-            let secs = seconds % 60
-            return String(format: "%d:%02d", minutes, secs)
-        }
-        return timeString(from: Int(Double(totalTime) / Double(totalGamesPlayed)))
-    }
     
     // MARK: - Average Holes Maps
         
