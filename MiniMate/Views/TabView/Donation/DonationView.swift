@@ -18,18 +18,22 @@ struct DonationOption: Identifiable {
     let color: Color
 }
 
+extension Notification.Name {
+    static let didCompleteDonation = Notification.Name("didCompleteDonation")
+}
+
 struct DonationView: View {
     @State private var products: [Product] = []
     @State private var showCustom = false
     @State private var thankYou = false
     @State private var errorMessage: String?
-
+    
     let options: [DonationOption] = [
         .init(title: "Quick Sip", subtitle: "A refreshing $1 boost", amount: "$0.99", productID: "donation_1", color: .blue),
         .init(title: "Tall Cup", subtitle: "Enough to power an extra bug fix", amount: "$4.99", productID: "donation_5", color: .green),
         .init(title: "Full Pitcher", subtitle: "You're the MVP 🙌", amount: "$9.99", productID: "donation_10", color: .orange)
     ]
-
+    
     var body: some View {
         
         Capsule()
@@ -93,6 +97,7 @@ struct DonationView: View {
                     Text("🎉 Thank you for your donation!")
                         .foregroundColor(.green)
                         .padding(.top)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 
                 Spacer()
@@ -148,11 +153,19 @@ struct DonationView: View {
                 
             }
         }
-            .task {
-                await loadProducts()
+        .onReceive(NotificationCenter.default.publisher(for: .didCompleteDonation)) { note in
+            if let id = note.object as? String,
+               options.map(\.productID).contains(id) {
+                withAnimation{
+                    thankYou = true
+                }
             }
         }
-
+        .task {
+            await loadProducts()
+        }
+    }
+    
     func loadProducts() async {
         do {
             let ids = options.map { $0.productID }
@@ -162,14 +175,16 @@ struct DonationView: View {
             errorMessage = "Failed to load products"
         }
     }
-
+    
     func purchase(productID: String) async {
         guard let product = products.first(where: { $0.id == productID }) else { return }
         do {
             let result = try await product.purchase()
             switch result {
             case .success:
-                thankYou = true
+                withAnimation{
+                    thankYou = true
+                }
             default:
                 break
             }
@@ -177,4 +192,6 @@ struct DonationView: View {
             errorMessage = "Purchase failed: \(error.localizedDescription)"
         }
     }
+    
+    
 }
