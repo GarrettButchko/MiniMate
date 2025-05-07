@@ -7,9 +7,12 @@
 DerivedData/
 *.xcuserstate
 *.xcscmblueprint
-*.xcodeproj/project.xcworkspace/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcsettings/
+# Xcode workspace user data (ignore per-user settings)
+**/*.xcworkspace/xcuserdata/
+# Xcode workspace checks (can be regenerated)
+**/*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
 # Build
 build/
