@@ -9,10 +9,11 @@ import SwiftUI
 import Charts
 
 struct StatsView: View {
+    
+    @Environment(\.modelContext) private var context
+    
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
-
-    @Environment(\.modelContext) private var context
     
     var pickerSections = ["Games", "Overview"]
     
@@ -154,10 +155,6 @@ struct StatsView: View {
                         RoundedRectangle(cornerRadius: 25)
                             .fill(.ultraThinMaterial) // Light background
                             .frame(height: 50)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 25)
-                                    .stroke(.ultraThickMaterial)
-                            )
                         
                         HStack {
                             Image(systemName: "magnifyingglass")
@@ -177,13 +174,24 @@ struct StatsView: View {
                             latest.toggle()
                         }
                     } label: {
-                        if latest{
-                            Image(systemName: "arrow.up")
-                                .transition(.scale)
-                        } else {
-                            Image(systemName: "arrow.down")
-                                .transition(.scale)
+                        
+                        ZStack{
+                            
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 50, height: 50)
+                            
+                            if latest{
+                                Image(systemName: "arrow.up")
+                                    .transition(.scale)
+                                    .frame(width: 60, height: 60)
+                            } else {
+                                Image(systemName: "arrow.down")
+                                    .transition(.scale)
+                                    .frame(width: 60, height: 60)
+                            }
                         }
+                        
                         
                         
                     }
@@ -240,6 +248,7 @@ struct StatsView: View {
 }
 
 struct StatCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     var title: String
     var value: String
     var color: Color
@@ -260,13 +269,16 @@ struct StatCard: View {
         }
         .padding()
         .frame(height: 120)
-        .background(.ultraThinMaterial)
+        .background(colorScheme == .light
+                    ? AnyShapeStyle(Color.white)
+                    : AnyShapeStyle(.ultraThinMaterial))
         .clipShape(RoundedRectangle(cornerRadius: 25))
     }
 }
 
 
 struct SectionStatsView<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
     var title: String
     @ViewBuilder var content: () -> Content
 
@@ -352,7 +364,7 @@ struct GameGridView: View {
                             .clipShape(.buttonBorder)
                             .frame(height: 32)
                         Text("Delete Game")
-                            .foregroundStyle(.main)
+                            .foregroundStyle(.white)
                     }
                 }
                 .transition(.asymmetric(
@@ -392,6 +404,7 @@ struct GameGridView: View {
 
 
 struct BarChartView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let data: [Hole]
     let title: String
 
@@ -436,7 +449,9 @@ struct BarChartView: View {
         .chartYScale(domain: 0...(data.map { $0.strokes }.max() ?? 10) + 1)
         .frame(height: 75)
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(.ultraThinMaterial))
+        .background(RoundedRectangle(cornerRadius: 12).fill(colorScheme == .light
+                                                            ? AnyShapeStyle(Color.white)
+                                                            : AnyShapeStyle(.ultraThinMaterial)))
     }
 }
 

@@ -2,6 +2,8 @@ import SwiftUI
 import MapKit
 
 struct MainView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var locationHandler: LocationHandler
@@ -94,7 +96,9 @@ struct MainView: View {
                                             }
                                             .padding()
                                             .frame(height: 120)
-                                            .background(.ultraThinMaterial)
+                                            .background(colorScheme == .light
+                                                        ? AnyShapeStyle(Color.white)
+                                                        : AnyShapeStyle(.ultraThinMaterial))
                                             .clipShape(RoundedRectangle(cornerRadius: 25))
                                             StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
                                         }
@@ -260,6 +264,7 @@ struct MainView: View {
                                 .frame(height: 50)
                                 .background(Color.indigo)
                                 .clipShape(RoundedRectangle(cornerRadius: 25))
+                                .shadow(radius: 10)
                             }
                             .sheet(isPresented: $showDonation) {
                                 DonationView()

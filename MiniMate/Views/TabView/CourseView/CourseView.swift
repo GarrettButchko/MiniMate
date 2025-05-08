@@ -11,12 +11,13 @@ import MapKit
 // MARK: - CourseView
 
 struct CourseView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var locationHandler: LocationHandler
     @ObservedObject var gameModel: GameViewModel
     
-    @State var showSheet: Bool = true
     @State var position: MapCameraPosition = .automatic
     @State var isUpperHalf: Bool = false
     @State var showHost: Bool = false
@@ -39,10 +40,12 @@ struct CourseView: View {
                             .frame(height: 40)
                             .background(.ultraThinMaterial)
                             .clipShape(RoundedRectangle(cornerRadius: 25))
+                            .shadow(radius: 10)
                         
                         Spacer()
                         
                         LocationButton(cameraPosition: $position, isUpperHalf: $isUpperHalf, selectedResult: locationHandler.bindingForSelectedItem(), locationHandler: locationHandler)
+                            .shadow(radius: 10)
                     }
                     
                     Spacer()
@@ -66,6 +69,7 @@ struct CourseView: View {
                         .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
                         .frame(height: geometry.size.height * 0.4)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .shadow(radius: 10)
                     }
                 }
                 .padding(.horizontal)
@@ -76,6 +80,7 @@ struct CourseView: View {
             }
         }
         .onAppear(){
+            isUpperHalf = false
             locationHandler.mapItems = []
             locationHandler.selectedItem = nil
             position = locationHandler.updateCameraPosition()
@@ -84,9 +89,11 @@ struct CourseView: View {
     
     var mapView: some View {
         Map(position: $position, selection: locationHandler.bindingForSelectedItem()) {
-            ForEach(locationHandler.mapItems, id: \.self) { item in
-                Marker(item.name ?? "Unknown", coordinate: item.placemark.coordinate)
-                    .tint(.green)
+            withAnimation(){
+                ForEach(locationHandler.mapItems, id: \.self) { item in
+                    Marker(item.name ?? "Unknown", coordinate: item.placemark.coordinate)
+                        .tint(.green)
+                }
             }
             UserAnnotation()
         }
@@ -95,6 +102,11 @@ struct CourseView: View {
                 position = locationHandler.updateCameraPosition(newValue)
             }
         }
+        .mapControls {
+              MapCompass()
+                .mapControlVisibility(.hidden)
+        }
+        
     }
     
     var searchButton: some View {
@@ -104,24 +116,24 @@ struct CourseView: View {
                 if let userLocation = locationHandler.userLocation {
                     let upwardOffset: CLLocationDegrees = 0.03 // how much higher to shift (tweak if needed)
                     let offsetLatitude = userLocation.latitude + upwardOffset
-
+                    
                     let adjustedCoordinate = CLLocationCoordinate2D(
                         latitude: offsetLatitude,
                         longitude: userLocation.longitude
                     )
-
+                    
                     let region = MKCoordinateRegion(
                         center: adjustedCoordinate,
                         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
                     )
-
-                    locationHandler.performSearch(in: region) { result in
-                        if result {
+                    
+                        locationHandler.performSearch(in: region) { result in
                             withAnimation {
-                                position = locationHandler.updateCameraPosition(nil)
+                                if result {
+                                    position = locationHandler.updateCameraPosition(nil)
+                                }
                             }
                         }
-                    }
                 }
 
             }
@@ -140,6 +152,7 @@ struct CourseView: View {
         }
         .frame(height: 50)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+        .shadow(radius: 10)
     }
     
     var searchResultsView: some View {
@@ -150,15 +163,20 @@ struct CourseView: View {
                     .foregroundStyle(.mainOpp)
                 Spacer()
                 Button {
-                    locationHandler.mapItems = []
                     withAnimation {
                         isUpperHalf = false
+                        locationHandler.mapItems = []
+                        position = locationHandler.updateCameraPosition()
                     }
                 } label: {
-                    Text("Cancel")
-                        .frame(width: 70, height: 30)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
+                    
+                        Text("Cancel")
+                            .frame(width: 70, height: 30)
+                            .background(colorScheme == .light
+                                        ? AnyShapeStyle(Color.white)
+                                        : AnyShapeStyle(.ultraThinMaterial))
+                            .clipShape(Capsule())
+                    
                 }
             }
             
@@ -200,10 +218,15 @@ struct CourseView: View {
                     }
                 } label: {
                     ZStack {
-                        Text("Back")
-                            .frame(width: 70, height: 30)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
+                        
+                            Text("Back")
+                                .frame(width: 70, height: 30)
+                                .background(colorScheme == .light
+                                            ? AnyShapeStyle(Color.white)
+                                            : AnyShapeStyle(.ultraThinMaterial))
+                                .clipShape(Capsule())
+                        
+                        
                     }
                 }
             }
@@ -211,20 +234,41 @@ struct CourseView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     
-                    
-                    Button {
-                        showHost = true
-                        gameModel.createGame(online: true, startingLoc: locationHandler.selectedItem)
-                    } label: {
-                        HStack {
-                            Image(systemName: "antenna.radiowaves.left.and.right")
-                            Text("Host/Start Game Here")
-                                .fontWeight(.semibold)
+                    HStack{
+                        Button {
+                            showHost = true
+                            gameModel.createGame(online: true, startingLoc: locationHandler.selectedItem)
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(Color.purple)
+                                VStack {
+                                    Image(systemName: "antenna.radiowaves.left.and.right")
+                                        .foregroundColor(.white)
+                                    Text("Host Game Here")
+                                        .foregroundColor(.white)
+                                        .fontWeight(.bold)
+                                }
+                                .padding()
+                            }
                         }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, minHeight: 50)
-                        .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(.purple))
-                        .foregroundColor(.white)
+                        Button(action: {
+                            let launchOptions = [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking]
+                            locationHandler.bindingForSelectedItem().wrappedValue?.openInMaps(launchOptions: launchOptions)
+                        }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(Color.blue)
+                                VStack {
+                                    Image(systemName: "arrow.turn.up.right")
+                                        .foregroundColor(.white)
+                                    Text("Get Directions")
+                                        .foregroundColor(.white)
+                                        .fontWeight(.bold)
+                                }
+                                .padding()
+                            }
+                        }
                     }
                     
 
@@ -233,95 +277,85 @@ struct CourseView: View {
                     if let selected = locationHandler.bindingForSelectedItem().wrappedValue,
                        selected.phoneNumber != nil || selected.url != nil {
                         
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "phone.fill")
-                                    Text("Contact")
-                                        .font(.headline)
-                                }
+                        
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "phone.fill")
+                                        Text("Contact")
+                                            .font(.headline)
+                                    }
 
-                                if let phone = selected.phoneNumber {
-                                    Text("Phone: \(phone)")
-                                }
+                                    if let phone = selected.phoneNumber {
+                                        Text("Phone: \(phone)")
+                                    }
 
-                                if let url = selected.url {
-                                    Link("Website", destination: url)
+                                    if let url = selected.url {
+                                        Link("Website", destination: url)
+                                    }
                                 }
+                                Spacer()
                             }
-                            Spacer()
-                        }
-                        .font(.callout)
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .font(.callout)
+                            .padding()
+                            .background(colorScheme == .light
+                                        ? AnyShapeStyle(Color.white)
+                                        : AnyShapeStyle(.ultraThinMaterial))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    
                     }
 
                     // MARK: - Location Info
-                    HStack{
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "mappin")
-                                Text("Location")
-                                    .font(.headline)
-                            }
-                            if let name = locationHandler.bindingForSelectedItem().wrappedValue?.name {
-                                Text(name)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                            }
-                            if let selectedResult = locationHandler.bindingForSelectedItem().wrappedValue {
-                                Text(locationHandler.getPostalAddress(from: selectedResult))
-                                    .font(.callout)
-                            }
-                        }
-                        Spacer()
-                    }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    // MARK: - Timezone
-                    if let timeZone = locationHandler.bindingForSelectedItem().wrappedValue?.timeZone {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4){
+                   
+                        HStack{
+                            VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 8) {
-                                    Image(systemName: "clock")
-                                    Text("Timezone")
+                                    Image(systemName: "mappin")
+                                    Text("Location")
                                         .font(.headline)
                                 }
-                                Text(timeZone.identifier)
-                                    .font(.callout)
+                                if let name = locationHandler.bindingForSelectedItem().wrappedValue?.name {
+                                    Text(name)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                }
+                                if let selectedResult = locationHandler.bindingForSelectedItem().wrappedValue {
+                                    Text(locationHandler.getPostalAddress(from: selectedResult))
+                                        .font(.callout)
+                                }
                             }
                             Spacer()
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
+                        .background(colorScheme == .light
+                                    ? AnyShapeStyle(Color.white)
+                                    : AnyShapeStyle(.ultraThinMaterial))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-
-                    // MARK: - Directions Button
                     
                     
-                    Button(action: {
-                        let launchOptions = [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking]
-                        locationHandler.bindingForSelectedItem().wrappedValue?.openInMaps(launchOptions: launchOptions)
-                    }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.blue)
-                            VStack {
-                                Image(systemName: "arrow.turn.up.right")
-                                    .foregroundColor(.white)
-                                Text("Get Directions")
-                                    .foregroundColor(.white)
-                                    .fontWeight(.bold)
+                    
+                        if let timeZone = locationHandler.bindingForSelectedItem().wrappedValue?.timeZone {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4){
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "clock")
+                                        Text("Timezone")
+                                            .font(.headline)
+                                    }
+                                    Text(timeZone.identifier)
+                                        .font(.callout)
+                                }
+                                Spacer()
                             }
+                            .padding()
+                            .background(colorScheme == .light
+                                        ? AnyShapeStyle(Color.white)
+                                        : AnyShapeStyle(.ultraThinMaterial))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                    }
-                    .padding(.top)
-                    .frame(height: 60)
-
+                    
+                    // MARK: - Timezone
+                    
                 }
             }
             .scrollContentBackground(.hidden)
