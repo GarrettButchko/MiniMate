@@ -105,8 +105,7 @@ struct CourseView: View {
         .mapControls {
               MapCompass()
                 .mapControlVisibility(.hidden)
-        }
-        
+            }
     }
     
     var searchButton: some View {
@@ -253,7 +252,7 @@ struct CourseView: View {
                             }
                         }
                         Button(action: {
-                            let launchOptions = [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking]
+                            let launchOptions = [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving]
                             locationHandler.bindingForSelectedItem().wrappedValue?.openInMaps(launchOptions: launchOptions)
                         }) {
                             ZStack {

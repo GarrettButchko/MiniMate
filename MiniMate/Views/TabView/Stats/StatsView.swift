@@ -162,7 +162,6 @@ struct StatsView: View {
                             TextField("Search", text: $searchText)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
-                                .keyboardType(.emailAddress)
                                 .padding(.trailing, 5)
                         }
                         .padding()

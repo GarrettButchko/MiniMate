@@ -126,16 +126,30 @@ struct GameReviewView: View {
     
     // MARK: Footer complete game button and timer
     private var footerView: some View {
-        HStack {
-            Button {
-                viewManager.navigateToMain(0)
-            } label: {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 25)
-                        .fill(Color.blue)
-                        .frame(width: 200, height: 60)
-                    Text("Back to Stats")
-                        .foregroundColor(.white).fontWeight(.bold)
+        
+        
+        ZStack{
+            HStack{
+                Spacer()
+                  ShareLink(item: makeShareableSummary(for: game)) {
+                    Image(systemName: "square.and.arrow.up")
+                          .fontWeight(.bold)
+                          .font(.title2)
+                  }
+                  .padding()
+            }
+            
+            HStack {
+                Button {
+                    viewManager.navigateToMain(0)
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(Color.blue)
+                            .frame(width: 200, height: 60)
+                        Text("Back to Stats")
+                            .foregroundColor(.white).fontWeight(.bold)
+                    }
                 }
             }
         }
@@ -145,6 +159,28 @@ struct GameReviewView: View {
         let minutes = seconds / 60
         let secs = seconds % 60
         return String(format: "%d:%02d", minutes, secs)
+    }
+    
+    /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
+    func makeShareableSummary(for game: Game) -> String {
+      var lines = ["MiniMate Scorecard",
+                   "Date: \(game.date.formatted(.dateTime))",
+                   ""]
+      
+      for player in game.players {
+          var holeLine = ""
+          
+          for hole in player.holes {
+                holeLine += "|\(hole.strokes)"
+          }
+          
+          lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
+          lines.append("Holes " + holeLine)
+          
+      }
+      lines.append("")
+      lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
+      return lines.joined(separator: "\n")
     }
 }
 
