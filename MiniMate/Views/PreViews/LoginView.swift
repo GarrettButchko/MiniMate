@@ -114,8 +114,8 @@ struct LoginView: View {
                 
                 
                 // MARK: - Auth Buttons
-                VStack(spacing: 16) {
-                    // Google Sign-In Button
+                HStack(spacing: 16) {
+                    
                     
                     // Email/Password Login Button
                     Button {
@@ -135,9 +135,23 @@ struct LoginView: View {
                     } label: {
                         ZStack {
                             RoundedRectangle(cornerRadius: 25)
-                                .frame(width: 150, height: 50)
+                                .frame(height: 50)
                             Text("Login")
                                 .foregroundStyle(.white)
+                        }
+                    }
+                    
+                    Button {
+                        authModel.loadOrCreateUserIfNeeded(in: context) {
+                            viewManager.navigateToMain(1)
+                        }
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 25)
+                                .frame(height: 50)
+                                .foregroundStyle(.ultraThinMaterial)
+                            Text("Login as Guest")
+                                .foregroundStyle(.blue)
                         }
                     }
                 }

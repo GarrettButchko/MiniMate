@@ -20,6 +20,7 @@ struct SyncedScrollViewRepresentable<Content: View>: UIViewRepresentable {
         let hostedVC = UIHostingController(rootView:
             content()
                 .background(Color.clear)  // <-- Clear background for SwiftUI content
+                .scrollIndicators(.hidden)
         )
         hostedVC.view.translatesAutoresizingMaskIntoConstraints = false
         hostedVC.view.backgroundColor = .clear  // <-- Clear background for hosted view

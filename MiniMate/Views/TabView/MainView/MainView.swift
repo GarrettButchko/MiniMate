@@ -81,30 +81,34 @@ struct MainView: View {
                                     .frame(height: 310)
                                     
                                 if analyzer.hasGames{
-                                    SectionStatsView(title: "Last Game") {
-                                        HStack{
-                                            
+                                    Button {
+                                        viewManager.navigateToGameReview(user.games.sorted(by: { $0.date > $1.date }).first!)
+                                    } label: {
+                                        SectionStatsView(title: "Last Game") {
                                             HStack{
-                                                VStack(alignment: .leading, spacing: 8) {
-                                                    Text("Winner")
-                                                        .font(.caption)
-                                                        .foregroundStyle(.secondary)
-                                                    PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: analyzer.winnerOfLatestGame?.name ?? "N/A", imageSize: 30, background: .ultraThinMaterial)
+                                                HStack{
+                                                    VStack(alignment: .leading, spacing: 8) {
+                                                        Text("Winner")
+                                                            .font(.caption)
+                                                            .foregroundStyle(.secondary)
+                                                            .foregroundStyle(.mainOpp)
+                                                        PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: (analyzer.winnerOfLatestGame?.name ?? "N/A") + "🥇", imageSize: 30, background: Color.yellow)
+                                                        Spacer()
+                                                    }
                                                     Spacer()
                                                 }
-                                                Spacer()
+                                                .padding()
+                                                .frame(height: 120)
+                                                .background(colorScheme == .light
+                                                            ? AnyShapeStyle(Color.white)
+                                                            : AnyShapeStyle(.ultraThinMaterial))
+                                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                                StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
                                             }
-                                            .padding()
-                                            .frame(height: 120)
-                                            .background(colorScheme == .light
-                                                        ? AnyShapeStyle(Color.white)
-                                                        : AnyShapeStyle(.ultraThinMaterial))
-                                            .clipShape(RoundedRectangle(cornerRadius: 25))
-                                            StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
+                                            
+                                            BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
+                                            
                                         }
-                                        
-                                        BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
-                                        
                                     }
                                 } else {
                                     Image("logoOpp")
@@ -200,7 +204,7 @@ struct MainView: View {
                                     ))
                                 } else {
                                     HStack(spacing: 16) {
-                                        gameModeButton(title: "Offline", icon: "person.fill", color: .blue) {
+                                        gameModeButton(title: "Quick", icon: "person.fill", color: .blue) {
                                             gameModel.createGame(online: false, startingLoc: nil)
                                             showHost = true
                                             withAnimation {
@@ -211,12 +215,24 @@ struct MainView: View {
                                             HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel)
                                                 .presentationDetents([.large])
                                         }
-
-                                        gameModeButton(title: "Online", icon: "globe", color: .green) {
-                                            withAnimation {
-                                                isOnlineMode = true
+                                        if authModel.userModel?.id == "IDGuest" {
+                                            HStack {
+                                                Image(systemName: "globe")
+                                                Text("Connect")
+                                                    .fontWeight(.semibold)
+                                            }
+                                            .padding(10)
+                                            .frame(maxWidth: .infinity, minHeight: 50)
+                                            .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(.secondary))
+                                            .foregroundColor(.mainOpp)
+                                        } else {
+                                            gameModeButton(title: "Connect", icon: "globe", color: .green) {
+                                                withAnimation {
+                                                    isOnlineMode = true
+                                                }
                                             }
                                         }
+                                        
                                     }
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .leading).combined(with: .opacity),

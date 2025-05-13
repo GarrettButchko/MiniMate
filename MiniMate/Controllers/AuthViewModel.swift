@@ -37,7 +37,7 @@ class AuthViewModel: ObservableObject {
     
     /// The key we use for all our DB reads/writes.
     var currentUserIdentifier: String? {
-        appleUserID ?? firebaseUser?.uid
+        appleUserID ?? firebaseUser?.uid ?? "IDGuest"
     }
     
     private let loc = LocFuncs()
@@ -66,10 +66,7 @@ class AuthViewModel: ObservableObject {
         completion: @escaping () -> Void
     ) {
         // 1️⃣ Make sure we have a signed-in Firebase user
-        guard let firebaseUser = Auth.auth().currentUser else {
-            print("⚠️ No Firebase user.")
-            return
-        }
+        let firebaseUser = Auth.auth().currentUser
         // If caller passed in the freshly-signed-in user, update our published state
         if let u = user {
             self.firebaseUser = u
@@ -99,12 +96,12 @@ class AuthViewModel: ObservableObject {
                     completion()  // ← DONE
                 } else {
                     // 🚀 Doesn’t exist anywhere → create new
-                    let finalName  = name ?? firebaseUser.displayName ?? ""
-                    let finalEmail = firebaseUser.email ?? ""
+                    let finalName  = name ?? firebaseUser?.displayName ?? "Guest"
+                    let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
                     let newUser = UserModel(
-                        id:       uid,
+                        id:       finalName != "Guest" ? uid : "IDGuest",
                         name:     finalName,
-                        photoURL: firebaseUser.photoURL,
+                        photoURL: firebaseUser?.photoURL,
                         email:    finalEmail,
                         games:    []
                     )

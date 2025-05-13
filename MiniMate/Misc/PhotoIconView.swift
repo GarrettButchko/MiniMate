@@ -1,9 +1,3 @@
-//
-//  NumberPickerView.swift
-//  MiniMate
-//
-//  Created by Garrett Butchko on 4/18/25.
-//
 import SwiftUI
 
 struct PhotoIconView<Background: ShapeStyle>: View {
@@ -15,14 +9,12 @@ struct PhotoIconView<Background: ShapeStyle>: View {
     var body: some View {
         VStack {
             ZStack {
-                /// background circle
-               
+                /// Background circle
                 Circle()
                     .fill(background)
                     .frame(width: imageSize + 10, height: imageSize + 10)
-                
-                
-                /// photo
+
+                /// Photo
                 AsyncImage(url: photoURL) { phase in
                     switch phase {
                     case .empty:
@@ -35,7 +27,7 @@ struct PhotoIconView<Background: ShapeStyle>: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit) // show full image
                             .frame(width: imageSize, height: imageSize)
-                            .clipShape(Circle()) // still keeps the round shape
+                            .clipShape(Circle()) // keeps the round shape
                     case .failure:
                         Image(systemName: "logoOpp")
                             .resizable()
@@ -49,9 +41,10 @@ struct PhotoIconView<Background: ShapeStyle>: View {
                     }
                 }
             }
-            /// Name on the bottom
+            /// Name on the bottom with dynamic text size
             Text(name)
-                .font(imageSize >= 30 ? .caption : .caption2)
+                .font(.system(size: imageSize * 0.3)) // Dynamic font size based on imageSize
+                .lineLimit(1)
                 .foregroundStyle(.mainOpp)
         }
     }

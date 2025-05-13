@@ -4,6 +4,7 @@
 // Refactored to use SwiftData models and AuthViewModel
 
 import SwiftUI
+import Combine
 
 struct ScoreCardView: View {
     @Environment(\.modelContext) private var context
@@ -17,21 +18,31 @@ struct ScoreCardView: View {
     @State private var uuid: UUID? = nil
     
     @State var showInfoView: Bool = false
+    @State var showRecap: Bool = false
     
     @State private var hasUploaded = false   // renamed for clarity
     
     var body: some View {
-        VStack {
-            headerView
-            scoreGridView
-            footerView
-        }
-        .padding()
-        .sheet(isPresented: $showInfoView) {
-            GameInfoView(game: gameModel.bindingForGame(), isSheetPresent: $showInfoView)
-        }
-        .onChange(of: gameModel.gameValue.completed) { old, new in
-            endGame()
+        ZStack{
+            VStack {
+                headerView
+                scoreGridView
+                footerView
+            }
+            .padding()
+            .sheet(isPresented: $showInfoView) {
+                GameInfoView(game: gameModel.bindingForGame(), isSheetPresent: $showInfoView)
+            }
+            .onChange(of: gameModel.gameValue.completed) { old, new in
+                endGame()
+                withAnimation {
+                    showRecap = true
+                }
+            }
+            if showRecap {
+                RecapView(userModel: authModel.userModel!, viewManager: viewManager)
+                    .transition(.opacity)
+            }
         }
     }
     
@@ -87,8 +98,7 @@ struct ScoreCardView: View {
                 }
                 PhotoIconView(photoURL: player.photoURL,
                               name: player.name,
-                              imageSize: 30,
-                              background: .ultraThinMaterial)
+                              imageSize: 30, background: .ultraThinMaterial)
                   .frame(width: 100, height: 60)
               }
             }
@@ -110,7 +120,7 @@ struct ScoreCardView: View {
                     PlayerColumnsView(
                         players: gameModel.binding(for: \.players),
                         game: gameModel.bindingForGame(),
-                        authModel: authModel, online: gameModel.onlineGame
+                        authModel: authModel, gameModel: gameModel, online: gameModel.onlineGame
                     )
                 }
             }
@@ -163,6 +173,9 @@ struct ScoreCardView: View {
             Button {
                 gameModel.setCompletedGame(true)
                 endGame()
+                withAnimation {
+                    showRecap = true
+                }
             }  label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 25)
@@ -187,7 +200,7 @@ struct ScoreCardView: View {
         // 1️⃣ finish-and-persist before we pop the view
         gameModel.finishAndPersistGame(in: context)
         // 2️⃣ now it’s safe to navigate
-        viewManager.navigateToMain(1)
+        
     }
 }
 
@@ -195,7 +208,7 @@ struct ScoreCardView: View {
 
 struct PlayerScoreColumnView: View {
     @Binding var player: Player
-    @Binding var game: Game
+    @ObservedObject var gameModel: GameViewModel
     @StateObject var authModel: AuthViewModel
     var onlineGame: Bool
     
@@ -204,10 +217,7 @@ struct PlayerScoreColumnView: View {
             ForEach($player.holes.sorted(by: {$0.number.wrappedValue < $1.number.wrappedValue}), id: \.id) { $hole in
                     HoleRowView(hole: $hole)
                       .onChange(of: hole.strokes) { new, old in
-                        if onlineGame {
-                          game.lastUpdated = Date()
-                          authModel.addOrUpdateGame(game) { _ in }
-                        }
+                          gameModel.pushUpdate()
                       }
             }
         }
@@ -231,6 +241,7 @@ struct PlayerColumnsView: View {
     @Binding var players: [Player]
     @Binding var game: Game
     @StateObject var authModel: AuthViewModel
+    @StateObject var gameModel: GameViewModel
     let online: Bool
     
     var body: some View {
@@ -242,12 +253,11 @@ struct PlayerColumnsView: View {
                     }
                     PlayerScoreColumnView(
                         player: $player,
-                        game: $game,
+                        gameModel: gameModel,
                         authModel: authModel,
                         onlineGame: online
                     )
                     .frame(width: 100)
-                
             }
         }
     }

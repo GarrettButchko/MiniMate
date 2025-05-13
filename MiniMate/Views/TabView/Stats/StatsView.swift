@@ -17,14 +17,14 @@ struct StatsView: View {
     
     var pickerSections = ["Games", "Overview"]
     
-    @State var pickedSection = "Overview"
+    @State var pickedSection = "Games"
     @State var searchText: String = ""
     
     @State var latest = true
     @State var editOn = false
     
     var body: some View {
-        if authModel.firebaseUser != nil, let userModel = authModel.userModel {
+        if let userModel = authModel.userModel {
             let analyzer = UserStatsAnalyzer(user: userModel)
             VStack{
                 HStack {
@@ -83,12 +83,16 @@ struct StatsView: View {
                                 removal: .move(edge: .leading).combined(with: .opacity)
                             ))
                     } else {
+                        
                         if analyzer.hasGames {
                             overViewSection
                                 .transition(.asymmetric(
                                     insertion: .move(edge: .trailing).combined(with: .opacity),
                                     removal: .move(edge: .trailing).combined(with: .opacity)
                                 ))
+                                .onAppear {
+                                    editOn = false
+                                }
                         } else {
                             ScrollView{
                                 Image("logoOpp")
@@ -96,7 +100,11 @@ struct StatsView: View {
                                     .frame(width: 50, height: 50)
                                     .padding()
                             }
+                            .onAppear {
+                                editOn = false
+                            }
                         }
+                            
                     }
                 }
                 .animation(.easeInOut(duration: 0.3), value: pickedSection)
@@ -121,7 +129,7 @@ struct StatsView: View {
     private var gamesSection: some View {
         ZStack{
             ScrollView{
-                if authModel.firebaseUser != nil {
+                
                     
                     
                     let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
@@ -145,7 +153,7 @@ struct StatsView: View {
                             .frame(width: 50, height: 50)
                             .padding()
                     }
-                }
+                
                 
             }
             VStack{
@@ -203,7 +211,6 @@ struct StatsView: View {
     
     private var overViewSection: some View {
         ScrollView {
-            if authModel.firebaseUser != nil {
                 let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
                 
                 SectionStatsView(title: "Basic Stats") {
@@ -241,7 +248,6 @@ struct StatsView: View {
                 .padding(.top)
                 
             }
-        }
     }
 
 }
@@ -258,6 +264,7 @@ struct StatCard: View {
                 Text(title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .foregroundStyle(.mainOpp)
                 Text(value)
                     .font(.title)
                     .fontWeight(.bold)
@@ -317,22 +324,24 @@ struct GameGridView: View {
                         .font(.caption).foregroundColor(.secondary)
                 }
                 
-                if authModel.firebaseUser != nil {
+                
                     let userStats = UserStatsAnalyzer(user: authModel.userModel!)
                     
                     if game.players.count > 1 {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) { // Player icon spacing
                                 ForEach(game.players) { player in
-                                    if player.id != game.players[0].id {
-                                        Divider()
-                                            .frame(height: 50)
+                                    if game.players.count != 0{
+                                        if player.id != game.players[0].id {
+                                            Divider()
+                                                .frame(height: 50)
+                                        }
                                     }
-                                    if userStats.winnerOfLatestGame == player {
-                                        PhotoIconView(photoURL: player.photoURL, name: player.name + "🥇", imageSize: 20, background: Color.yellow)
-                                    } else {
-                                        PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 20, background: .ultraThinMaterial)
-                                    }
+                                        if userStats.winnerOfLatestGame == player {
+                                            PhotoIconView(photoURL: player.photoURL, name: player.name + "🥇", imageSize: 20, background: Color.yellow)
+                                        } else {
+                                            PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 20, background: .ultraThinMaterial)
+                                        }
                                     
                                 }
                             }
@@ -341,7 +350,7 @@ struct GameGridView: View {
                     } else {
                         PhotoIconView(photoURL: game.players[0].photoURL, name: game.players[0].name, imageSize: 20, background: .ultraThinMaterial)
                     }
-                }
+                
             }
             
             // Bar Chart

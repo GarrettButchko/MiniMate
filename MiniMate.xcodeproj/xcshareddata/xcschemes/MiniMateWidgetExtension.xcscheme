@@ -15,20 +15,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "21033FFD2DBC4D5100F78FBF"
-               BuildableName = "MiniMateWidgetExtension.appex"
-               BlueprintName = "MiniMateWidgetExtension"
-               ReferencedContainer = "container:MiniMate.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "213F26F52D4D639100579FAE"
                BuildableName = "MiniMate.app"
                BlueprintName = "MiniMate"

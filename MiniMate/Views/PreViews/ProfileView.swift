@@ -10,20 +10,20 @@ import AuthenticationServices
 /// Displays and allows editing of the current user's profile
 struct ProfileView: View {
     @Environment(\.modelContext) private var context
-
+    
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
-
+    
     @Binding var isSheetPresent: Bool
     @Binding var showLoginOverlay: Bool
-
+    
     @State private var editProfile: Bool = false
     @State private var showGoogleDeleteConfirmation: Bool = false
     @State private var showAppleDeleteConfirmation: Bool = false
-
+    
     @State private var name: String = ""
     @State private var email: String = ""
-
+    
     @State private var botMessage: String = ""
     @State private var isRed: Bool = true
     
@@ -31,7 +31,7 @@ struct ProfileView: View {
     
     @State private var showingPhotoPicker = false
     @State private var pickedImage: UIImage? = nil
-
+    
     var body: some View {
         ZStack {
             VStack {
@@ -40,7 +40,7 @@ struct ProfileView: View {
                     .frame(width: 38, height: 6)
                     .foregroundColor(.gray)
                     .padding(10)
-
+                
                 HStack {
                     Text("Profile")
                         .font(.title)
@@ -48,6 +48,8 @@ struct ProfileView: View {
                         .foregroundColor(.primary)
                         .padding(.leading, 30)
                     Spacer()
+                    Text("Tap to change photo")
+                        .font(.caption)
                     Button {
                         showingPhotoPicker = true
                     } label: {
@@ -105,17 +107,17 @@ struct ProfileView: View {
                                     Text(user.name)
                                 }
                             }
-
+                            
                             HStack {
                                 Text("Email:")
                                 Text(user.email ?? "")
                             }
-
+                            
                             HStack {
                                 Text("UID:")
                                 Text(user.id)
                             }
-
+                            
                             // Only allow edit/reset for non-social accounts
                             if let firebaseUser = authModel.firebaseUser,
                                !firebaseUser.providerData.contains(where: { $0.providerID == "google.com" || $0.providerID == "apple.com" }) {
@@ -129,7 +131,7 @@ struct ProfileView: View {
                                         editProfile = true
                                     }
                                 }
-
+                                
                                 Button("Password Reset") {
                                     let targetEmail = user.email ?? ""
                                     Auth.auth().sendPasswordReset(withEmail: targetEmail) { error in
@@ -149,29 +151,33 @@ struct ProfileView: View {
                     }
                     
                     
-
+                    
                     // Account Management Section
                     Section("Account Management") {
-                        Button("Logout") {
-                            isSheetPresent = false
-                            withAnimation {
-                                viewManager.navigateToWelcome()
+                        if authModel.userModel?.id != "IDGuest" {
+                            Button("Logout") {
+                                isSheetPresent = false
+                                withAnimation {
+                                    viewManager.navigateToWelcome()
+                                }
+                                authModel.logout()
                             }
-                            authModel.logout()
+                            .foregroundColor(.red)
                         }
-                        .foregroundColor(.red)
+                        
 
                         Button("Delete Account") {
-                            guard let firebaseUser = authModel.firebaseUser else {
-                                showLoginOverlay = true
-                                return
-                            }
-                            if firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
-                                showGoogleDeleteConfirmation = true
-                            } else if firebaseUser.providerData.contains(where: { $0.providerID == "apple.com" }) {
-                                showAppleDeleteConfirmation = true
+                            if let firebaseUser = authModel.firebaseUser {
+                                if firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
+                                    showGoogleDeleteConfirmation = true
+                                } else if firebaseUser.providerData.contains(where: { $0.providerID == "apple.com" }) {
+                                    showAppleDeleteConfirmation = true
+                                } else {
+                                    showLoginOverlay = true
+                                }
                             } else {
-                                showLoginOverlay = true
+                                viewManager.navigateToWelcome()
+                                context.delete(authModel.userModel!)
                             }
                         }
                         .foregroundColor(.red)
@@ -213,7 +219,7 @@ struct ProfileView: View {
                             Text("This will permanently delete your account and all data.")
                         }
                     }
-
+                    
                     // Bot Message Section
                     if !botMessage.isEmpty {
                         Section("Message") {
@@ -229,7 +235,7 @@ struct ProfileView: View {
                     }
                 }
             }
-
+            
             // Reauth Overlay
             if showLoginOverlay {
                 ReauthViewOverlay(
@@ -243,17 +249,17 @@ struct ProfileView: View {
             }
         }
     }
-
+    
     /// Starts Sign in with Apple solely to reauthenticate, then deletes the account.
     private func startAppleReauthAndDelete() {
         let provider = ASAuthorizationAppleIDProvider()
         let request  = provider.createRequest()
         request.requestedScopes = []
-
+        
         let nonce = authModel.randomNonceString()
         authModel.currentNonce = nonce
         request.nonce = authModel.sha256(nonce)
-
+        
         // Install handler
         reauthCoordinator.onAuthorize = { result in
             switch result {
@@ -261,7 +267,7 @@ struct ProfileView: View {
                 botMessage = err.localizedDescription
                 isRed = true
                 showAppleDeleteConfirmation = false
-
+                
             case .success(let authorization):
                 authModel.deleteAppleAccount(using: authorization) { deletionResult in
                     switch deletionResult {
@@ -272,9 +278,9 @@ struct ProfileView: View {
                             let model = UserModel(id: userModel.id, name: userModel.name, photoURL: nil, email: userModel.email, games: [])
                             for game in userModel.games {
                                 context.delete(game)
-                              }
-                                authModel.saveUserModel(model) { _ in
-                                    authModel.setRawAppleId(nil)
+                            }
+                            authModel.saveUserModel(model) { _ in
+                                authModel.setRawAppleId(nil)
                             }
                         }
                     case .failure(let err):
@@ -285,7 +291,7 @@ struct ProfileView: View {
                 }
             }
         }
-
+        
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = reauthCoordinator
         controller.presentationContextProvider = reauthCoordinator
@@ -297,7 +303,7 @@ struct ProfileView: View {
 struct UserInfoRow: View {
     let label: String
     let value: String
-
+    
     var body: some View {
         HStack {
             Text("\(label):")

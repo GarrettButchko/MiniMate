@@ -132,7 +132,7 @@ final class GameViewModel: ObservableObject {
         objectWillChange.send() // notify before mutating
         lastUpdated = Date()
         game.lastUpdated = lastUpdated
-        guard onlineGame else { return }
+        guard onlineGame && authModel.userModel?.id != "IDGuest" else { return }
         authModel.addOrUpdateGame(game) { _ in }
     }
 

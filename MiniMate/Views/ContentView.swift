@@ -128,10 +128,11 @@ struct MainTabView: View {
             MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(1)
-
-            CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
-                .tabItem { Label("Courses", systemImage: "figure.golf") }
-                .tag(2)
+            if authModel.userModel?.id != "IDGuest" {
+                CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
+                    .tabItem { Label("Courses", systemImage: "figure.golf") }
+                    .tag(2)
+            }
         }
         .onAppear {
             authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
