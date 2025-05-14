@@ -132,8 +132,9 @@ final class GameViewModel: ObservableObject {
         objectWillChange.send() // notify before mutating
         lastUpdated = Date()
         game.lastUpdated = lastUpdated
-        guard onlineGame && authModel.userModel?.id != "IDGuest" else { return }
-        authModel.addOrUpdateGame(game) { _ in }
+        if onlineGame && authModel.userModel?.id != "IDGuest" {
+            authModel.addOrUpdateGame(game) { _ in }
+        }
     }
 
     
@@ -376,7 +377,7 @@ final class GameViewModel: ObservableObject {
       }
 
       authModel.userModel?.games.append(finished)
-      authModel.saveUserModel(authModel.userModel!) { _ in }
+        pushUpdate()
 
       objectWillChange.send()
       resetGame()

@@ -109,11 +109,11 @@ struct UserStatsAnalyzer {
     }
     
     var usersScoreOfLatestGame: Int {
-        latestGame?.players.first(where: {$0.userId == user.id})?.totalStrokes ?? 0
+        latestGame?.players.first(where: {$0.userId == user.id || $0.userId == "IDGuest"})?.totalStrokes ?? 0
     }
     
     var usersHolesOfLatestGame: [Hole] {
-        latestGame?.players.first(where: {$0.userId == user.id})?.holes ?? []
+        latestGame?.players.first(where: {$0.userId == user.id || $0.userId == "IDGuest"})?.holes ?? []
     }
     
     var hasGames: Bool {

@@ -260,6 +260,9 @@ struct GameGridView: View {
     @StateObject var authModel: AuthViewModel
     @Environment(\.modelContext) private var context
     var game: Game
+    var sortedPlayers: [Player] {
+        game.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) { // Adds vertical spacing
@@ -274,8 +277,6 @@ struct GameGridView: View {
                         .font(.caption).foregroundColor(.secondary)
                 }
                 
-                
-                    let userStats = UserStatsAnalyzer(user: authModel.userModel!)
                     
                     if game.players.count > 1 {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -287,7 +288,8 @@ struct GameGridView: View {
                                                 .frame(height: 50)
                                         }
                                     }
-                                        if userStats.winnerOfLatestGame == player {
+                                    
+                                        if sortedPlayers[0] == player {
                                             PhotoIconView(photoURL: player.photoURL, name: player.name + "🥇", imageSize: 20, background: Color.yellow)
                                         } else {
                                             PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 20, background: .ultraThinMaterial)

@@ -77,37 +77,54 @@ class AuthViewModel: ObservableObject {
                 self.userModel = local
                 completion()    // ← DONE
             } else {
-                // 4️⃣ Fall back to Realtime DB
-                fetchUserModel(id: currentUserIdentifier) { [weak self] remote in
-                    guard let self = self else { return }
-                    if let remote = remote {
-                        // Found it remotely → save locally
-                        context.insert(remote)
-                        try? context.save()
-                        print("✅ Loaded from Firebase and saved locally: \(remote.name)")
-                        self.userModel = remote
-                        completion()  // ← DONE
-                    } else {
-                        // 🚀 Doesn’t exist anywhere → create new
-                        let finalName  = name ?? firebaseUser?.displayName ?? "Guest"
-                        let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
-                        let newUser = UserModel(
-                            id:       currentUserIdentifier,
-                            name:     finalName,
-                            photoURL: firebaseUser?.photoURL,
-                            email:    finalEmail,
-                            games:    []
-                        )
-                        // Insert locally
-                        context.insert(newUser)
-                        try? context.save()
-                        // Persist remotely
-                        self.saveUserModel(newUser) { _ in
-                            print("🆕 Created and saved new user: \(newUser.name)")
-                            self.userModel = newUser
+                if currentUserIdentifier != "IDGuest" {
+                    // 4️⃣ Fall back to Realtime DB
+                    fetchUserModel(id: currentUserIdentifier) { [weak self] remote in
+                        guard let self = self else { return }
+                        if let remote = remote{
+                            // Found it remotely → save locally
+                            context.insert(remote)
+                            try? context.save()
+                            print("✅ Loaded from Firebase and saved locally: \(remote.name)")
+                            self.userModel = remote
                             completion()  // ← DONE
+                        } else {
+                            // 🚀 Doesn’t exist anywhere → create new
+                            let finalName  = name ?? firebaseUser?.displayName ?? "Guest"
+                            let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
+                            let newUser = UserModel(
+                                id:       currentUserIdentifier,
+                                name:     finalName,
+                                photoURL: firebaseUser?.photoURL,
+                                email:    finalEmail,
+                                games:    []
+                            )
+                            // Insert locally
+                            context.insert(newUser)
+                            try? context.save()
+                            
+                            // Persist remotely
+                            self.saveUserModel(newUser) { _ in
+                                print("🆕 Created and saved new user: \(newUser.name)")
+                                self.userModel = newUser
+                                completion()  // ← DONE
+                            }
                         }
                     }
+                } else {
+                    // 🚀 Doesn’t exist anywhere → create new
+                    let finalName  = "Guest"
+                    let finalEmail = "guest@guest.mail"
+                    let newUser = UserModel(
+                        id:       currentUserIdentifier,
+                        name:     finalName,
+                        photoURL: nil,
+                        email:    finalEmail,
+                        games:    []
+                    )
+                    // Insert locally
+                    context.insert(newUser)
+                    try? context.save()
                 }
             }
     }

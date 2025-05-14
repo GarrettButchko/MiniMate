@@ -179,6 +179,11 @@ struct MainViewClip: View {
             .padding()
         }
         .ignoresSafeArea(.keyboard)
+        .onAppear {
+            if authModel.userModel?.name == "Guest"{
+                nameIsPresented = true
+            }
+        }
         .alert("Add your name?", isPresented: $nameIsPresented) {
             TextField("Name", text: $userName)
             Button("Add") { authModel.userModel?.name = userName}

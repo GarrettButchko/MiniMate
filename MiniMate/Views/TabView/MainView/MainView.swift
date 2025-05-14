@@ -3,18 +3,25 @@ import MapKit
 
 struct MainView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var context
     
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var locationHandler: LocationHandler
     @ObservedObject var gameModel: GameViewModel
 
+    @State private var userName = "Guest"
+    @State private var nameIsPresented = false
     @State private var isSheetPresented = false
     @State var showLoginOverlay = false
     @State var isOnlineMode = false
     @State var showHost = false
     @State var showJoin = false
     @State var showFirstStage: Bool = false
+    @State var showGuestAdd: Bool = false
+    @State var showenGuestAdd: Bool = false
+    
+    @State var editOn: Bool = false
     
     @State var showDonation: Bool = false
     
@@ -290,6 +297,98 @@ struct MainView: View {
                 }
             }
             .padding()
+            .onAppear(){
+                if authModel.userModel?.games.count == 0 && LocFuncs().fetchUser(by: "IDGuest", context: context) != nil && authModel.userModel?.id != "IDGuest" && LocFuncs().fetchUser(by: "IDGuest", context: context)?.games.count != 0 {
+                    
+                    print(authModel.userModel?.id ?? "No ID")
+                    withAnimation{
+                        showGuestAdd = true
+                    }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    if authModel.userModel?.id == "IDGuest" && showenGuestAdd == false{
+                        nameIsPresented = true
+                        showenGuestAdd = true
+                    }
+                }
+            }
+            .alert("Add your name?", isPresented: $nameIsPresented) {
+                TextField("Name", text: $userName)
+                Button("Add") { authModel.userModel?.name = userName}
+                Button("Cancel", role: .cancel) {}
+            }
+            
+            if showGuestAdd{
+                ZStack{
+                    Rectangle()
+                        .background(.ultraThinMaterial)
+                        .ignoresSafeArea()
+                    
+                    if let guestUser = LocFuncs().fetchUser(by: "IDGuest", context: context){
+                        VStack{
+                            Text("We found games added by a guest user!")
+                                .font(.headline)
+                                .foregroundStyle(.mainOpp)
+                                .padding(.top)
+                            Text("Would you like to add these games to your account?")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            ScrollView{
+                                ForEach(guestUser.games, id: \.self){ game in
+                                    GameGridView(editOn: $editOn, authModel: authModel, game: game)
+                                }
+                            }
+                            .padding()
+                            
+                            HStack{
+                                
+                                Button {
+                                    withAnimation{
+                                        showGuestAdd = false
+                                    }
+                                    authModel.userModel?.games.append(contentsOf: guestUser.games)
+                                    authModel.saveUserModel(authModel.userModel!){ _ in }
+                                    context.delete(guestUser)
+                                    
+                                } label: {
+                                    HStack{
+                                        Spacer()
+                                        Text("Add Games")
+                                            .foregroundStyle(.white)
+                                        Spacer()
+                                    }
+                                    .padding()
+                                    .background(.green)
+                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                    .padding()
+                                }
+                                
+                                Button {
+                                    withAnimation{
+                                        showGuestAdd = false
+                                    }
+                                } label: {
+                                    HStack{
+                                        Spacer()
+                                        Text("Cancel")
+                                            .foregroundStyle(.white)
+                                        Spacer()
+                                    }
+                                    .padding()
+                                    .background(.blue)
+                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                    .padding()
+                                }
+                            }
+
+                        }
+                        .background(RoundedRectangle(cornerRadius: 25).fill().foregroundStyle(.ultraThinMaterial))
+                        .padding(.horizontal, 20)
+                        .frame(height: 400)
+                    }
+                }
+                
+            }
         }
         .ignoresSafeArea(.keyboard)
     }

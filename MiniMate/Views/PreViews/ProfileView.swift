@@ -191,8 +191,12 @@ struct ProfileView: View {
                                             switch deleteResult {
                                             case .success:
                                                 viewManager.navigateToWelcome()
+                                                
                                                 if let userModel = authModel.userModel {
-                                                    context.delete(userModel)
+                                                    for game in userModel.games {
+                                                        context.delete(game)
+                                                    }
+                                                    context.delete(LocFuncs().fetchUser(by: "IDGuest", context: context)!)
                                                 }
                                             case .failure(let error):
                                                 botMessage = error.localizedDescription
