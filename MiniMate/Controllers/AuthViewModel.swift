@@ -36,7 +36,7 @@ class AuthViewModel: ObservableObject {
     }
     
     /// The key we use for all our DB reads/writes.
-    var currentUserIdentifier: String? {
+    var currentUserIdentifier: String {
         appleUserID ?? firebaseUser?.uid ?? "IDGuest"
     }
     
@@ -71,52 +71,45 @@ class AuthViewModel: ObservableObject {
         if let u = user {
             self.firebaseUser = u
         }
-
-        // 2️⃣ Figure out which key we’re using (Apple ID or Firebase UID)
-        guard let uid = currentUserIdentifier else {
-            completion()
-            return
-        }
-
-        // 3️⃣ Try local first
-        if let local = loc.fetchUser(by: uid, context: context) {
-            print("✅ Loaded local user: \(local.name)")
-            self.userModel = local
-            completion()    // ← DONE
-        } else {
-            // 4️⃣ Fall back to Realtime DB
-            fetchUserModel(id: uid) { [weak self] remote in
-                guard let self = self else { return }
-                if let remote = remote {
-                    // Found it remotely → save locally
-                    context.insert(remote)
-                    try? context.save()
-                    print("✅ Loaded from Firebase and saved locally: \(remote.name)")
-                    self.userModel = remote
-                    completion()  // ← DONE
-                } else {
-                    // 🚀 Doesn’t exist anywhere → create new
-                    let finalName  = name ?? firebaseUser?.displayName ?? "Guest"
-                    let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
-                    let newUser = UserModel(
-                        id:       finalName != "Guest" ? uid : "IDGuest",
-                        name:     finalName,
-                        photoURL: firebaseUser?.photoURL,
-                        email:    finalEmail,
-                        games:    []
-                    )
-                    // Insert locally
-                    context.insert(newUser)
-                    try? context.save()
-                    // Persist remotely
-                    self.saveUserModel(newUser) { _ in
-                        print("🆕 Created and saved new user: \(newUser.name)")
-                        self.userModel = newUser
+            // 3️⃣ Try local first
+            if let local = loc.fetchUser(by: currentUserIdentifier, context: context) {
+                print("✅ Loaded local user: \(local.name)")
+                self.userModel = local
+                completion()    // ← DONE
+            } else {
+                // 4️⃣ Fall back to Realtime DB
+                fetchUserModel(id: currentUserIdentifier) { [weak self] remote in
+                    guard let self = self else { return }
+                    if let remote = remote {
+                        // Found it remotely → save locally
+                        context.insert(remote)
+                        try? context.save()
+                        print("✅ Loaded from Firebase and saved locally: \(remote.name)")
+                        self.userModel = remote
                         completion()  // ← DONE
+                    } else {
+                        // 🚀 Doesn’t exist anywhere → create new
+                        let finalName  = name ?? firebaseUser?.displayName ?? "Guest"
+                        let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
+                        let newUser = UserModel(
+                            id:       currentUserIdentifier,
+                            name:     finalName,
+                            photoURL: firebaseUser?.photoURL,
+                            email:    finalEmail,
+                            games:    []
+                        )
+                        // Insert locally
+                        context.insert(newUser)
+                        try? context.save()
+                        // Persist remotely
+                        self.saveUserModel(newUser) { _ in
+                            print("🆕 Created and saved new user: \(newUser.name)")
+                            self.userModel = newUser
+                            completion()  // ← DONE
+                        }
                     }
                 }
             }
-        }
     }
 
     
@@ -218,7 +211,7 @@ class AuthViewModel: ObservableObject {
             )))
         }
         
-        let key = currentUserIdentifier!
+        let key = currentUserIdentifier
         let ref = Storage.storage()
             .reference()
             .child("profile_pictures")
@@ -356,7 +349,7 @@ class AuthViewModel: ObservableObject {
     
     /// Saves or updates the UserModel in Realtime Database
     func saveUserModel(_ model: UserModel, completion: @escaping (Bool) -> Void) {
-        guard let uid = currentUserIdentifier else { return }
+        let uid = currentUserIdentifier
         let ref = Database.database().reference().child("users").child(uid)
         let dto = model.toDTO()
         do {

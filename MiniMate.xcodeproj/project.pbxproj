@@ -36,7 +36,20 @@
 		215679C42D5175D9001BE574 /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 215679C32D5175D9001BE574 /* FirebaseStorageCombine-Community */; };
 		215679C62D5175D9001BE574 /* FirebaseVertexAI in Frameworks */ = {isa = PBXBuildFile; productRef = 215679C52D5175D9001BE574 /* FirebaseVertexAI */; };
 		21583BC62DD2E48200EFB400 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */; };
+		21583BD72DD2E77600EFB400 /* MiniMate Clip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */; };
+		2184F44A2DD3BDB800C2D056 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2129B9952DCAF27A000D9C8F /* StoreKit.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		21583BD52DD2E77600EFB400 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 213F26EE2D4D639100579FAE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 21583BCA2DD2E77500EFB400;
+			remoteInfo = "MiniMate Clip";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		210340152DBC4D5200F78FBF /* Embed Foundation Extensions */ = {
@@ -49,6 +62,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		21583BDC2DD2E77600EFB400 /* Embed App Clips */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
+			dstSubfolderSpec = 16;
+			files = (
+				21583BD72DD2E77600EFB400 /* MiniMate Clip.app in Embed App Clips */,
+			);
+			name = "Embed App Clips";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +80,7 @@
 		2129B9952DCAF27A000D9C8F /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
 		213F26F62D4D639100579FAE /* MiniMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiniMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MiniMate Clip.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -66,6 +91,34 @@
 			);
 			target = 213F26F52D4D639100579FAE /* MiniMate */;
 		};
+		21583BDB2DD2E77600EFB400 /* Exceptions for "MiniMate Clip" folder in "MiniMate Clip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 21583BCA2DD2E77500EFB400 /* MiniMate Clip */;
+		};
+		21583BDE2DD2EB5700EFB400 /* Exceptions for "MiniMate" folder in "MiniMate Clip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+				Controllers/LocFuncs.swift,
+				Controllers/UserStatsAnalyzer.swift,
+				Misc/NumberPickerView.swift,
+				Misc/PhotoIconView.swift,
+				Misc/SynchronizedScrollViews.swift,
+				UserData/Game.swift,
+				UserData/Hole.swift,
+				UserData/MapItemDTO.swift,
+				UserData/Player.swift,
+				UserData/UserModel.swift,
+				Views/TabView/MainView/TitleView.swift,
+				Views/TabView/Stats/BarChartView.swift,
+				Views/TabView/Stats/SectionStatsView.swift,
+				Views/TabView/Stats/StatCard.swift,
+			);
+			target = 21583BCA2DD2E77500EFB400 /* MiniMate Clip */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -73,8 +126,17 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				211D233B2D55707100558873 /* Exceptions for "MiniMate" folder in "MiniMate" target */,
+				21583BDE2DD2EB5700EFB400 /* Exceptions for "MiniMate" folder in "MiniMate Clip" target */,
 			);
 			path = MiniMate;
+			sourceTree = "<group>";
+		};
+		21583BCC2DD2E77500EFB400 /* MiniMate Clip */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				21583BDB2DD2E77600EFB400 /* Exceptions for "MiniMate Clip" folder in "MiniMate Clip" target */,
+			);
+			path = "MiniMate Clip";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -115,6 +177,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		21583BC82DD2E77500EFB400 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */,
+				2184F44A2DD3BDB800C2D056 /* StoreKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -132,6 +203,7 @@
 			children = (
 				2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */,
 				213F26F82D4D639100579FAE /* MiniMate */,
+				21583BCC2DD2E77500EFB400 /* MiniMate Clip */,
 				21033FFF2DBC4D5100F78FBF /* Frameworks */,
 				213F26F72D4D639100579FAE /* Products */,
 			);
@@ -141,6 +213,7 @@
 			isa = PBXGroup;
 			children = (
 				213F26F62D4D639100579FAE /* MiniMate.app */,
+				21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -156,10 +229,12 @@
 				213F26F32D4D639100579FAE /* Frameworks */,
 				213F26F42D4D639100579FAE /* Resources */,
 				210340152DBC4D5200F78FBF /* Embed Foundation Extensions */,
+				21583BDC2DD2E77600EFB400 /* Embed App Clips */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				21583BD62DD2E77600EFB400 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				213F26F82D4D639100579FAE /* MiniMate */,
@@ -198,6 +273,29 @@
 			productReference = 213F26F62D4D639100579FAE /* MiniMate.app */;
 			productType = "com.apple.product-type.application";
 		};
+		21583BCA2DD2E77500EFB400 /* MiniMate Clip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21583BD82DD2E77600EFB400 /* Build configuration list for PBXNativeTarget "MiniMate Clip" */;
+			buildPhases = (
+				21583BC72DD2E77500EFB400 /* Sources */,
+				21583BC82DD2E77500EFB400 /* Frameworks */,
+				21583BC92DD2E77500EFB400 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				21583BCC2DD2E77500EFB400 /* MiniMate Clip */,
+			);
+			name = "MiniMate Clip";
+			packageProductDependencies = (
+				2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */,
+			);
+			productName = "MiniMate Clip";
+			productReference = 21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */;
+			productType = "com.apple.product-type.application.on-demand-install-capable";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -210,6 +308,9 @@
 				TargetAttributes = {
 					213F26F52D4D639100579FAE = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					21583BCA2DD2E77500EFB400 = {
+						CreatedOnToolsVersion = 16.3;
 					};
 				};
 			};
@@ -233,6 +334,7 @@
 			projectRoot = "";
 			targets = (
 				213F26F52D4D639100579FAE /* MiniMate */,
+				21583BCA2DD2E77500EFB400 /* MiniMate Clip */,
 			);
 		};
 /* End PBXProject section */
@@ -246,6 +348,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		21583BC92DD2E77500EFB400 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -256,7 +365,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		21583BC72DD2E77500EFB400 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		21583BD62DD2E77600EFB400 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 21583BCA2DD2E77500EFB400 /* MiniMate Clip */;
+			targetProxy = 21583BD52DD2E77600EFB400 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		213F27022D4D639200579FAE /* Debug */ = {
@@ -451,6 +575,71 @@
 			};
 			name = Release;
 		};
+		21583BD92DD2E77600EFB400 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "MiniMate Clip/MiniMate_Clip.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_BITCODE = NO;
+				ENABLE_PREVIEWS = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MiniMate Clip/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = MiniMate;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.circuitleaf.MiniMate.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		21583BDA2DD2E77600EFB400 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "MiniMate Clip/MiniMate_Clip.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_BITCODE = NO;
+				ENABLE_PREVIEWS = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MiniMate Clip/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = MiniMate;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = net.circuitleaf.MiniMate.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -468,6 +657,15 @@
 			buildConfigurations = (
 				213F27052D4D639200579FAE /* Debug */,
 				213F27062D4D639200579FAE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21583BD82DD2E77600EFB400 /* Build configuration list for PBXNativeTarget "MiniMate Clip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21583BD92DD2E77600EFB400 /* Debug */,
+				21583BDA2DD2E77600EFB400 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -633,6 +831,11 @@
 			productName = FirebaseVertexAI;
 		};
 		21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21583BC42DD2E3DD00EFB400 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
+			productName = ConfettiSwiftUI;
+		};
+		2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 21583BC42DD2E3DD00EFB400 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
 			productName = ConfettiSwiftUI;
