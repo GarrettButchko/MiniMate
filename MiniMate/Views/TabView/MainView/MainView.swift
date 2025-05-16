@@ -20,6 +20,7 @@ struct MainView: View {
     @State var showFirstStage: Bool = false
     @State var showGuestAdd: Bool = false
     @State var showenGuestAdd: Bool = false
+    @State var alreadyShown: Bool = false
     
     @State var editOn: Bool = false
     
@@ -318,7 +319,7 @@ struct MainView: View {
                 Button("Cancel", role: .cancel) {}
             }
             
-            if showGuestAdd{
+            if showGuestAdd && alreadyShown == false{
                 ZStack{
                     Rectangle()
                         .background(.ultraThinMaterial)
@@ -341,46 +342,23 @@ struct MainView: View {
                             .padding()
                             
                             HStack{
-                                
-                                Button {
+                                gameModeButton(title: "Add Games", color: .green) {
+                                    alreadyShown = true
                                     withAnimation{
                                         showGuestAdd = false
                                     }
                                     authModel.userModel?.games.append(contentsOf: guestUser.games)
                                     authModel.saveUserModel(authModel.userModel!){ _ in }
                                     context.delete(guestUser)
-                                    
-                                } label: {
-                                    HStack{
-                                        Spacer()
-                                        Text("Add Games")
-                                            .foregroundStyle(.white)
-                                        Spacer()
-                                    }
-                                    .padding()
-                                    .background(.green)
-                                    .clipShape(RoundedRectangle(cornerRadius: 25))
-                                    .padding()
                                 }
-                                
-                                Button {
+                                gameModeButton(title: "Cancel", color: .blue) {
+                                    alreadyShown = true
                                     withAnimation{
                                         showGuestAdd = false
                                     }
-                                } label: {
-                                    HStack{
-                                        Spacer()
-                                        Text("Cancel")
-                                            .foregroundStyle(.white)
-                                        Spacer()
-                                    }
-                                    .padding()
-                                    .background(.blue)
-                                    .clipShape(RoundedRectangle(cornerRadius: 25))
-                                    .padding()
                                 }
                             }
-
+                            .padding()
                         }
                         .background(RoundedRectangle(cornerRadius: 25).fill().foregroundStyle(.ultraThinMaterial))
                         .padding(.horizontal, 20)
@@ -393,10 +371,12 @@ struct MainView: View {
         .ignoresSafeArea(.keyboard)
     }
 
-    func gameModeButton(title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+    func gameModeButton(title: String, icon: String? = nil, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack {
-                Image(systemName: icon)
+                if let icon = icon {
+                    Image(systemName: icon)
+                }
                 Text(title)
                     .fontWeight(.semibold)
             }

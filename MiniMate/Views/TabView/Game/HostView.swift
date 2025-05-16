@@ -248,6 +248,8 @@ struct HostView: View {
         let secs = seconds % 60
         return String(format: "%d:%02d", minutes, secs)
     }
+    
+    
 }
 
 struct MapItemPickerRowView: View {
