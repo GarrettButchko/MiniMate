@@ -1,29 +1,34 @@
 import SwiftUI
 
 struct TitleView: View {
+    
+    var colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .indigo, .pink]
+    
     var body: some View {
         ZStack {
-            // Foreground Title text
-            VStack {
-                HStack {
-                    Text("Mini")
-                        .font(.largeTitle)
-                        .foregroundColor(.mainOpp)
-                        .bold()
-                    Spacer()
+                // Foreground Title text
+                VStack {
+                    
+                    
+                    HStack {
+                        Text("Mini")
+                            .font(.largeTitle)
+                            .foregroundColor(.mainOpp)
+                            .bold()
+                        Spacer()
+                    }
+                    HStack {
+                        Spacer()
+                        Text("Mate")
+                            .font(.largeTitle)
+                            .foregroundColor(.mainOpp)
+                            .bold()
+                    }
                 }
-                HStack {
-                    Spacer()
-                    Text("Mate")
-                        .font(.largeTitle)
-                        .foregroundColor(.mainOpp)
-                        .bold()
-                }
-            }
-            .frame(width: 130)
+                .frame(width: 130)
             
             // Orbiting background
-            OrbitingCirclesView()
+            OrbitingCirclesView(colors: colors)
                 .frame(width: 220, height: 220)
                 .clipped()
         }
@@ -42,16 +47,21 @@ struct OrbitingCircle {
 
 // MARK: - Circle Animation View
 struct OrbitingCirclesView: View {
-    let orbitingCircles: [OrbitingCircle] = (0..<8).map { index in
-        let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .indigo, .pink]
-        return OrbitingCircle(
-            angleOffset: Double(index) * (360 / 8),
-            size: Double.random(in: 10...20),
-            speedMultiplier: Double.random(in: 0.8...1.2),
-            verticalScale: Double.random(in: 30...60),  // Each circle has its own vertical motion range
-            color: colors[index % colors.count]
-        )
+    var orbitingCircles: [OrbitingCircle]
+        // Custom initializer
+    init(colors: [Color]) {
+            // Initialize orbitingCircles after `colors` is available
+        self.orbitingCircles = (0..<8).map { index in
+            OrbitingCircle(
+                angleOffset: Double(index) * (360 / 8),
+                size: Double.random(in: 10...20),
+                speedMultiplier: Double.random(in: 0.8...1.2),
+                verticalScale: Double.random(in: 30...60),
+                color: colors[index % colors.count]
+            )
+        }
     }
+    
 
     var body: some View {
         TimelineView(.animation) { timeline in

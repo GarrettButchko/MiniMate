@@ -82,47 +82,53 @@ struct MainView: View {
                     if let user = authModel.userModel{
                         let analyzer = UserStatsAnalyzer(user: user)
                         
-                        ScrollView{
-                            VStack{
-                                Rectangle()
-                                    .fill(Color.clear)
-                                    .frame(height: 310)
+                        VStack{
+                            Rectangle()
+                                .fill(Color.clear)
+                                .frame(height: 175)
+                            
+                            ScrollView{
+                                VStack{
+                                    Rectangle()
+                                        .fill(Color.clear)
+                                        .frame(height: 125)
                                     
-                                if analyzer.hasGames{
-                                    Button {
-                                        viewManager.navigateToGameReview(user.games.sorted(by: { $0.date > $1.date }).first!)
-                                    } label: {
-                                        SectionStatsView(title: "Last Game") {
-                                            HStack{
+                                    if analyzer.hasGames{
+                                        Button {
+                                            viewManager.navigateToGameReview(user.games.sorted(by: { $0.date > $1.date }).first!)
+                                        } label: {
+                                            SectionStatsView(title: "Last Game") {
                                                 HStack{
-                                                    VStack(alignment: .leading, spacing: 8) {
-                                                        Text("Winner")
-                                                            .font(.caption)
-                                                            .foregroundStyle(.secondary)
-                                                            .foregroundStyle(.mainOpp)
-                                                        PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: (analyzer.winnerOfLatestGame?.name ?? "N/A") + "🥇", imageSize: 30, background: Color.yellow)
+                                                    HStack{
+                                                        VStack(alignment: .leading, spacing: 8) {
+                                                            Text("Winner")
+                                                                .font(.caption)
+                                                                .foregroundStyle(.secondary)
+                                                                .foregroundStyle(.mainOpp)
+                                                            PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: (analyzer.winnerOfLatestGame?.name ?? "N/A") + "🥇", imageSize: 30, background: Color.yellow)
+                                                            Spacer()
+                                                        }
                                                         Spacer()
                                                     }
-                                                    Spacer()
+                                                    .padding()
+                                                    .frame(height: 120)
+                                                    .background(colorScheme == .light
+                                                                ? AnyShapeStyle(Color.white)
+                                                                : AnyShapeStyle(.ultraThinMaterial))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                                    StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
                                                 }
-                                                .padding()
-                                                .frame(height: 120)
-                                                .background(colorScheme == .light
-                                                            ? AnyShapeStyle(Color.white)
-                                                            : AnyShapeStyle(.ultraThinMaterial))
-                                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                                StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
+                                                
+                                                BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
+                                                
                                             }
-                                            
-                                            BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
-                                            
                                         }
+                                    } else {
+                                        Image("logoOpp")
+                                            .resizable()
+                                            .frame(width: 50, height: 50)
+                                        Spacer()
                                     }
-                                } else {
-                                    Image("logoOpp")
-                                        .resizable()
-                                        .frame(width: 50, height: 50)
-                                    Spacer()
                                 }
                             }
                         }

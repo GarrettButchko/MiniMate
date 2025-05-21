@@ -104,6 +104,7 @@
 				Assets.xcassets,
 				Controllers/LocFuncs.swift,
 				Controllers/UserStatsAnalyzer.swift,
+				Misc/Locations.swift,
 				Misc/NumberPickerView.swift,
 				Misc/PhotoIconView.swift,
 				Misc/SynchronizedScrollViews.swift,

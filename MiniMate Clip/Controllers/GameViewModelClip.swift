@@ -18,33 +18,36 @@ final class GameViewModelClip: ObservableObject {
     
     @Published private var game: Game
     private var authModel: AuthViewModelClip
-
+    
     // MARK: - Dependencies & Config
     private var lastUpdated: Date = Date()
-
+    
+    let course: Course?
+    
     // MARK: - Initialization
-    init(auth: AuthViewModelClip, game: Game)
+    init(auth: AuthViewModelClip, game: Game, course: Course?)
     {
         self.authModel = auth
         self.game = game
+        self.course = course
     }
-
+    
     // MARK: - Dynamic Member Lookup
     /// Read-only access: vm.someField == game.someField
     subscript<T>(dynamicMember keyPath: KeyPath<Game, T>) -> T {
         game[keyPath: keyPath]
     }
     
-      /// A two‐way `Binding<Game>` for the entire model.
-      func bindingForGame() -> Binding<Game> {
+    /// A two‐way `Binding<Game>` for the entire model.
+    func bindingForGame() -> Binding<Game> {
         Binding<Game>(
-          get: { self.game },            // read the current game
-          set: { newGame in              // when it’s written…
-            self.setGame(newGame)        // swap in & re-attach listeners
-          }
+            get: { self.game },            // read the current game
+            set: { newGame in              // when it’s written…
+                self.setGame(newGame)        // swap in & re-attach listeners
+            }
         )
-      }
-
+    }
+    
     /// Two-way binding: DatePicker(..., selection: vm.binding(for: \ .date))
     func binding<T>(for keyPath: ReferenceWritableKeyPath<Game, T>) -> Binding<T> {
         Binding(
@@ -55,7 +58,7 @@ final class GameViewModelClip: ObservableObject {
             }
         )
     }
-
+    
     /// Expose full model if needed
     // MARK: Alter Game
     var gameValue: Game { game }
@@ -64,35 +67,34 @@ final class GameViewModelClip: ObservableObject {
     // MARK: - Public Actions
     func resetGame() {
         setGame(Game())
+        
     }
     
     func setGame(_ newGame: Game) {
-            objectWillChange.send()
-            // Always start fresh: remove local players and holes
-            game.players.removeAll()
-
-            // 1) Merge top-level fields
-            game.id            = newGame.id
-            game.location      = newGame.location
-            game.date          = newGame.date
-            game.completed     = newGame.completed
-            game.numberOfHoles = newGame.numberOfHoles
-            game.started       = newGame.started
-            game.dismissed     = newGame.dismissed
-            game.live          = newGame.live
-            game.lastUpdated   = newGame.lastUpdated
-            lastUpdated        = newGame.lastUpdated
-
-            // 2) Rebuild players and their holes from remote data
-            for remotePlayer in newGame.players {
-                initializeHoles(for: remotePlayer)
-                // remotePlayer.holes already contains correct strokes
-                // Append the fully initialized player
-                game.players.append(remotePlayer)
-            }
-
-            
+        objectWillChange.send()
+        // Always start fresh: remove local players and holes
+        game.players.removeAll()
+        
+        // 1) Merge top-level fields
+        game.id            = newGame.id
+        game.location      = newGame.location
+        game.date          = newGame.date
+        game.completed     = newGame.completed
+        game.numberOfHoles = newGame.numberOfHoles
+        game.started       = newGame.started
+        game.dismissed     = newGame.dismissed
+        game.live          = newGame.live
+        game.lastUpdated   = newGame.lastUpdated
+        lastUpdated        = newGame.lastUpdated
+        
+        // 2) Rebuild players and their holes from remote data
+        for remotePlayer in newGame.players {
+            initializeHoles(for: remotePlayer)
+            // remotePlayer.holes already contains correct strokes
+            // Append the fully initialized player
+            game.players.append(remotePlayer)
         }
+    }
     
     func setCompletedGame(_ completedGame: Bool) {
         objectWillChange.send() // notify before mutating
@@ -106,18 +108,22 @@ final class GameViewModelClip: ObservableObject {
         lastUpdated = Date()
         self.game.location = location
     }
-
+    
     // MARK: - Helpers
     private func initializeHoles(for player: Player) {
         guard player.holes.count != game.numberOfHoles else { return }
         player.holes = []
-        player.holes = (0..<game.numberOfHoles).map {
-            let hole = Hole(number: $0 + 1, par: 2)
-            hole.player = player
-            return hole
+        if let course = course, course.hasPars {
+            player.holes = course.holes
+        } else {
+            player.holes = (0..<game.numberOfHoles).map {
+                let hole = Hole(number: $0 + 1, par: 2)
+                hole.player = player
+                return hole
+            }
         }
     }
-
+    
     private func generateGameCode(length: Int = 6) -> String {
         let chars = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
         return String((0..<length).compactMap { _ in chars.randomElement() })
@@ -135,24 +141,24 @@ final class GameViewModelClip: ObservableObject {
         initializeHoles(for: newPlayer)
         game.players.append(newPlayer)
     }
-
+    
     func addUser() {
-      guard let user = authModel.userModel else { return }
-      // don’t add the same user twice
-      guard !game.players.contains(where: { $0.userId == user.id }) else { return }
-
-      objectWillChange.send()
-      let newPlayer = Player(
-        userId: user.id,
-        name: user.name,
-        photoURL: user.photoURL,
-        inGame: true
-      )
-      initializeHoles(for: newPlayer)
-      game.players.append(newPlayer)
+        guard let user = authModel.userModel else { return }
+        // don’t add the same user twice
+        guard !game.players.contains(where: { $0.userId == user.id }) else { return }
+        
+        objectWillChange.send()
+        let newPlayer = Player(
+            userId: user.id,
+            name: user.name,
+            photoURL: user.photoURL,
+            inGame: true
+        )
+        initializeHoles(for: newPlayer)
+        game.players.append(newPlayer)
     }
-
-
+    
+    
     func removePlayer(userId: String) {
         objectWillChange.send()
         game.players.removeAll { $0.userId == userId }
@@ -170,7 +176,7 @@ final class GameViewModelClip: ObservableObject {
     func createGame(online: Bool ,startingLoc: MKMapItem?) {
         guard !game.live else { return }
         objectWillChange.send()
-        resetGame()
+        print("Starting Game...: \(game.numberOfHoles)")
         game.live = true
         game.id = generateGameCode()
         addUser()
@@ -178,61 +184,63 @@ final class GameViewModelClip: ObservableObject {
     
     func startGame(showHost: Binding<Bool>) {
         guard !game.started else { return }
-
+        
         objectWillChange.send()
         for player in game.players {
             initializeHoles(for: player)
         }
         game.started = true
-
+        
         // Flip the binding to false
         showHost.wrappedValue = false
+        
+        
     }
-
+    
     
     // MARK: Game State
     func dismissGame() {
         guard !game.dismissed else { return }
         objectWillChange.send()
         game.dismissed = true
-
+        
         resetGame()             // now creates a new Game with id == ""
     }
-
+    
     
     /// Deep-clone the game you just finished, persist it locally & remotely, then reset.
     func finishAndPersistGame(in context: ModelContext) {
-
-      // Clone all fields into a fresh Game instance
-      let finished = Game(
-        id:           game.id,
-        date:         game.date,
-        numberOfHoles: game.numberOfHoles,
-        players:      game.players.map { player in
-          // likewise clone each player/hole…
-          Player(
-            id:       player.id,
-            userId:   player.userId,
-            name:     player.name,
-            photoURL: player.photoURL,
-            holes:    player.holes.map { Hole(number: $0.number, par: 2, strokes: $0.strokes) }
-          )
+        
+        // Clone all fields into a fresh Game instance
+        let finished = Game(
+            id:           game.id,
+            date:         game.date,
+            numberOfHoles: game.numberOfHoles,
+            players:      game.players.map { player in
+                // likewise clone each player/hole…
+                Player(
+                    id:       player.id,
+                    userId:   player.userId,
+                    name:     player.name,
+                    photoURL: player.photoURL,
+                    holes:    player.holes.map { Hole(number: $0.number, par: 2, strokes: $0.strokes) }
+                )
+            }
+            // …any other properties…
+        )
+        
+        // Now insert this *new* object
+        context.insert(finished)
+        do {
+            try context.save()
+            print("✅ Finished game saved locally")
+        } catch {
+            print("❌ Failed to save finished game locally:", error)
         }
-        // …any other properties…
-      )
-
-      // Now insert this *new* object
-      context.insert(finished)
-      do {
-        try context.save()
-        print("✅ Finished game saved locally")
-      } catch {
-        print("❌ Failed to save finished game locally:", error)
-      }
-
-      authModel.userModel?.games.append(finished)
-
-      objectWillChange.send()
-      resetGame()
+        
+        authModel.userModel?.games.append(finished)
+        
+        objectWillChange.send()
+        resetGame()
     }
 }

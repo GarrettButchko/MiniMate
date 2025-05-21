@@ -10,6 +10,8 @@ struct ScoreCardViewClip: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     
+    let course: Course?
+    
     @StateObject var viewManager: ViewManagerClip
     @StateObject var authModel: AuthViewModelClip
     @ObservedObject var gameModel: GameViewModelClip
@@ -47,6 +49,14 @@ struct ScoreCardViewClip: View {
         HStack {
             Text("Scorecard")
                 .font(.title).fontWeight(.bold)
+            if let logo = course?.logo{
+                Divider()
+                    .frame(height: 30)
+                Image(logo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 40)
+            }
             Spacer()
         }
     }
@@ -60,44 +70,46 @@ struct ScoreCardViewClip: View {
             Divider()
             totalRow
         }
-        .background(.ultraThinMaterial)
+        .background(
+            course?.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
     }
     
     /// Player Row
     private var playerHeaderRow: some View {
-      // If there’s no host yet, render nothing (or a placeholder)
-      guard let firstPlayer = gameModel.gameValue.players.first else {
-        return AnyView(EmptyView())
-      }
-
-      return AnyView(
-        HStack {
-          Text("Name")
-            .frame(width: 100, height: 60)
-            .font(.title3).fontWeight(.semibold)
-          Divider()
-          SyncedScrollViewRepresentable(scrollOffset: $scrollOffset, syncSourceID: $uuid) {
-            HStack {
-              ForEach(gameModel.gameValue.players) { player in
-                // now this is safe — firstPlayer is non-nil
-                if player.id != firstPlayer.id {
-                  Divider()
-                }
-                PhotoIconView(photoURL: player.photoURL,
-                              name: player.name,
-                              imageSize: 30, background: .ultraThinMaterial)
-                  .frame(width: 100, height: 60)
-              }
-            }
-          }
+        // If there’s no host yet, render nothing (or a placeholder)
+        guard let firstPlayer = gameModel.gameValue.players.first else {
+            return AnyView(EmptyView())
         }
-        .frame(height: 60)
-        .padding(.top)
-      )
+        
+        return AnyView(
+            HStack {
+                Text("Name")
+                    .frame(width: 100, height: 60)
+                    .font(.title3).fontWeight(.semibold)
+                Divider()
+                SyncedScrollViewRepresentable(scrollOffset: $scrollOffset, syncSourceID: $uuid) {
+                    HStack {
+                        ForEach(gameModel.gameValue.players) { player in
+                            // now this is safe — firstPlayer is non-nil
+                            if player.id != firstPlayer.id {
+                                Divider()
+                            }
+                            PhotoIconView(photoURL: player.photoURL,
+                                          name: player.name,
+                                          imageSize: 30, background: .ultraThinMaterial)
+                            .frame(width: 100, height: 60)
+                        }
+                    }
+                }
+            }
+                .frame(height: 60)
+                .padding(.top)
+        )
     }
-
+    
     
     /// Score columns and hole icons
     private var scoreRows: some View {
@@ -121,9 +133,15 @@ struct ScoreCardViewClip: View {
         VStack {
             ForEach(1...gameModel.gameValue.numberOfHoles, id: \.self) { i in
                 if i != 1 { Divider() }
-                Text("Hole \(i)")
-                    .font(.body).fontWeight(.medium)
-                    .frame(height: 60)
+                VStack{
+                    Text("Hole \(i)")
+                        .font(.body).fontWeight(.medium)
+                    if let course = course, course.hasPars {
+                        Text("Par: \(course.pars[i - 1])")
+                            .font(.caption)
+                    }
+                }
+                .frame(height: 60)
             }
         }
         .frame(width: 100)
@@ -154,7 +172,7 @@ struct ScoreCardViewClip: View {
         .frame(height: 60)
         .padding(.bottom)
     }
-
+    
     
     // MARK: Footer complete game button and timer
     private var footerView: some View {
@@ -203,7 +221,7 @@ struct PlayerScoreColumnView: View {
     var body: some View {
         VStack {
             ForEach($player.holes.sorted(by: {$0.number.wrappedValue < $1.number.wrappedValue}), id: \.id) { $hole in
-                    HoleRowView(hole: $hole)
+                HoleRowView(hole: $hole)
             }
         }
     }
@@ -232,15 +250,15 @@ struct PlayerColumnsView: View {
         HStack {
             ForEach($players, id: \.id) { $player in
                 
-                    if player.id != game.players[0].id{
-                        Divider()
-                    }
-                    PlayerScoreColumnView(
-                        player: $player,
-                        gameModel: gameModel,
-                        authModel: authModel
-                    )
-                    .frame(width: 100)
+                if player.id != game.players[0].id{
+                    Divider()
+                }
+                PlayerScoreColumnView(
+                    player: $player,
+                    gameModel: gameModel,
+                    authModel: authModel
+                )
+                .frame(width: 100)
             }
         }
     }

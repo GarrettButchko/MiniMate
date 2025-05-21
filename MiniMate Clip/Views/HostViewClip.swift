@@ -9,6 +9,7 @@ import MapKit
 struct HostViewClip: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
+    let course: Course?
 
     @Binding var showHost: Bool
 
@@ -47,7 +48,33 @@ struct HostViewClip: View {
             }
 
             Form {
-                gameInfoSection
+                    Group {
+                        Section {
+                            if let name = course?.name {
+                                HStack {
+                                    Text("Location:")
+                                    Spacer()
+                                    Text(name)
+                                }
+                            } else {
+                                EmptyView()
+                            }
+                            if course != nil {
+                                EmptyView()
+                            } else {
+                                HStack {
+                                    Text("Holes:")
+                                    NumberPickerView(
+                                        selectedNumber: gameModel.binding(for: \.numberOfHoles),
+                                        minNumber: 9, maxNumber: 21
+                                    )
+                                }
+                            }
+                        } header: {
+                            Text("Game Info")
+                        }
+                    }
+                
                 playersSection
                 startGameSection
             }
@@ -82,46 +109,8 @@ struct HostViewClip: View {
         }
     }
 
-    // MARK: - Sections
-
-    private var gameInfoSection: some View {
-        Group {
-            Section {
-                
-                locationSection
-
-                HStack {
-                    Text("Holes:")
-                    NumberPickerView(
-                        selectedNumber: gameModel.binding(for: \.numberOfHoles),
-                        minNumber: 9, maxNumber: 21
-                    )
-                }
-
-            } header: {
-                Text("Game Info")
-            }
-        }
-    }
-
-    // MARK: – Subviews
-
-    private var locationSection: some View {
-      HStack {
-        Text("Use Location:")
-        Spacer()
-        Text("Location Here")
-      }
-    }
-
-   
-
-    
 
     // MARK: – Composed Section
-
-   
-
     private var playersSection: some View {
         Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {
             ScrollView(.horizontal) {
