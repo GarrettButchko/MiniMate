@@ -40,6 +40,7 @@
 		2177134D2DDE6AC700AF367E /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 2177134C2DDE6AC700AF367E /* GoogleMobileAds */; };
 		2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */; };
 		2184F44A2DD3BDB800C2D056 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2129B9952DCAF27A000D9C8F /* StoreKit.framework */; };
+		21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 21B352042DE665B1008B5815 /* GoogleMobileAds */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,6 +106,7 @@
 				Assets.xcassets,
 				Controllers/LocFuncs.swift,
 				Controllers/UserStatsAnalyzer.swift,
+				Misc/BannerAdView.swift,
 				Misc/Locations.swift,
 				Misc/NumberPickerView.swift,
 				Misc/PhotoIconView.swift,
@@ -184,6 +186,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */,
 				2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */,
 				2184F44A2DD3BDB800C2D056 /* StoreKit.framework in Frameworks */,
 			);
@@ -295,6 +298,7 @@
 			name = "MiniMate Clip";
 			packageProductDependencies = (
 				2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */,
+				21B352042DE665B1008B5815 /* GoogleMobileAds */,
 			);
 			productName = "MiniMate Clip";
 			productReference = 21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */;
@@ -859,6 +863,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21583BC42DD2E3DD00EFB400 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
 			productName = ConfettiSwiftUI;
+		};
+		21B352042DE665B1008B5815 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

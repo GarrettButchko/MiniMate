@@ -65,6 +65,15 @@ struct MainViewClip: View {
                                     .fill(Color.clear)
                                     .frame(height: 125)
                                 
+                                VStack{
+                                    BannerAdView(adUnitID: "ca-app-pub-8261962597301587/4517948018") // Replace with real one later
+                                        .frame(height: 50)
+                                        .padding()
+                                }
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                .padding(.bottom, 10)
+                                
                                 Button {
                                     if let url = URL(string: "https://apps.apple.com/app/id6745438125") {
                                         UIApplication.shared.open(url)
