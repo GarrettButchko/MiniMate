@@ -25,11 +25,7 @@ struct MiniMate_ClipApp: App {
     var body: some Scene {
         WindowGroup {
             Group{
-                if let course = course {
-                    ContentViewClip(course: course)
-                } else {
-                    ProgressView("Loading course…")
-                }
+                ContentViewClip(course: course)
             }.onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
                 if let incomingURL = userActivity.webpageURL {
                     let resolvedCourse = resolveCourse(from: incomingURL.absoluteString)
