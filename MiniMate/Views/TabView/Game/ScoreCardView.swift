@@ -169,22 +169,27 @@ struct ScoreCardView: View {
     
     // MARK: Footer complete game button and timer
     private var footerView: some View {
-        HStack {
-            Button {
-                gameModel.setCompletedGame(true)
-                endGame()
-                withAnimation {
-                    showRecap = true
-                }
-            }  label: {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 25)
-                        .fill(Color.blue)
-                        .frame(width: 200, height: 60)
-                    Text("Complete Game")
-                        .foregroundColor(.white).fontWeight(.bold)
+        VStack{
+            HStack {
+                Button {
+                    gameModel.setCompletedGame(true)
+                    endGame()
+                    withAnimation {
+                        showRecap = true
+                    }
+                }  label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(Color.blue)
+                            .frame(width: 200, height: 60)
+                        Text("Complete Game")
+                            .foregroundColor(.white).fontWeight(.bold)
+                    }
                 }
             }
+            BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6716977198") // Replace with real one later
+                .frame(height: 50)
+                .padding(.top, 5)
         }
     }
     

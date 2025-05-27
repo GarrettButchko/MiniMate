@@ -109,7 +109,7 @@ struct StatsView: View {
                 }
                 .animation(.easeInOut(duration: 0.3), value: pickedSection)
             }
-            .padding()
+            .padding([.top, .horizontal])
         }
     }
     

@@ -37,6 +37,7 @@
 		215679C62D5175D9001BE574 /* FirebaseVertexAI in Frameworks */ = {isa = PBXBuildFile; productRef = 215679C52D5175D9001BE574 /* FirebaseVertexAI */; };
 		21583BC62DD2E48200EFB400 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */; };
 		21583BD72DD2E77600EFB400 /* MiniMate Clip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2177134D2DDE6AC700AF367E /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 2177134C2DDE6AC700AF367E /* GoogleMobileAds */; };
 		2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */; };
 		2184F44A2DD3BDB800C2D056 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2129B9952DCAF27A000D9C8F /* StoreKit.framework */; };
 /* End PBXBuildFile section */
@@ -147,6 +148,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2177134D2DDE6AC700AF367E /* GoogleMobileAds in Frameworks */,
 				215679BA2D5175D9001BE574 /* FirebaseMessaging in Frameworks */,
 				215679C62D5175D9001BE574 /* FirebaseVertexAI in Frameworks */,
 				215679B02D5175D9001BE574 /* FirebaseFirestoreCombine-Community in Frameworks */,
@@ -269,6 +271,7 @@
 				211D23362D556B3C00558873 /* GoogleSignIn */,
 				211D23382D556B3C00558873 /* GoogleSignInSwift */,
 				21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */,
+				2177134C2DDE6AC700AF367E /* GoogleMobileAds */,
 			);
 			productName = MiniMate;
 			productReference = 213F26F62D4D639100579FAE /* MiniMate.app */;
@@ -328,6 +331,7 @@
 				210BDE4B2D4DDFB80012E465 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				211D23352D556B3C00558873 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				21583BC42DD2E3DD00EFB400 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
+				2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 213F26F72D4D639100579FAE /* Products */;
@@ -700,6 +704,14 @@
 				minimumVersion = 2.0.3;
 			};
 		};
+		2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.4.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -837,6 +849,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21583BC42DD2E3DD00EFB400 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
 			productName = ConfettiSwiftUI;
+		};
+		2177134C2DDE6AC700AF367E /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
 		};
 		2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -27,6 +27,7 @@ struct DonationView: View {
     @State private var showCustom = false
     @State private var thankYou = false
     @State private var errorMessage: String?
+    @State private var isLoading = true
     
     let options: [DonationOption] = [
         .init(title: "Quick Sip", subtitle: "A refreshing $1 boost", amount: "$0.99", productID: "donation_1", color: .blue),
@@ -53,44 +54,48 @@ struct DonationView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
-                
-                ForEach(options) { option in
-                    Button {
-                        if option.productID == "donation_custom" {
-                            showCustom = true
-                        } else {
-                            Task {
-                                await purchase(productID: option.productID)
+                if isLoading {
+                    ProgressView("Loading...")
+                        .padding()
+                } else {
+                    ForEach(options) { option in
+                        Button {
+                            if option.productID == "donation_custom" {
+                                showCustom = true
+                            } else {
+                                Task {
+                                    await purchase(productID: option.productID)
+                                }
                             }
-                        }
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(option.title)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(option.title)
+                                        .font(.headline)
+                                        .foregroundStyle(option.color)
+                                    Text(option.subtitle)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text(option.amount)
                                     .font(.headline)
                                     .foregroundStyle(option.color)
-                                Text(option.subtitle)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                
                             }
-                            Spacer()
-                            Text(option.amount)
-                                .font(.headline)
-                                .foregroundStyle(option.color)
-                            
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(16)
+                            .overlay(content: {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(style: StrokeStyle(lineWidth: 1))
+                                    .stroke(option.color)
+                                
+                            })
+                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 3)
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(16)
-                        .overlay(content: {
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(style: StrokeStyle(lineWidth: 1))
-                                .stroke(option.color)
-                            
-                        })
-                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 3)
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
                 
                 if thankYou {
@@ -145,6 +150,7 @@ struct DonationView: View {
                                 .clipShape(Capsule())
                         }
                     }
+                    .padding(.bottom)
                 }
                 .padding()
                 .background(.ultraThinMaterial)
@@ -162,7 +168,9 @@ struct DonationView: View {
             }
         }
         .task {
+            isLoading = true
             await loadProducts()
+            isLoading = false
         }
     }
     
@@ -181,10 +189,20 @@ struct DonationView: View {
         do {
             let result = try await product.purchase()
             switch result {
-            case .success:
-                withAnimation{
-                    thankYou = true
+            case .success(let verificationResult):
+                switch verificationResult {
+                case .verified(let transaction):
+                    await transaction.finish() // ✅ This is what StoreKit expects
+                    withAnimation {
+                        thankYou = true
+                    }
+                case .unverified(_, let error):
+                    errorMessage = "Transaction failed: \(error.localizedDescription)"
                 }
+            case .userCancelled:
+                print("User cancelled")
+            case .pending:
+                print("Pending payment")
             default:
                 break
             }
@@ -192,6 +210,5 @@ struct DonationView: View {
             errorMessage = "Purchase failed: \(error.localizedDescription)"
         }
     }
-    
-    
+
 }

@@ -2,17 +2,18 @@ import SwiftUI
 import MapKit
 import FirebaseAuth
 import SwiftData
+import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) var context
     @Environment(\.scenePhase) private var scenePhase
-
+    
     @StateObject private var viewManager = ViewManager()
     @StateObject private var authModel: AuthViewModel
     @StateObject private var gameModel: GameViewModel
-
+    
     let locFuncs = LocFuncs()
-
+    
     @State private var selectedTab = 1
     @State private var previousView: ViewType?
     
@@ -20,20 +21,21 @@ struct ContentView: View {
         // 1) create your AuthViewModel first
         let auth = AuthViewModel()
         _authModel = StateObject(wrappedValue: auth)
-
+        
         // 2) create an initial Game (or fetch one from your context)
         let initialGame =  Game(id: "", date: Date(), completed: false, numberOfHoles: 18, started: false, dismissed: false, live: false, lastUpdated: Date(), holes: [], players: [])
-
+        
         // 3) now inject both into your GameViewModel
         _gameModel = StateObject(
-          wrappedValue: GameViewModel(
-            game: initialGame,
-            authModel: auth,
-            onlineGame: true
-          )
+            wrappedValue: GameViewModel(
+                game: initialGame,
+                authModel: auth,
+                onlineGame: true
+            )
         )
-      }
-
+        
+    }
+    
     var body: some View {
         ZStack {
             Group {
@@ -55,9 +57,9 @@ struct ContentView: View {
                     WelcomeView(viewManager: viewManager)
                     
                 case .scoreCard:
-                   ScoreCardView(viewManager: viewManager, authModel: authModel, gameModel: gameModel)
+                    ScoreCardView(viewManager: viewManager, authModel: authModel, gameModel: gameModel)
                     
-                
+                    
                 case .gameReview(let gameModel):
                     GameReviewView(viewManager: viewManager, game: gameModel)
                 }
@@ -85,14 +87,10 @@ struct ContentView: View {
                 break
             }
         }
-        .onAppear {
-              // Only for debugging! Remove this in production.
-              //gameModel.clearAllGames(in: context)
-              //print("🗑️ Cleared all games at launch")
-            }
+        .ignoresSafeArea(.all, edges: .bottom)
         
     }
-
+    
     // MARK: - Custom transition based on view switch
     private var currentTransition: AnyTransition {
         switch (previousView, viewManager.currentView) {
@@ -108,6 +106,8 @@ struct ContentView: View {
             return .opacity
         }
     }
+    
+
 }
 
 struct MainTabView: View {
@@ -118,29 +118,37 @@ struct MainTabView: View {
     @StateObject var locationHandler = LocationHandler()
     
     @State var selectedTab: Int
-
+    
+    init(viewManager: ViewManager, authModel: AuthViewModel, gameModel: GameViewModel, selectedTab: Int){
+        self.viewManager = viewManager
+        self.authModel = authModel
+        self.gameModel = gameModel
+        self.selectedTab = selectedTab
+    }
+    
     var body: some View {
-        TabView(selection: $selectedTab) {
-            StatsView(viewManager: viewManager, authModel: authModel)
-                .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
-                .tag(0)
-
-            MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
-                .tabItem { Label("Home", systemImage: "house.fill") }
-                .tag(1)
-            if authModel.userModel?.id != "IDGuest" {
-                CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
-                    .tabItem { Label("Courses", systemImage: "figure.golf") }
-                    .tag(2)
-            }
-        }
-        .onAppear {
-            authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
-                try? context.save()
-                if NetworkChecker.shared.isConnected {
-                    authModel.saveUserModel(authModel.userModel!) { _ in }
+        
+            TabView(selection: $selectedTab) {
+                StatsView(viewManager: viewManager, authModel: authModel)
+                    .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
+                    .tag(0)
+                
+                MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
+                    .tabItem { Label("Home", systemImage: "house.fill") }
+                    .tag(1)
+                if authModel.userModel?.id != "IDGuest" {
+                    CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
+                        .tabItem { Label("Courses", systemImage: "figure.golf") }
+                        .tag(2)
                 }
             }
-        }
+            .onAppear {
+                authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
+                    try? context.save()
+                    if NetworkChecker.shared.isConnected {
+                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                    }
+                }
+            }
     }
 }

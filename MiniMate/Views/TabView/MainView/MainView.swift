@@ -91,7 +91,18 @@ struct MainView: View {
                                 VStack{
                                     Rectangle()
                                         .fill(Color.clear)
-                                        .frame(height: 125)
+                                        .frame(height: 115)
+                                    
+                                    VStack{
+                                        BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6344452429") // Replace with real one later
+                                            .frame(height: 50)
+                                            .padding()
+                                    }
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                    .padding(.bottom, 10)
+                                        
+                                        
                                     
                                     if analyzer.hasGames{
                                         Button {
@@ -131,6 +142,7 @@ struct MainView: View {
                                     }
                                 }
                             }
+                            .scrollIndicators(.hidden)
                         }
                     }
                     
@@ -138,6 +150,8 @@ struct MainView: View {
                         
                         TitleView()
                             .frame(height: 150)
+                        
+                        
                         
                         VStack {
                             HStack {
@@ -255,6 +269,7 @@ struct MainView: View {
                                 }
                             }
                             .animation(.easeInOut(duration: 0.3), value: isOnlineMode)
+                            
                         }
                         .padding()
                         .background(.ultraThinMaterial)
@@ -299,11 +314,13 @@ struct MainView: View {
                             .sheet(isPresented: $showDonation) {
                                 DonationView()
                             }
+                            .padding()
                         }
                     }
                 }
+                
             }
-            .padding()
+            .padding([.top, .horizontal])
             .onAppear(){
                 if authModel.userModel?.games.count == 0 && LocFuncs().fetchUser(by: "IDGuest", context: context) != nil && authModel.userModel?.id != "IDGuest" && LocFuncs().fetchUser(by: "IDGuest", context: context)?.games.count != 0 {
                     
@@ -375,6 +392,7 @@ struct MainView: View {
             }
         }
         .ignoresSafeArea(.keyboard)
+        
     }
 
     func gameModeButton(title: String, icon: String? = nil, color: Color, action: @escaping () -> Void) -> some View {
