@@ -129,9 +129,6 @@ struct StatsView: View {
     private var gamesSection: some View {
         ZStack{
             ScrollView{
-                
-                    
-                    
                     let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
                     
                     Rectangle()

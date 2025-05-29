@@ -24,7 +24,7 @@ struct MainView: View {
     
     @State var editOn: Bool = false
     
-    @State var showDonation: Bool = false
+    //@State var showDonation: Bool = false
     
     var body: some View {
         ZStack {
@@ -277,45 +277,46 @@ struct MainView: View {
                         
                         Spacer()
                         
-                        HStack(){
-                            Spacer()
-                            Button{
-                                if !showFirstStage {
-                                    withAnimation(){
-                                        showFirstStage = true
-                                    }
+                        // Donation Button
+                        //HStack(){
+                        //    Spacer()
+                            //Button{
+                              //  if !showFirstStage {
+                                  //  withAnimation(){
+                                    //    showFirstStage = true
+                                    //}
                                     
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
-                                        if showFirstStage {
-                                            withAnimation {
-                                                showFirstStage = false
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    showDonation = true
-                                }
+                                    //DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
+                                      //  if showFirstStage {
+                                        //    withAnimation {
+                                          //      showFirstStage = false
+                                            //}
+                                        //}
+                                    //}
+                                //} else {
+                                    //showDonation = true
+                                //}
                                 
-                            } label: {
-                                HStack{
-                                    if showFirstStage {
-                                        Text("Tap to buy me a Soda!")
-                                            .transition(.move(edge: .trailing).combined(with: .opacity))
-                                            .foregroundStyle(.white)
-                                    }
-                                    Text("🥤")
-                                }
-                                .padding()
-                                .frame(height: 50)
-                                .background(Color.indigo)
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                .shadow(radius: 10)
-                            }
-                            .sheet(isPresented: $showDonation) {
-                                DonationView()
-                            }
-                            .padding()
-                        }
+                            //} label: {
+                              //  HStack{
+                                //    if showFirstStage {
+                                  //      Text("Tap to buy me a Soda!")
+                                    //        .transition(.move(edge: .trailing).combined(with: .opacity))
+                                      //      .foregroundStyle(.white)
+                                    //}
+                                    //Text("🥤")
+                                //}
+                                //.padding()
+                                //.frame(height: 50)
+                                //.background(Color.indigo)
+                                //.clipShape(RoundedRectangle(cornerRadius: 25))
+                              //  .shadow(radius: 10)
+                            //}
+                           // .sheet(isPresented: $showDonation) {
+                             //   DonationView()
+                            //}
+                        //    .padding()
+                        //}
                     }
                 }
                 
