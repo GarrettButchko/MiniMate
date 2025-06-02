@@ -52,9 +52,7 @@ struct MainViewClip: View {
                 // MARK: - Game Action Buttons
                 
                 ZStack{
-                    if let user = authModel.userModel{
-                        let analyzer = UserStatsAnalyzer(user: user)
-                        
+                    if authModel.userModel != nil{
                         VStack{
                             Rectangle()
                                 .fill(Color.clear)
@@ -64,15 +62,6 @@ struct MainViewClip: View {
                                 Rectangle()
                                     .fill(Color.clear)
                                     .frame(height: 125)
-                                
-                                VStack{
-                                    BannerAdView(adUnitID: "ca-app-pub-8261962597301587/4517948018") // Replace with real one later
-                                        .frame(height: 50)
-                                        .padding()
-                                }
-                                .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                .padding(.bottom, 10)
                                 
                                 Button {
                                     if let url = URL(string: "https://apps.apple.com/app/id6745438125") {
@@ -140,41 +129,6 @@ struct MainViewClip: View {
                                     .background(.ultraThinMaterial)
                                     .clipShape(RoundedRectangle(cornerRadius: 25))
                                     .padding(.bottom)
-                                }
-                                
-                                if analyzer.hasGames{
-                                    
-                                    SectionStatsView(title: "Last Game") {
-                                        HStack{
-                                            HStack{
-                                                VStack(alignment: .leading, spacing: 8) {
-                                                    Text("Winner")
-                                                        .font(.caption)
-                                                        .foregroundStyle(.secondary)
-                                                        .foregroundStyle(.mainOpp)
-                                                    PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: (analyzer.winnerOfLatestGame?.name ?? "N/A") + "🥇", imageSize: 30, background: Color.yellow)
-                                                    Spacer()
-                                                }
-                                                Spacer()
-                                            }
-                                            .padding()
-                                            .frame(height: 120)
-                                            .background(colorScheme == .light
-                                                        ? AnyShapeStyle(Color.white)
-                                                        : AnyShapeStyle(.ultraThinMaterial))
-                                            .clipShape(RoundedRectangle(cornerRadius: 25))
-                                            StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
-                                        }
-                                        
-                                        BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
-                                        
-                                    }
-                                    
-                                } else {
-                                    Image("logoOpp")
-                                        .resizable()
-                                        .frame(width: 50, height: 50)
-                                    Spacer()
                                 }
                             }
                         }

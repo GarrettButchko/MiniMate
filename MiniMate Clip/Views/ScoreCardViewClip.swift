@@ -197,9 +197,6 @@ struct ScoreCardViewClip: View {
                 
                 
             }
-            BannerAdView(adUnitID: "ca-app-pub-8261962597301587/4987278348") // Replace with real one later
-                .frame(height: 50)
-                .padding(.top, 5)
         }
     }
     

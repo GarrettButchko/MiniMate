@@ -15,6 +15,7 @@ enum ViewType {
     case welcome
     case scoreCard
     case gameReview(Game)
+    case ad
 }
 
 /// Manages app navigation state based on authentication status
@@ -52,6 +53,10 @@ class ViewManager: ObservableObject {
         currentView = .scoreCard
     }
     
+    func navigateToAd() {
+        currentView = .ad
+    }
+    
     func navigateToGameReview(_ gameModel: Game) {
         currentView = .gameReview(gameModel)
     }
@@ -66,7 +71,8 @@ extension ViewType: Equatable {
              (.signup, .signup),
              (.welcome, .welcome),
             (.scoreCard, .scoreCard),
-            (.gameReview, .gameReview):
+            (.gameReview, .gameReview),
+            (.ad, .ad):
             return true
         default:
             return false

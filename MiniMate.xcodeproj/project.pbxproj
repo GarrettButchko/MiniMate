@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		211D23372D556B3C00558873 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 211D23362D556B3C00558873 /* GoogleSignIn */; };
 		211D23392D556B3C00558873 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 211D23382D556B3C00558873 /* GoogleSignInSwift */; };
-		2129B9982DCAF2E0000D9C8F /* StoreKitConfig.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */; };
 		215679982D5175D9001BE574 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 215679972D5175D9001BE574 /* FirebaseAnalytics */; };
 		2156799A2D5175D9001BE574 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 215679992D5175D9001BE574 /* FirebaseAnalyticsOnDeviceConversion */; };
 		2156799C2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 2156799B2D5175D9001BE574 /* FirebaseAnalyticsWithoutAdIdSupport */; };
@@ -38,7 +37,9 @@
 		21583BD72DD2E77600EFB400 /* MiniMate Clip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2177134D2DDE6AC700AF367E /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 2177134C2DDE6AC700AF367E /* GoogleMobileAds */; };
 		2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */; };
+		21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A75C562DED16D100F32112 /* StoreKit.framework */; };
 		21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 21B352042DE665B1008B5815 /* GoogleMobileAds */; };
+		21BC25142DED21E400E2C077 /* StoreKitConfig.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 21BC25132DED21E400E2C077 /* StoreKitConfig.storekit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,9 +78,10 @@
 
 /* Begin PBXFileReference section */
 		210340022DBC4D5100F78FBF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
 		213F26F62D4D639100579FAE /* MiniMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiniMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MiniMate Clip.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		21A75C562DED16D100F32112 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		21BC25132DED21E400E2C077 /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -102,12 +104,12 @@
 			membershipExceptions = (
 				Assets.xcassets,
 				Controllers/LocFuncs.swift,
-				Controllers/UserStatsAnalyzer.swift,
-				Misc/BannerAdView.swift,
+				Misc/InterstitialAdView.swift,
 				Misc/Locations.swift,
 				Misc/NumberPickerView.swift,
 				Misc/PhotoIconView.swift,
 				Misc/SynchronizedScrollViews.swift,
+				UserData/Course.swift,
 				UserData/Game.swift,
 				UserData/Hole.swift,
 				UserData/MapItemDTO.swift,
@@ -161,6 +163,7 @@
 				215679AC2D5175D9001BE574 /* FirebaseDynamicLinks in Frameworks */,
 				2156799E2D5175D9001BE574 /* FirebaseAppCheck in Frameworks */,
 				215679A22D5175D9001BE574 /* FirebaseAuth in Frameworks */,
+				21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */,
 				215679982D5175D9001BE574 /* FirebaseAnalytics in Frameworks */,
 				215679AE2D5175D9001BE574 /* FirebaseFirestore in Frameworks */,
 				215679B82D5175D9001BE574 /* FirebaseInstallations in Frameworks */,
@@ -193,6 +196,7 @@
 		21033FFF2DBC4D5100F78FBF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				21A75C562DED16D100F32112 /* StoreKit.framework */,
 				210340022DBC4D5100F78FBF /* SwiftUI.framework */,
 			);
 			name = Frameworks;
@@ -201,11 +205,11 @@
 		213F26ED2D4D639100579FAE = {
 			isa = PBXGroup;
 			children = (
-				2129B9972DCAF2E0000D9C8F /* StoreKitConfig.storekit */,
 				213F26F82D4D639100579FAE /* MiniMate */,
 				21583BCC2DD2E77500EFB400 /* MiniMate Clip */,
 				21033FFF2DBC4D5100F78FBF /* Frameworks */,
 				213F26F72D4D639100579FAE /* Products */,
+				21BC25132DED21E400E2C077 /* StoreKitConfig.storekit */,
 			);
 			sourceTree = "<group>";
 		};
@@ -347,7 +351,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2129B9982DCAF2E0000D9C8F /* StoreKitConfig.storekit in Resources */,
+				21BC25142DED21E400E2C077 /* StoreKitConfig.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

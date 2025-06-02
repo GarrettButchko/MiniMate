@@ -133,7 +133,6 @@ struct GameReviewView: View {
                 Spacer()
                   ShareLink(item: makeShareableSummary(for: game)) {
                     Image(systemName: "square.and.arrow.up")
-                          .fontWeight(.bold)
                           .font(.title2)
                   }
                   .padding()
@@ -151,8 +150,10 @@ struct GameReviewView: View {
                             .foregroundColor(.white).fontWeight(.bold)
                     }
                 }
+                
             }
         }
+        .padding(.bottom)
     }
     
     private func timeString(from seconds: Int) -> String {

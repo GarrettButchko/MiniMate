@@ -28,31 +28,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
-final class PurchaseManager {
-    static let shared = PurchaseManager()
-
-    private init() {
-        Task {
-            await listenForTransactions()
-        }
-    }
-
-    private func listenForTransactions() async {
-        for await result in Transaction.updates {
-            switch result {
-            case .verified(let transaction):
-                await transaction.finish()
-                NotificationCenter.default.post(
-                    name: .didCompleteDonation,
-                    object: transaction.productID
-                )
-            case .unverified(_, let error):
-                print("⚠️ Unverified transaction:", error.localizedDescription)
-            }
-        }
-    }
-}
-
 @main
 struct YourApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
@@ -69,11 +44,6 @@ struct YourApp: App {
             configurations: config
         )
     }()
-
-    init() {
-        // Initialize purchase system
-        _ = PurchaseManager.shared
-    }
 
     var body: some Scene {
         WindowGroup {

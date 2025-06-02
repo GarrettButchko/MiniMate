@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 import MapKit
 
 struct MainView: View {
@@ -24,9 +25,11 @@ struct MainView: View {
     
     @State var editOn: Bool = false
     
-    //@State var showDonation: Bool = false
+    @State var showDonation: Bool = false
     
     var body: some View {
+        let storeManager = StoreManager(authModel: authModel)
+        
         ZStack {
             VStack(spacing: 24) {
                 // MARK: - Top Bar
@@ -278,45 +281,53 @@ struct MainView: View {
                         Spacer()
                         
                         // Donation Button
-                        //HStack(){
-                        //    Spacer()
-                            //Button{
-                              //  if !showFirstStage {
-                                  //  withAnimation(){
-                                    //    showFirstStage = true
-                                    //}
-                                    
-                                    //DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
-                                      //  if showFirstStage {
-                                        //    withAnimation {
-                                          //      showFirstStage = false
-                                            //}
-                                        //}
-                                    //}
-                                //} else {
-                                    //showDonation = true
-                                //}
-                                
-                            //} label: {
-                              //  HStack{
-                                //    if showFirstStage {
-                                  //      Text("Tap to buy me a Soda!")
-                                    //        .transition(.move(edge: .trailing).combined(with: .opacity))
-                                      //      .foregroundStyle(.white)
-                                    //}
-                                    //Text("🥤")
-                                //}
-                                //.padding()
-                                //.frame(height: 50)
-                                //.background(Color.indigo)
-                                //.clipShape(RoundedRectangle(cornerRadius: 25))
-                              //  .shadow(radius: 10)
-                            //}
-                           // .sheet(isPresented: $showDonation) {
-                             //   DonationView()
-                            //}
-                        //    .padding()
-                        //}
+                        HStack {
+                            Spacer()
+                            Button {
+                                if !showFirstStage {
+                                    withAnimation {
+                                        showFirstStage = true
+                                    }
+
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
+                                        if showFirstStage {
+                                            withAnimation {
+                                                showFirstStage = false
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    showDonation = true
+                                }
+                            } label: {
+                                HStack {
+                                    if showFirstStage {
+                                        Text("Tap to buy Pro!")
+                                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                                            .foregroundStyle(.white)
+                                    }
+                                    Text("✨")
+                                }
+                                .padding()
+                                .frame(height: 50)
+                                .background(Color.yellow)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                .shadow(radius: 10)
+                            }
+                            .sheet(isPresented: $showDonation) {
+                                ProView {
+                                    Task {
+                                        if let product = storeManager.products.first {
+                                            await storeManager.purchasePro(product)
+                                        } else {
+                                            print("No products loaded")
+                                        }
+                                    }
+                                }
+                            }
+                            .padding()
+                        }
+
                     }
                 }
                 

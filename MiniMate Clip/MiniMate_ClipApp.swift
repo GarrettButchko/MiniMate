@@ -20,7 +20,6 @@ struct MiniMate_ClipApp: App {
     }()
 
     @State private var course: Course?
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     var body: some Scene {
         WindowGroup {
@@ -52,13 +51,5 @@ struct MiniMate_ClipApp: App {
             default:
                 return nil
         }
-    }
-}
-
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        MobileAds.shared.start(completionHandler: nil)
-        return true
     }
 }

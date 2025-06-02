@@ -306,33 +306,66 @@ struct GameGridView: View {
             BarChartView(data: averageStrokes(), title: "Average Strokes")
             
             if editOn {
-                Button {
-                    if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
-                        withAnimation {
-                            
-                            _ = authModel.userModel?.games.remove(at: index)
-                        }
-                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                HStack{
+                    
+                    ShareLink(item: makeShareableSummary(for: game)) {
+                      Image(systemName: "square.and.arrow.up")
+                            .font(.title2)
                     }
-                    context.delete(game)
-                } label: {
-                    ZStack{
-                        Rectangle().fill(Color.red)
-                            .clipShape(.buttonBorder)
-                            .frame(height: 32)
-                        Text("Delete Game")
-                            .foregroundStyle(.white)
+                    .padding()
+                    
+                    Button {
+                        if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
+                            withAnimation {
+                                
+                                _ = authModel.userModel?.games.remove(at: index)
+                            }
+                            authModel.saveUserModel(authModel.userModel!) { _ in }
+                        }
+                        context.delete(game)
+                    } label: {
+                        ZStack{
+                            Rectangle().fill(Color.red)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                
+                            Text("Delete Game")
+                                .foregroundStyle(.white)
+                        }
                     }
                 }
                 .transition(.asymmetric(
                     insertion: .move(edge: .top).combined(with: .opacity),
                     removal: .move(edge: .top).combined(with: .opacity)
                 ))
+                .frame(height: 32)
             }
         }
         .padding()
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 25))
+    }
+    
+    
+    /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
+    func makeShareableSummary(for game: Game) -> String {
+      var lines = ["MiniMate Scorecard",
+                   "Date: \(game.date.formatted(.dateTime))",
+                   ""]
+      
+      for player in game.players {
+          var holeLine = ""
+          
+          for hole in player.holes {
+                holeLine += "|\(hole.strokes)"
+          }
+          
+          lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
+          lines.append("Holes " + holeLine)
+          
+      }
+      lines.append("")
+      lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
+      return lines.joined(separator: "\n")
     }
     
     /// Returns one Hole per hole-number, whose `strokes` is the integer average

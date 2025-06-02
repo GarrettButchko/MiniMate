@@ -62,6 +62,11 @@ struct ContentView: View {
                     
                 case .gameReview(let gameModel):
                     GameReviewView(viewManager: viewManager, game: gameModel)
+                    
+                case .ad:
+                    InterstitialAdView(adUnitID: "ca-app-pub-8261962597301587/3394145015") {
+                        viewManager.currentView = .main(1)
+                    }
                 }
                 
             }
@@ -140,6 +145,8 @@ struct MainTabView: View {
                     CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
                         .tabItem { Label("Courses", systemImage: "figure.golf") }
                         .tag(2)
+                    
+                    
                 }
             }
             .onAppear {

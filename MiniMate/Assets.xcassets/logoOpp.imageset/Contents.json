@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "Icon_WhiteToBlack 1.png",
+      "filename" : "Icon_WhiteToBlack 3.png",
       "idiom" : "universal"
     },
     {
@@ -11,7 +11,7 @@
           "value" : "light"
         }
       ],
-      "filename" : "Icon_WhiteToBlack.png",
+      "filename" : "Icon_WhiteToBlack 2.png",
       "idiom" : "universal"
     },
     {

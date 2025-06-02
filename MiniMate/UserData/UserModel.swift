@@ -16,12 +16,13 @@ class UserModel: Identifiable, Equatable {
     var name: String
     var photoURL: URL?
     var email: String?
+    var isPro: Bool = false
 
     @Relationship(deleteRule: .cascade, inverse: \Game.user)
     var games: [Game] = []
 
     enum CodingKeys: String, CodingKey {
-        case id, name, photoURL, email, games
+        case id, name, photoURL, email, games, isPro
     }
 
     static func == (lhs: UserModel, rhs: UserModel) -> Bool {
@@ -29,6 +30,7 @@ class UserModel: Identifiable, Equatable {
         lhs.name == rhs.name &&
         lhs.photoURL == rhs.photoURL &&
         lhs.email == rhs.email &&
+        lhs.isPro == rhs.isPro &&
         lhs.games == rhs.games
     }
 
@@ -37,12 +39,14 @@ class UserModel: Identifiable, Equatable {
         name: String,
         photoURL: URL? = nil,
         email: String? = nil,
+        isPro: Bool = false,
         games: [Game] = []
     ) {
         self.id = id
         self.name = name
         self.photoURL = photoURL
         self.email = email
+        self.isPro = isPro
         self.games = games
     }
 
@@ -52,6 +56,7 @@ class UserModel: Identifiable, Equatable {
             name: name,
             photoURL: photoURL,
             email: email,
+            isPro: isPro,
             games: games.map { $0.toDTO() }
         )
     }
@@ -62,6 +67,7 @@ class UserModel: Identifiable, Equatable {
             name: dto.name,
             photoURL: dto.photoURL,
             email: dto.email,
+            isPro: dto.isPro,
             games: dto.games.map { Game.fromDTO($0) }
         )
     }
@@ -72,5 +78,6 @@ struct UserDTO: Codable {
     var name: String
     var photoURL: URL?
     var email: String?
+    var isPro: Bool
     var games: [GameDTO]
 }

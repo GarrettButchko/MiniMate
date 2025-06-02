@@ -121,7 +121,7 @@ struct RecapView: View {
                         Spacer()
                     }
                     Button {
-                        viewManager.navigateToMain(1)
+                        viewManager.navigateToAd()
                     }  label: {
                         ZStack {
                             RoundedRectangle(cornerRadius: 25)
@@ -132,6 +132,7 @@ struct RecapView: View {
                                 .padding(.horizontal, 30)
                         }
                     }
+                    .padding(.bottom)
                 }
                 .confettiCannon(trigger: $confettiTrigger, num: 40, confettis: [.shape(.slimRectangle)])
                 .onAppear {
