@@ -39,7 +39,6 @@
 		2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */; };
 		21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A75C562DED16D100F32112 /* StoreKit.framework */; };
 		21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 21B352042DE665B1008B5815 /* GoogleMobileAds */; };
-		21BC25142DED21E400E2C077 /* StoreKitConfig.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 21BC25132DED21E400E2C077 /* StoreKitConfig.storekit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,7 +80,6 @@
 		213F26F62D4D639100579FAE /* MiniMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiniMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MiniMate Clip.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		21A75C562DED16D100F32112 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
-		21BC25132DED21E400E2C077 /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -209,7 +207,6 @@
 				21583BCC2DD2E77500EFB400 /* MiniMate Clip */,
 				21033FFF2DBC4D5100F78FBF /* Frameworks */,
 				213F26F72D4D639100579FAE /* Products */,
-				21BC25132DED21E400E2C077 /* StoreKitConfig.storekit */,
 			);
 			sourceTree = "<group>";
 		};
@@ -351,7 +348,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				21BC25142DED21E400E2C077 /* StoreKitConfig.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

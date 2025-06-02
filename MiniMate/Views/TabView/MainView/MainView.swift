@@ -28,7 +28,6 @@ struct MainView: View {
     @State var showDonation: Bool = false
     
     var body: some View {
-        let storeManager = StoreManager(authModel: authModel)
         
         ZStack {
             VStack(spacing: 24) {
@@ -96,14 +95,16 @@ struct MainView: View {
                                         .fill(Color.clear)
                                         .frame(height: 115)
                                     
-                                    VStack{
-                                        BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6344452429") // Replace with real one later
-                                            .frame(height: 50)
-                                            .padding()
+                                    if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
+                                        VStack{
+                                            BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6344452429") // Replace with real one later
+                                                .frame(height: 50)
+                                                .padding()
+                                        }
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                                        .padding(.bottom, 10)
                                     }
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(RoundedRectangle(cornerRadius: 25))
-                                    .padding(.bottom, 10)
                                         
                                         
                                     
@@ -246,7 +247,8 @@ struct MainView: View {
                                             HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel)
                                                 .presentationDetents([.large])
                                         }
-                                        if authModel.userModel?.id == "IDGuest" {
+                                        
+                                        if authModel.userModel?.id == "IDGuest" || !NetworkChecker.shared.isConnected {
                                             HStack {
                                                 Image(systemName: "globe")
                                                 Text("Connect")
@@ -281,51 +283,45 @@ struct MainView: View {
                         Spacer()
                         
                         // Donation Button
-                        HStack {
-                            Spacer()
-                            Button {
-                                if !showFirstStage {
-                                    withAnimation {
-                                        showFirstStage = true
-                                    }
-
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
-                                        if showFirstStage {
-                                            withAnimation {
-                                                showFirstStage = false
+                        if !authModel.userModel!.isPro {
+                            HStack {
+                                Spacer()
+                                Button {
+                                    if !showFirstStage {
+                                        withAnimation {
+                                            showFirstStage = true
+                                        }
+                                        
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
+                                            if showFirstStage {
+                                                withAnimation {
+                                                    showFirstStage = false
+                                                }
                                             }
                                         }
+                                    } else {
+                                        showDonation = true
                                     }
-                                } else {
-                                    showDonation = true
+                                } label: {
+                                    HStack {
+                                        if showFirstStage {
+                                            Text("Tap to buy Pro!")
+                                                .transition(.move(edge: .trailing).combined(with: .opacity))
+                                                .foregroundStyle(.white)
+                                        }
+                                        Text("✨")
+                                    }
+                                    .padding()
+                                    .frame(height: 50)
+                                    .background(Color.purple)
+                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                    .shadow(radius: 10)
                                 }
-                            } label: {
-                                HStack {
-                                    if showFirstStage {
-                                        Text("Tap to buy Pro!")
-                                            .transition(.move(edge: .trailing).combined(with: .opacity))
-                                            .foregroundStyle(.white)
-                                    }
-                                    Text("✨")
+                                .sheet(isPresented: $showDonation) {
+                                    ProView(showSheet: $showDonation, authModel: authModel)
                                 }
                                 .padding()
-                                .frame(height: 50)
-                                .background(Color.yellow)
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                .shadow(radius: 10)
                             }
-                            .sheet(isPresented: $showDonation) {
-                                ProView {
-                                    Task {
-                                        if let product = storeManager.products.first {
-                                            await storeManager.purchasePro(product)
-                                        } else {
-                                            print("No products loaded")
-                                        }
-                                    }
-                                }
-                            }
-                            .padding()
                         }
 
                     }

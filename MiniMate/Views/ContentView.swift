@@ -121,6 +121,8 @@ struct MainTabView: View {
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var gameModel: GameViewModel
     @StateObject var locationHandler = LocationHandler()
+    @StateObject var iapManager = IAPManager()
+    
     
     @State var selectedTab: Int
     
@@ -141,7 +143,7 @@ struct MainTabView: View {
                 MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
                     .tabItem { Label("Home", systemImage: "house.fill") }
                     .tag(1)
-                if authModel.userModel?.id != "IDGuest" {
+                if authModel.userModel?.id != "IDGuest" && NetworkChecker.shared.isConnected {
                     CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
                         .tabItem { Label("Courses", systemImage: "figure.golf") }
                         .tag(2)
@@ -152,8 +154,11 @@ struct MainTabView: View {
             .onAppear {
                 authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
                     try? context.save()
-                    if NetworkChecker.shared.isConnected {
-                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                    Task {
+                        await iapManager.isPurchasedPro(authModel: authModel)
+                        if NetworkChecker.shared.isConnected {
+                            authModel.saveUserModel(authModel.userModel!) { _ in }
+                        }
                     }
                 }
             }

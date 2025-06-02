@@ -11,7 +11,11 @@ import StoreKit
 struct ProView: View {
     @State private var thankYou = false
     @State private var errorMessage: String?
-    var onSubscribe: () -> Void
+    @Binding var showSheet: Bool
+    @ObservedObject var authModel: AuthViewModel
+    @StateObject var iapManager = IAPManager()
+    
+    
     
     let benefits = [
         "Ad-free experience",
@@ -114,7 +118,11 @@ struct ProView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 
-                Button(action: onSubscribe) {
+                Button {
+                    Task {
+                        await iapManager.purchase(iapManager.products[0], authModel: authModel, showSheet: $showSheet)
+                    }
+                } label: {
                     Text("Upgrade Now")
                         .font(.headline)
                         .foregroundColor(.white)

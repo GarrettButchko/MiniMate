@@ -121,7 +121,11 @@ struct RecapView: View {
                         Spacer()
                     }
                     Button {
-                        viewManager.navigateToAd()
+                        if NetworkChecker.shared.isConnected && !userModel.isPro {
+                            viewManager.navigateToAd()
+                        } else {
+                            viewManager.navigateToMain(1)
+                        }
                     }  label: {
                         ZStack {
                             RoundedRectangle(cornerRadius: 25)

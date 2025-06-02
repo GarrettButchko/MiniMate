@@ -187,9 +187,11 @@ struct ScoreCardView: View {
                     }
                 }
             }
-            BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6716977198") // Replace with real one later
-                .frame(height: 50)
-                .padding(.top, 5)
+            if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
+                BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6716977198") // Replace with real one later
+                    .frame(height: 50)
+                    .padding(.top, 5)
+            }
         }
     }
     
