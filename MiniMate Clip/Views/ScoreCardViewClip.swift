@@ -10,7 +10,9 @@ struct ScoreCardViewClip: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     
-    let course: Course?
+    @Binding var ad: Ad?
+    
+    @State var course: Course?
     
     @StateObject var viewManager: ViewManagerClip
     @StateObject var authModel: AuthViewModelClip
@@ -42,6 +44,9 @@ struct ScoreCardViewClip: View {
                     .transition(.opacity)
             }
             
+        }
+        .onAppear {
+            course = CourseResolver.resolve(id: gameModel.gameValue.courseID)
         }
     }
     
@@ -151,10 +156,18 @@ struct ScoreCardViewClip: View {
     /// totals row
     private var totalRow: some View {
         HStack {
-            Text("Total")
-                .frame(width: 100, height: 60)
-                .font(.title3).fontWeight(.semibold)
+            VStack{
+                Text("Total")
+                    .font(.title3).fontWeight(.semibold)
+                if let course = course, course.hasPars {
+                    Text("Par: \(course.pars.reduce(0, +))")
+                        .font(.caption)
+                }
+            }
+            .frame(width: 100, height: 60)
+            
             Divider()
+            
             SyncedScrollViewRepresentable(
                 scrollOffset:   $scrollOffset,
                 syncSourceID:   $uuid
@@ -194,8 +207,61 @@ struct ScoreCardViewClip: View {
                             .foregroundColor(.white).fontWeight(.bold)
                     }
                 }
-                
-                
+            }
+            
+            if let ad = ad{
+                Button {
+                    if ad.link != "" {
+                        if let url = URL(string: ad.link) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                } label: {
+                    HStack{
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(ad.title)
+                                .foregroundStyle(.mainOpp)
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                            
+                            Text(ad.text)
+                                .foregroundStyle(.mainOpp)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .padding(.trailing)
+                        }
+                        Spacer()
+                        if ad.image != "" {
+                            AsyncImage(url: URL(string: ad.image)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(height: 60)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(height: 60)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .clipped()
+                                case .failure:
+                                    Image(systemName: "photo")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 60)
+                                        .foregroundColor(.gray)
+                                        .background(Color.gray.opacity(0.2))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding()
+                }
             }
         }
     }

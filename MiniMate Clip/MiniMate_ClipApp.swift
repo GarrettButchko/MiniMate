@@ -19,37 +19,30 @@ struct MiniMate_ClipApp: App {
         )
     }()
 
-    @State private var course: Course?
+    @StateObject private var launchCoordinator = LaunchCoordinator()
 
     var body: some Scene {
         WindowGroup {
-            Group{
-                ContentViewClip(course: course)
-            }.onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
+            Group {
+                if let course = launchCoordinator.course {
+                    ContentViewClip(course: course)
+                } else {
+                    ProgressView("Loading...")
+                }
+            }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
                 if let incomingURL = userActivity.webpageURL {
-                    let resolvedCourse = resolveCourse(from: incomingURL.absoluteString)
-                    course = resolvedCourse
+                    let resolved = CourseResolver.resolve(url: incomingURL.absoluteString)
+                    withAnimation(){
+                        launchCoordinator.course = resolved
+                    }
                 }
             }
         }
         .modelContainer(sharedContainer)
-        
     }
+}
 
-    /// This function doesn't mutate `self`, just returns a Course
-    func resolveCourse(from url: String) -> Course? {
-        switch url {
-            case "https://circuit-leaf.com/mini-mate/S":
-                return Course(
-                    id: "S",
-                    name: "Sweeties Candy Company",
-                    logo: "sweeties",
-                    colors: [Color.red, Color.green, Color.yellow],
-                    link: "https://www.sweetiescandy.com/",
-                    pars: [2, 3, 5, 3, 2, 3, 4, 3, 2, 2, 3, 4, 3, 4, 2, 3, 2, 5, 7]
-                )
-            default:
-                return nil
-        }
-    }
+class LaunchCoordinator: ObservableObject {
+    @Published var course: Course?
 }

@@ -114,6 +114,40 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
+    
+    func findClosestMiniGolf(completion: @escaping (MKMapItem?) -> Void) {
+        guard let userLoc = userLocation else {
+            completion(nil)
+            return
+        }
+
+        let region = makeRegion(centeredOn: userLoc, radiusInMeters: 8046.72) // 5 miles in meters
+
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = "mini golf"
+        request.region = region
+        if #available(iOS 16.0, *) {
+            request.pointOfInterestFilter = .init(including: [.miniGolf])
+        }
+
+        let search = MKLocalSearch(request: request)
+        search.start { response, error in
+            guard error == nil, let items = response?.mapItems, !items.isEmpty else {
+                completion(nil)
+                return
+            }
+
+            let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
+            let sorted = items.sorted {
+                let a = CLLocation(latitude: $0.placemark.coordinate.latitude, longitude: $0.placemark.coordinate.longitude)
+                let b = CLLocation(latitude: $1.placemark.coordinate.latitude, longitude: $1.placemark.coordinate.longitude)
+                return a.distance(from: userLocation) < b.distance(from: userLocation)
+            }
+
+            completion(sorted.first)
+        }
+    }
+    
     // MARK: - Camera Positioning
     func updateCameraPosition(_ selectedResult: MKMapItem? = nil) -> MapCameraPosition {
         var cameraPosition: MapCameraPosition = .automatic

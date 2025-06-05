@@ -16,6 +16,7 @@ struct ScoreCardView: View {
     
     @State private var scrollOffset: CGFloat = 0
     @State private var uuid: UUID? = nil
+    @State var ad: Ad? = nil
     
     @State var showInfoView: Bool = false
     @State var showRecap: Bool = false
@@ -44,6 +45,25 @@ struct ScoreCardView: View {
                     .transition(.opacity)
             }
         }
+        .onAppear {
+            Task {
+                do {
+                    ad = nil
+                    let url = URL(string: "https://circuit-leaf.com/mini-mate/api/ads.json")!
+                    let ads: [Ad] = try await url.fetchAndDecode()
+
+                    for ad in ads {
+                        if gameModel.gameValue.courseID == ad.id {
+                            self.ad = ad
+                            print("✅ Found matching ad: \(ad.title)")
+                        }
+                    }
+                } catch {
+                    print("❌ Failed to fetch or decode ads: \(error.localizedDescription)")
+                    ad = nil
+                }
+            }
+        }
     }
     
     // MARK: Header
@@ -51,6 +71,14 @@ struct ScoreCardView: View {
         HStack {
             Text("Scorecard")
                 .font(.title).fontWeight(.bold)
+            if let logo = CourseResolver.resolve(id: gameModel.gameValue.courseID)?.logo{
+                Divider()
+                    .frame(height: 30)
+                Image(logo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 40)
+            }
             Spacer()
             Button {
                 showInfoView = true
@@ -71,7 +99,9 @@ struct ScoreCardView: View {
             Divider()
             totalRow
         }
-        .background(.ultraThinMaterial)
+        .background(
+            CourseResolver.resolve(id: gameModel.gameValue.courseID)?.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
     }
@@ -132,9 +162,15 @@ struct ScoreCardView: View {
         VStack {
             ForEach(1...gameModel.gameValue.numberOfHoles, id: \.self) { i in
                 if i != 1 { Divider() }
-                Text("Hole \(i)")
-                    .font(.body).fontWeight(.medium)
-                    .frame(height: 60)
+                VStack{
+                    Text("Hole \(i)")
+                        .font(.body).fontWeight(.medium)
+                    if let course = CourseResolver.resolve(id: gameModel.gameValue.courseID), course.hasPars {
+                        Text("Par: \(course.pars[i - 1])")
+                            .font(.caption)
+                    }
+                }
+                .frame(height: 60)
             }
         }
         .frame(width: 100)
@@ -143,10 +179,18 @@ struct ScoreCardView: View {
     /// totals row
     private var totalRow: some View {
         HStack {
-            Text("Total")
-                .frame(width: 100, height: 60)
-                .font(.title3).fontWeight(.semibold)
+            VStack{
+                Text("Total")
+                    .font(.title3).fontWeight(.semibold)
+                if let course = CourseResolver.resolve(id: gameModel.gameValue.courseID), course.hasPars {
+                    Text("Par: \(course.pars.reduce(0, +))")
+                        .font(.caption)
+                }
+            }
+            .frame(width: 100, height: 60)
+            
             Divider()
+            
             SyncedScrollViewRepresentable(
                 scrollOffset:   $scrollOffset,
                 syncSourceID:   $uuid
@@ -187,12 +231,69 @@ struct ScoreCardView: View {
                     }
                 }
             }
-            if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
-                BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6716977198") // Replace with real one later
-                    .frame(height: 50)
-                    .padding(.top, 5)
+            
+            if let ad = ad {
+                Button {
+                    if ad.link != "" {
+                        if let url = URL(string: ad.link) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                } label: {
+                    HStack{
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(ad.title)
+                                .foregroundStyle(.mainOpp)
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                            
+                            Text(ad.text)
+                                .foregroundStyle(.mainOpp)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .padding(.trailing)
+                        }
+                        Spacer()
+                        if ad.image != "" {
+                            AsyncImage(url: URL(string: ad.image)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(height: 60)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(height: 60)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .clipped()
+                                case .failure:
+                                    Image(systemName: "photo")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 60)
+                                        .foregroundColor(.gray)
+                                        .background(Color.gray.opacity(0.2))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding()
+                }
+            } else {
+                if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
+                    BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6716977198") // Replace with real one later
+                        .frame(height: 50)
+                        .padding(.top, 5)
+                }
             }
         }
+        .padding(.bottom)
     }
     
     private func timeString(from seconds: Int) -> String {

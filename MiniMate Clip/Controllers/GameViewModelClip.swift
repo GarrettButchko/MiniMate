@@ -22,14 +22,11 @@ final class GameViewModelClip: ObservableObject {
     // MARK: - Dependencies & Config
     private var lastUpdated: Date = Date()
     
-    let course: Course?
-    
     // MARK: - Initialization
-    init(auth: AuthViewModelClip, game: Game, course: Course?)
+    init(auth: AuthViewModelClip, game: Game)
     {
         self.authModel = auth
         self.game = game
-        self.course = course
     }
     
     // MARK: - Dynamic Member Lookup
@@ -86,6 +83,7 @@ final class GameViewModelClip: ObservableObject {
         game.live          = newGame.live
         game.lastUpdated   = newGame.lastUpdated
         lastUpdated        = newGame.lastUpdated
+        game.courseID      = newGame.courseID
         
         // 2) Rebuild players and their holes from remote data
         for remotePlayer in newGame.players {
@@ -113,7 +111,7 @@ final class GameViewModelClip: ObservableObject {
     private func initializeHoles(for player: Player) {
         guard player.holes.count != game.numberOfHoles else { return }
         player.holes = []
-        if let course = course, course.hasPars {
+        if let course = CourseResolver.resolve(id: game.courseID), course.hasPars {
             player.holes = course.holes
         } else {
             player.holes = (0..<game.numberOfHoles).map {
@@ -139,7 +137,9 @@ final class GameViewModelClip: ObservableObject {
             inGame: true
         )
         initializeHoles(for: newPlayer)
-        game.players.append(newPlayer)
+        withAnimation(){
+            game.players.append(newPlayer)
+        }
     }
     
     func addUser() {
@@ -155,13 +155,17 @@ final class GameViewModelClip: ObservableObject {
             inGame: true
         )
         initializeHoles(for: newPlayer)
-        game.players.append(newPlayer)
+        withAnimation(){
+            game.players.append(newPlayer)
+        }
     }
     
     
     func removePlayer(userId: String) {
         objectWillChange.send()
-        game.players.removeAll { $0.userId == userId }
+        withAnimation(){
+            game.players.removeAll { $0.userId == userId }
+        }
     }
     
     func leaveGame(userId: String) {
@@ -214,20 +218,29 @@ final class GameViewModelClip: ObservableObject {
         // Clone all fields into a fresh Game instance
         let finished = Game(
             id:           game.id,
+            location:     game.location,
             date:         game.date,
+            completed:    game.completed,
             numberOfHoles: game.numberOfHoles,
+            started:      game.started,
+            dismissed:    game.dismissed,
+            totalTime:    game.totalTime,
+            live:         game.live,
+            lastUpdated:  game.lastUpdated,
+            courseID:     game.courseID,
             players:      game.players.map { player in
-                // likewise clone each player/hole…
                 Player(
                     id:       player.id,
                     userId:   player.userId,
                     name:     player.name,
                     photoURL: player.photoURL,
-                    holes:    player.holes.map { Hole(number: $0.number, par: 2, strokes: $0.strokes) }
+                    holes:    player.holes.map {
+                        Hole(number: $0.number, par: 2, strokes: $0.strokes)
+                    }
                 )
-            }
-            // …any other properties…
+            },
         )
+
         
         // Now insert this *new* object
         context.insert(finished)

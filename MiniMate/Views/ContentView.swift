@@ -14,6 +14,8 @@ struct ContentView: View {
     
     let locFuncs = LocFuncs()
     
+    @State var ad: Ad? = nil
+    
     @State private var selectedTab = 1
     @State private var previousView: ViewType?
     
@@ -23,7 +25,7 @@ struct ContentView: View {
         _authModel = StateObject(wrappedValue: auth)
         
         // 2) create an initial Game (or fetch one from your context)
-        let initialGame =  Game(id: "", date: Date(), completed: false, numberOfHoles: 18, started: false, dismissed: false, live: false, lastUpdated: Date(), holes: [], players: [])
+        let initialGame =  Game(id: "", date: Date(), completed: false, numberOfHoles: 18, started: false, dismissed: false, live: false, lastUpdated: Date(), players: [])
         
         // 3) now inject both into your GameViewModel
         _gameModel = StateObject(
@@ -41,7 +43,7 @@ struct ContentView: View {
             Group {
                 switch viewManager.currentView {
                 case .main(let tab):
-                    MainTabView(viewManager: viewManager, authModel: authModel, gameModel: gameModel, selectedTab: tab)
+                    MainTabView(viewManager: viewManager, authModel: authModel, gameModel: gameModel, ad: ad, selectedTab: tab)
                     
                 case .login:
                     LoginView(
@@ -93,6 +95,27 @@ struct ContentView: View {
             }
         }
         .ignoresSafeArea(.all, edges: .bottom)
+        .onAppear {
+            Task {
+                do {
+                    ad = nil
+                    let url = URL(string: "https://circuit-leaf.com/mini-mate/api/ads.json")!
+                    let ads: [Ad] = try await url.fetchAndDecode()
+
+                    for ad in ads {
+                        if "MainAd" == ad.id {
+                            withAnimation(){
+                                self.ad = ad
+                            }
+                            print("✅ Found matching ad: \(ad.title)")
+                        }
+                    }
+                } catch {
+                    print("❌ Failed to fetch or decode ads: \(error.localizedDescription)")
+                    ad = nil
+                }
+            }
+        }
         
     }
     
@@ -120,16 +143,18 @@ struct MainTabView: View {
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var gameModel: GameViewModel
+    let ad: Ad?
     @StateObject var locationHandler = LocationHandler()
     @StateObject var iapManager = IAPManager()
     
     
     @State var selectedTab: Int
     
-    init(viewManager: ViewManager, authModel: AuthViewModel, gameModel: GameViewModel, selectedTab: Int){
+    init(viewManager: ViewManager, authModel: AuthViewModel, gameModel: GameViewModel, ad: Ad?, selectedTab: Int){
         self.viewManager = viewManager
         self.authModel = authModel
         self.gameModel = gameModel
+        self.ad = ad
         self.selectedTab = selectedTab
     }
     
@@ -140,11 +165,11 @@ struct MainTabView: View {
                     .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                     .tag(0)
                 
-                MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
+                MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel, ad: ad)
                     .tabItem { Label("Home", systemImage: "house.fill") }
                     .tag(1)
                 if authModel.userModel?.id != "IDGuest" && NetworkChecker.shared.isConnected {
-                    CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
+                    CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
                         .tabItem { Label("Courses", systemImage: "figure.golf") }
                         .tag(2)
                     

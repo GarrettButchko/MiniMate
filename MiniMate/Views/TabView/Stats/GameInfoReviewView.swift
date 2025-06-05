@@ -7,12 +7,9 @@
 
 
 import SwiftUI
-import FirebaseAuth
 
 /// Displays and allows editing of the current user's profile
 struct GameInfoReviewView: View {
-    
-    @StateObject var viewManager: ViewManager
     var game: Game
     @Binding var isSheetPresent: Bool
 

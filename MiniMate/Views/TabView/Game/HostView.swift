@@ -9,14 +9,14 @@ import MapKit
 struct HostView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
-
+    
     @Binding var showHost: Bool
-
+    
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var locationHandler: LocationHandler
     @ObservedObject var gameModel: GameViewModel
-
+    
     @State private var showAddPlayerAlert = false
     @State private var showDeleteAlert = false
     @State private var newPlayerName = ""
@@ -30,15 +30,19 @@ struct HostView: View {
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State  private var timeRemaining: TimeInterval = 20 * 60
     
-    @State var showLocationPicker: Bool = false
-
+    @State var showTextAndButtons: Bool = false
+    
+    @State private var isRotating = false // Place this in your view struct
+    
+    @State var showHolePicker: Bool = true
+    
     var body: some View {
         VStack {
             Capsule()
                 .frame(width: 38, height: 6)
                 .foregroundColor(.gray)
                 .padding(10)
-
+            
             HStack {
                 Text(gameModel.onlineGame ? "Hosting Game" : "Game Setup")
                     .font(.title)
@@ -46,7 +50,7 @@ struct HostView: View {
                     .padding(.leading, 30)
                 Spacer()
             }
-
+            
             Form {
                 gameInfoSection
                 playersSection
@@ -72,19 +76,19 @@ struct HostView: View {
             Button("Cancel", role: .cancel) {}
         }
         .onReceive(ticker) { _ in
-          // compute seconds until (lastUpdated + ttl)
-          let expireDate = lastUpdated.addingTimeInterval(ttl)
-          timeRemaining = max(0, expireDate.timeIntervalSinceNow)
-          
-          // if we’ve actually hit zero, you could auto-dismiss:
-          if timeRemaining <= 0 {
-            showHost = false
-          }
+            // compute seconds until (lastUpdated + ttl)
+            let expireDate = lastUpdated.addingTimeInterval(ttl)
+            timeRemaining = max(0, expireDate.timeIntervalSinceNow)
+            
+            // if we’ve actually hit zero, you could auto-dismiss:
+            if timeRemaining <= 0 {
+                showHost = false
+            }
         }
     }
-
+    
     // MARK: - Sections
-
+    
     private var gameInfoSection: some View {
         Group {
             Section {
@@ -94,7 +98,7 @@ struct HostView: View {
                         Spacer()
                         Text(gameModel.gameValue.id)
                     }
-
+                    
                     HStack {
                         Text("Expires in:")
                         Spacer()
@@ -102,99 +106,151 @@ struct HostView: View {
                             .monospacedDigit()
                     }
                 }
-
+                
                 DatePicker("Date & Time", selection: gameModel.binding(for: \.date))
-                    
-
+                    .onChange(of: locationHandler.selectedItem) { _, newValue in
+                        if CourseResolver.matchName(newValue?.name ?? "Unknown"){
+                            gameModel.setNumberOfHole(CourseResolver.resolve(name: newValue?.name ?? "Unknown")?.numOfHoles ?? 18)
+                            withAnimation{
+                                showHolePicker = false
+                            }
+                        } else {
+                            withAnimation{
+                                showHolePicker = true
+                            }
+                        }
+                    }
+                
+                
                 locationSection
-
-                HStack {
-                    Text("Holes:")
-                    NumberPickerView(
-                        selectedNumber: gameModel.binding(for: \.numberOfHoles),
-                        minNumber: 9, maxNumber: 21
-                    )
+                
+                if showHolePicker{
+                    HStack {
+                        Text("Holes:")
+                        NumberPickerView(
+                            selectedNumber: gameModel.binding(for: \.numberOfHoles),
+                            minNumber: 9, maxNumber: 21
+                        )
+                    }
                 }
-
+                
+                
             } header: {
                 Text("Game Info")
             }
         }
     }
-
-    // MARK: – Subviews
-
-    private var locationToggleView: some View {
-      HStack {
-        Text("Use Location:")
-        Spacer()
-        Toggle("", isOn: $showLocationPicker)
-          .onChange(of: showLocationPicker) { _, new in
-            if new {
-              performInitialSearchIfNeeded()
-            } else {
-              // clearing out
-              locationHandler.setSelectedItem(nil)
-              gameModel.setLocation(MapItemDTO(latitude: 0, longitude: 0, name: nil, phoneNumber: nil, url: nil, poiCategory: nil, timeZone: nil, street: nil, city: nil, state: nil, postalCode: nil, country: nil))
-            }
-          }
-      }
-    }
-
-    private var locationPickerView: some View {
-      // only called when `showLocationPicker == true` and we have a userLocation
-      VStack {
-        Text("Select a Course:")
-          .font(.headline)
-          .foregroundColor(.secondary)
-
-        Picker("", selection: locationHandler.bindingForSelectedItemID()) {
-          ForEach(locationHandler.mapItems, id: \.idString) { item in
-            MapItemPickerRowView(item: item,
-                                 userLocation: locationHandler.userLocation!)
-              .tag(item.idString)
-          }
-        }
-        .pickerStyle(.wheel)
-        .onAppear { performInitialSearchIfNeeded() }
-        .onChange(of: locationHandler.selectedItem) { _, newItem in
-          guard let mapItem = newItem else { return }
-          gameModel.setLocation(mapItem.toDTO())
-        }
-      }
-    }
-
-    // helper to kick off the first search
-    private func performInitialSearchIfNeeded() {
-      guard showLocationPicker,
-            locationHandler.mapItems.isEmpty,
-            let coord = locationHandler.userLocation
-      else { return }
-
-      let region = locationHandler.makeRegion(centeredOn: coord, radiusInMeters: 500)
-      locationHandler.performSearch(in: region) { success in
-        if success {
-          locationHandler.setClosestValue()
-        }
-      }
-    }
-
+    
+    
     // MARK: – Composed Section
-
+    
     private var locationSection: some View {
-      Group {
-        if gameModel.onlineGame {
-          locationToggleView
+        Group {
+            if NetworkChecker.shared.isConnected {
+                HStack{
+                    VStack{
+                        HStack{
+                            Text("Location:")
+                            Spacer()
+                        }
+                        if showTextAndButtons {
+                            if let item = locationHandler.selectedItem {
+                                HStack{
+                                    Text(item.name ?? "Unnamed")
+                                        .foregroundStyle(.secondary)
+                                        .truncationMode(.tail)
+                                        .transition(.move(edge: .top).combined(with: .opacity))
+                                    Spacer()
+                                }
+                            } else {
+                                HStack{
+                                    Text("No location found")
+                                        .foregroundStyle(.secondary)
+                                        .transition(.move(edge: .top).combined(with: .opacity))
+                                    Spacer()
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if !showTextAndButtons {
+                        
+                        Button {
+                            locationHandler.findClosestMiniGolf { closestPlace in
+                                withAnimation {
+                                    locationHandler.selectedItem = closestPlace
+                                    
+                                    showTextAndButtons = true
+                                }
+                                gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "magnifyingglass")
+                                Text("Search Nearby")
+                            }
+                            .frame(width: 180, height: 50)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    } else {
+                        // Retry Button
+                        Button(action: {
+                            withAnimation(){
+                                isRotating = true
+                            }
+                            locationHandler.findClosestMiniGolf { closestPlace in
+                                withAnimation {
+                                    locationHandler.selectedItem = closestPlace
+                                }
+                                gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                isRotating = false
+                            }
+                        }) {
+                            Image(systemName: "arrow.trianglehead.2.clockwise")
+                                .rotationEffect(.degrees(isRotating ? 360 : 0))
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .frame(width: 50, height: 50)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        
+                        
+                        
+                        // Exit Button
+                        Button(action: {
+                            withAnimation {
+                                locationHandler.selectedItem = nil
+                                gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
+                                showTextAndButtons = false
+                            }
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .frame(width: 50, height: 50)
+                                .background(Color.red)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
+                }
+            }
         }
-
-        if showLocationPicker,
-           locationHandler.userLocation != nil
-        {
-          locationPickerView
-        }
-      }
     }
 
+    
     private var playersSection: some View {
         Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {
             ScrollView(.horizontal) {
@@ -230,7 +286,7 @@ struct HostView: View {
             .frame(height: 75)
         }
     }
-
+    
     private var startGameSection: some View {
         Section {
             Button("Start Game") {
@@ -239,8 +295,8 @@ struct HostView: View {
             }
         }
     }
-
-
+    
+    
     // MARK: - Logic
     
     private func timeString(from seconds: Int) -> String {
@@ -255,13 +311,13 @@ struct HostView: View {
 struct MapItemPickerRowView: View {
     let item: MKMapItem
     let userLocation: CLLocationCoordinate2D
-
+    
     var body: some View {
         let itemName = item.name ?? "Unknown"
         let itemLocation = CLLocation(latitude: item.placemark.coordinate.latitude, longitude: item.placemark.coordinate.longitude)
         let userLoc = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
         let distanceInMiles = userLoc.distance(from: itemLocation) / 1609.34
-
+        
         Text("\(itemName) • \(String(format: "%.1f", distanceInMiles)) mi")
     }
 }
@@ -273,7 +329,7 @@ struct PlayerIconView: View {
     var isRemovable: Bool
     var onTap: (() -> Void)?
     var imageSize: CGFloat = 30
-
+    
     var body: some View {
         Group {
             if isRemovable {

@@ -14,22 +14,21 @@ enum ViewType {
 
 /// Manages app navigation state based on authentication status
 @MainActor
-class ViewManagerClip: ObservableObject {
-
+class ViewManagerClip: ObservableObject, @preconcurrency NavigatableViewManager {
+    
     @Published var currentView: ViewType
 
     init() {
         self.currentView = .main
     }
-
-    func navigateToMain() {
+    
+    func navigateToMain(_ tab: Int) {
         currentView = .main
     }
     
     func navigateToScoreCard() {
         currentView = .scoreCard
     }
-    
 }
 
 extension ViewType: Equatable {

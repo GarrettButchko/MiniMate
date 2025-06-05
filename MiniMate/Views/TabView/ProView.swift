@@ -134,6 +134,18 @@ struct ProView: View {
                 }
                 .padding(.horizontal)
                 .padding(.bottom)
+                
+                Button("Restore Purchases") {
+                    Task {
+                        do {
+                            try await AppStore.sync()
+                            // Success handling (e.g., show confirmation)
+                            print("Successfully restored purchases.")
+                        } catch {
+                            print("Failed to restore purchases: \(error)")
+                        }
+                    }
+                }
             }
         }
     }

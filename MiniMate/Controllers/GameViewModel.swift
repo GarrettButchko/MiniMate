@@ -113,10 +113,22 @@ final class GameViewModel: ObservableObject {
         pushUpdate()
     }
     
-    func setLocation(_ location: MapItemDTO) {
+    func setLocation(_ location: MapItemDTO?) {
         objectWillChange.send() // notify before mutating
         lastUpdated = Date()
         self.game.location = location
+        if let location = location{
+            if CourseResolver.matchName(location.name!) {
+                game.courseID = CourseResolver.nameToId(location.name!)
+            }
+        }
+        pushUpdate()
+    }
+    
+    func setNumberOfHole(_ holes: Int) {
+        objectWillChange.send() // notify before mutating
+        lastUpdated = Date()
+        self.game.numberOfHoles = holes
         pushUpdate()
     }
 
@@ -249,7 +261,9 @@ final class GameViewModel: ObservableObject {
             inGame: true
         )
         initializeHoles(for: newPlayer)
-        game.players.append(newPlayer)
+        withAnimation(){
+            game.players.append(newPlayer)
+        }
         pushUpdate()
     }
 
@@ -266,14 +280,18 @@ final class GameViewModel: ObservableObject {
         inGame: true
       )
       initializeHoles(for: newPlayer)
-      game.players.append(newPlayer)
+        withAnimation(){
+            game.players.append(newPlayer)
+        }
       pushUpdate()
     }
 
 
     func removePlayer(userId: String) {
         objectWillChange.send()
-        game.players.removeAll { $0.userId == userId }
+        withAnimation(){
+            game.players.removeAll { $0.userId == userId }
+        }
         pushUpdate()
     }
     
@@ -350,22 +368,31 @@ final class GameViewModel: ObservableObject {
       stopListening()
 
       // Clone all fields into a fresh Game instance
-      let finished = Game(
-        id:           game.id,
-        date:         game.date,
-        numberOfHoles: game.numberOfHoles,
-        players:      game.players.map { player in
-          // likewise clone each player/hole…
-          Player(
-            id:       player.id,
-            userId:   player.userId,
-            name:     player.name,
-            photoURL: player.photoURL,
-            holes:    player.holes.map { Hole(number: $0.number, par: 2, strokes: $0.strokes) }
-          )
-        }
-        // …any other properties…
-      )
+        // Clone all fields into a fresh Game instance
+        let finished = Game(
+            id:           game.id,
+            location:     game.location,
+            date:         game.date,
+            completed:    game.completed,
+            numberOfHoles: game.numberOfHoles,
+            started:      game.started,
+            dismissed:    game.dismissed,
+            totalTime:    game.totalTime,
+            live:         game.live,
+            lastUpdated:  game.lastUpdated,
+            courseID:     game.courseID,
+            players:      game.players.map { player in
+                Player(
+                    id:       player.id,
+                    userId:   player.userId,
+                    name:     player.name,
+                    photoURL: player.photoURL,
+                    holes:    player.holes.map {
+                        Hole(number: $0.number, par: 2, strokes: $0.strokes)
+                    }
+                )
+            },
+        )
 
       // Now insert this *new* object
       context.insert(finished)

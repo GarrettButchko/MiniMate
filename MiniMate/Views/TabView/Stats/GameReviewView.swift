@@ -5,14 +5,27 @@
 
 import SwiftUI
 
-struct GameReviewView: View {
-    @StateObject var viewManager: ViewManager
+struct GameReviewView<ViewManagerType: NavigatableViewManager>: View {
+    @StateObject var viewManager: ViewManagerType
     var game: Game
+    @State var course: Course?
     
-    @State private var scrollOffset: CGFloat = 0
-    @State private var uuid: UUID? = nil
+    let isAppClip: Bool
+    @State private var scrollOffset: CGFloat
+    @State private var uuid: UUID?
+    @State private var showInfoView: Bool
     
-    @State var showInfoView: Bool = false
+    // Custom init to assign @StateObject and normal vars
+    init(viewManager: ViewManagerType, game: Game, isAppClip: Bool = false, scrollOffset: CGFloat = 0, uuid: UUID? = nil, showInfoView: Bool = false) {
+        _viewManager = StateObject(wrappedValue: viewManager)
+        self.game = game
+        print(game.courseID as Any)
+        self.course = CourseResolver.resolve(id: game.courseID)
+        self.isAppClip = isAppClip
+        _scrollOffset = State(initialValue: scrollOffset)
+        _uuid = State(initialValue: uuid)
+        _showInfoView = State(initialValue: showInfoView)
+    }
     
     var body: some View {
         VStack {
@@ -22,22 +35,29 @@ struct GameReviewView: View {
         }
         .padding()
         .sheet(isPresented: $showInfoView) {
-            GameInfoReviewView(viewManager: viewManager, game: game, isSheetPresent: $showInfoView)
+            GameInfoReviewView(game: game, isSheetPresent: $showInfoView)
         }
     }
     
     // MARK: Header
     private var headerView: some View {
-        HStack {
-            Text("Scorecard")
-                .font(.title).fontWeight(.bold)
-            Spacer()
-            Button {
-                showInfoView = true
-            } label: {
-                Image(systemName: "info.circle")
-                    .resizable()
-                    .frame(width: 20, height: 20)
+        VStack{
+            if isAppClip{
+                Capsule()
+                    .frame(width: 38, height: 6)
+                    .foregroundColor(.gray)
+            }
+            HStack {
+                Text("Scorecard")
+                    .font(.title).fontWeight(.bold)
+                Spacer()
+                Button {
+                    showInfoView = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .resizable()
+                        .frame(width: 20, height: 20)
+                }
             }
         }
     }
@@ -45,13 +65,16 @@ struct GameReviewView: View {
     // MARK: Score Grid
     private var scoreGridView: some View {
         VStack {
+            
             playerHeaderRow
             Divider()
             scoreRows
             Divider()
             totalRow
         }
-        .background(.ultraThinMaterial)
+        .background(
+            course?.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
     }
@@ -95,9 +118,15 @@ struct GameReviewView: View {
         VStack {
             ForEach(1...game.numberOfHoles, id: \.self) { i in
                 if i != 1 { Divider() }
-                Text("Hole \(i)")
-                    .font(.body).fontWeight(.medium)
-                    .frame(height: 60)
+                VStack{
+                    Text("Hole \(i)")
+                        .font(.body).fontWeight(.medium)
+                    if let course = course, course.hasPars {
+                        Text("Par: \(course.pars[i - 1])")
+                            .font(.caption)
+                    }
+                }
+                .frame(height: 60)
             }
         }
         .frame(width: 100)
@@ -106,9 +135,15 @@ struct GameReviewView: View {
     /// totals row
     private var totalRow: some View {
         HStack {
-            Text("Total")
-                .frame(width: 100, height: 60)
-                .font(.title3).fontWeight(.semibold)
+            VStack{
+                Text("Total")
+                    .font(.title3).fontWeight(.semibold)
+                if let course = course, course.hasPars {
+                    Text("Par: \(course.pars.reduce(0, +))")
+                        .font(.caption)
+                }
+            }
+            .frame(width: 100, height: 60)
             Divider()
             SyncedScrollViewRepresentable(scrollOffset: $scrollOffset, syncSourceID: $uuid) {
                 HStack {
@@ -130,27 +165,29 @@ struct GameReviewView: View {
         
         ZStack{
             HStack{
-                Spacer()
+                if !isAppClip {
+                    Spacer()
+                }
                   ShareLink(item: makeShareableSummary(for: game)) {
                     Image(systemName: "square.and.arrow.up")
                           .font(.title2)
                   }
                   .padding()
             }
-            
-            HStack {
-                Button {
-                    viewManager.navigateToMain(0)
-                } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 25)
-                            .fill(Color.blue)
-                            .frame(width: 200, height: 60)
-                        Text("Back to Stats")
-                            .foregroundColor(.white).fontWeight(.bold)
+            if !isAppClip {
+                HStack {
+                    Button {
+                        viewManager.navigateToMain(0)
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color.blue)
+                                .frame(width: 200, height: 60)
+                            Text("Back to Stats")
+                                .foregroundColor(.white).fontWeight(.bold)
+                        }
                     }
                 }
-                
             }
         }
         .padding(.bottom)

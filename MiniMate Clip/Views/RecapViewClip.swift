@@ -11,6 +11,7 @@ struct RecapView: View {
     var userModel: UserModel
     @StateObject var viewManager: ViewManagerClip
     @State var confettiTrigger: Bool = false
+    @State var showReviewSheet: Bool = false
     var sortedPlayers: [Player] {
         let players = userModel.games.sorted(by: { $0.date > $1.date }).first!.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
         if players.count > 1 {
@@ -121,6 +122,20 @@ struct RecapView: View {
                         Spacer()
                     }
                     
+                    Button{
+                        showReviewSheet = true
+                    } label: {
+                        ZStack{
+                            RoundedRectangle(cornerRadius: 25)
+                                .foregroundStyle(Color.blue)
+                            Text("Review Game")
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .frame(width: 140, height: 40)
+                    .sheet(isPresented: $showReviewSheet){
+                        GameReviewView(viewManager: viewManager, game: userModel.games.sorted(by: { $0.date > $1.date }).first!, isAppClip: true)
+                    }
                     
                     Button {
                         if let url = URL(string: "https://apps.apple.com/app/id6745438125") {

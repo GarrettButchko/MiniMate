@@ -20,7 +20,7 @@ enum ViewType {
 
 /// Manages app navigation state based on authentication status
 @MainActor
-class ViewManager: ObservableObject {
+class ViewManager: ObservableObject, @preconcurrency NavigatableViewManager {
     
 
     @Published var currentView: ViewType

@@ -6,6 +6,8 @@ struct MainViewClip: View {
     
     let course: Course?
     
+    @Binding var ad: Ad?
+    
     @ObservedObject var viewManager: ViewManagerClip
     @ObservedObject var authModel: AuthViewModelClip
     @ObservedObject var gameModel: GameViewModelClip
@@ -94,6 +96,64 @@ struct MainViewClip: View {
                                 .background(.ultraThinMaterial)
                                 .clipShape(RoundedRectangle(cornerRadius: 25))
                                 .padding(.bottom)
+                                
+                                if let ad = ad{
+                                    Button {
+                                        if ad.link != "" {
+                                            if let url = URL(string: ad.link) {
+                                                UIApplication.shared.open(url)
+                                            }
+                                        }
+                                    } label: {
+                                        HStack{
+                                            VStack(alignment: .leading, spacing: 8) {
+                                                Text(ad.title)
+                                                    .foregroundStyle(.mainOpp)
+                                                    .font(.headline)
+                                                    .fontWeight(.semibold)
+                                                
+                                                Text(ad.text)
+                                                    .foregroundStyle(.mainOpp)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                                    .multilineTextAlignment(.leading)
+                                                    .padding(.trailing)
+                                            }
+                                            Spacer()
+                                            if ad.image != "" {
+                                                AsyncImage(url: URL(string: ad.image)) { phase in
+                                                    switch phase {
+                                                    case .empty:
+                                                        ProgressView()
+                                                            .frame(height: 60)
+                                                    case .success(let image):
+                                                        image
+                                                            .resizable()
+                                                            .scaledToFill()
+                                                            .frame(height: 60)
+                                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                                            .clipped()
+                                                    case .failure:
+                                                        Image(systemName: "photo")
+                                                            .resizable()
+                                                            .scaledToFit()
+                                                            .frame(height: 60)
+                                                            .foregroundColor(.gray)
+                                                            .background(Color.gray.opacity(0.2))
+                                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                                    @unknown default:
+                                                        EmptyView()
+                                                    }
+                                                }
+                                            }
+                                            Spacer()
+                                        }
+                                        .padding()
+                                    }
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                    .padding(.bottom)
+                                }
                                 
                                 if let courseLink = course?.link{
                                     Button {
