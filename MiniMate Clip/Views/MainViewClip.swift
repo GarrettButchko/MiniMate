@@ -97,7 +97,7 @@ struct MainViewClip: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 25))
                                 .padding(.bottom)
                                 
-                                if let ad = ad{
+                                if let ad = ad, ad.title != ""{
                                     Button {
                                         if ad.link != "" {
                                             if let url = URL(string: ad.link) {

@@ -22,56 +22,68 @@ struct CourseView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                // MARK: - Map
-                mapView
-                
-                // MARK: - Overlay UI
-                VStack {
-                    // Top Bar
-                    HStack {
-                        Text("Course Search")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                            .padding()
-                            .frame(height: 40)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 25))
-                            .shadow(radius: 10)
+            if locationHandler.hasLocationAccess {
+                ZStack {
+                    // MARK: - Map
+                    mapView
+                    
+                    // MARK: - Overlay UI
+                    VStack {
+                        // Top Bar
+                        HStack {
+                            Text("Course Search")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .padding()
+                                .frame(height: 40)
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                .shadow(radius: 10)
+                            
+                            Spacer()
+                            
+                            LocationButton(cameraPosition: $position, isUpperHalf: $isUpperHalf, selectedResult: locationHandler.bindingForSelectedItem(), locationHandler: locationHandler)
+                                .shadow(radius: 10)
+                        }
                         
                         Spacer()
                         
-                        LocationButton(cameraPosition: $position, isUpperHalf: $isUpperHalf, selectedResult: locationHandler.bindingForSelectedItem(), locationHandler: locationHandler)
-                            .shadow(radius: 10)
-                    }
-                    
-                    Spacer()
-                    
-                    // Bottom Panel
-                    if !isUpperHalf {
-                        searchButton
-                    } else {
-                        VStack{
-                            if locationHandler.selectedItem != nil {
-                                resultView
-                                    .frame(maxHeight: geometry.size.height * 0.4)
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                            } else {
-                                searchResultsView
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                        // Bottom Panel
+                        if !isUpperHalf {
+                            searchButton
+                        } else {
+                            VStack{
+                                if locationHandler.selectedItem != nil {
+                                    resultView
+                                        .frame(maxHeight: geometry.size.height * 0.4)
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                } else {
+                                    searchResultsView
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                }
                             }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
+                            .frame(height: geometry.size.height * 0.4)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .shadow(radius: 10)
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
-                        .frame(height: geometry.size.height * 0.4)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .shadow(radius: 10)
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom, 30)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 30)
+            } else {
+                HStack(alignment: .center){
+                    Spacer()
+                    VStack(alignment: .center){
+                        Spacer()
+                        Text("Please allow location services to use this area of the app.")
+                        Spacer()
+                    }
+                    Spacer()
+                }
             }
         }
         .onAppear(){

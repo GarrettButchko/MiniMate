@@ -107,7 +107,7 @@ struct MainView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 25))
                                     }
                                         
-                                    if let ad = ad{
+                                    if let ad = ad, ad.title != ""{
                                         Button {
                                             if ad.link != "" {
                                                 if let url = URL(string: ad.link) {
@@ -340,7 +340,7 @@ struct MainView: View {
                         Spacer()
                         
                         // Donation Button
-                        if !authModel.userModel!.isPro {
+                        if let userModel = authModel.userModel, userModel.isPro {
                             HStack {
                                 Spacer()
                                 Button {
@@ -431,8 +431,8 @@ struct MainView: View {
                             
                             HStack{
                                 gameModeButton(title: "Add Games", color: .green) {
-                                    alreadyShown = true
                                     withAnimation{
+                                        alreadyShown = true
                                         showGuestAdd = false
                                     }
                                     authModel.userModel?.games.append(contentsOf: guestUser.games)
@@ -440,8 +440,8 @@ struct MainView: View {
                                     context.delete(guestUser)
                                 }
                                 gameModeButton(title: "Cancel", color: .blue) {
-                                    alreadyShown = true
                                     withAnimation{
+                                        alreadyShown = true
                                         showGuestAdd = false
                                     }
                                 }

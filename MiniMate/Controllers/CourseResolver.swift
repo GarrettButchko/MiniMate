@@ -10,19 +10,11 @@ import SwiftUICore
 final class CourseResolver {
     
     static let courses: [Course] = [
-        //Course(
-        //    id: "S",
-        //    name: "Sweeties Candy Company",
-        //    logo: "sweeties",
-        //    colors: [Color.red, Color.green, Color.yellow],
-        //    link: "https://www.sweetiescandy.com/",
-        //    pars: [2, 3, 5, 3, 2, 3, 4, 3, 2, 2, 3, 4, 3, 4, 2, 3, 2, 5, 7]
-        //),
         Course(
             id: "FC",
             name: "Fore Corners Mini Golf",
-            logo: "fore_corners.png",
-            colors: [Color.blue, Color.red],
+            logo: "fore_corners",
+            colors: [Color.blue, Color.red, Color.green],
             link: "https://www.forecornersminiaturegolf.com/",
             pars: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 3, 3, 2]
         )

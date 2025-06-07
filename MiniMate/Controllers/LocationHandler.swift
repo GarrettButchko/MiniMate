@@ -14,6 +14,11 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var selectedItem: MKMapItem?
     @Published var userLocation: CLLocationCoordinate2D?
     private let manager = CLLocationManager()
+    
+    var hasLocationAccess: Bool {
+        (manager.authorizationStatus == .authorizedAlways || manager.authorizationStatus == .authorizedWhenInUse)
+    }
+
 
     override init() {
         super.init()

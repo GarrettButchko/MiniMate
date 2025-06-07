@@ -27,7 +27,7 @@ struct MiniMate_ClipApp: App {
                 if let course = launchCoordinator.course {
                     ContentViewClip(course: course)
                 } else {
-                    ProgressView("Loading...")
+                    ContentViewClip(course: nil)
                 }
             }
             .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in

@@ -209,7 +209,7 @@ struct ScoreCardViewClip: View {
                 }
             }
             
-            if let ad = ad{
+            if let ad = ad, ad.title != ""{
                 Button {
                     if ad.link != "" {
                         if let url = URL(string: ad.link) {

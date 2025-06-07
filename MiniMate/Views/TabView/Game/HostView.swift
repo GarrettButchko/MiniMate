@@ -121,8 +121,9 @@ struct HostView: View {
                         }
                     }
                 
-                
-                locationSection
+                if locationHandler.hasLocationAccess{
+                    locationSection
+                }
                 
                 if showHolePicker{
                     HStack {
@@ -231,7 +232,7 @@ struct HostView: View {
                         Button(action: {
                             withAnimation {
                                 locationHandler.selectedItem = nil
-                                gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
+                                gameModel.setLocation(nil)
                                 showTextAndButtons = false
                             }
                         }) {
