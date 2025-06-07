@@ -18,6 +18,18 @@ class Game: Equatable {
     var lastUpdated: Date
     var courseID: String?  // <-- Added courseID
     
+    var holeInOneLastHole: Bool {
+        var temp = false
+        for player in players {
+            for hole in player.holes {
+                if hole.number == 18 && hole.strokes == 1 {
+                    temp = true
+                }
+            }
+        }
+        return temp
+    }
+    
     @Relationship(deleteRule: .nullify)
     var user: UserModel?
 

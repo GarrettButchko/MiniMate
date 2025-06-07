@@ -100,7 +100,7 @@ struct RecapView: View {
                                     .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
                                 }
                             }
-                            .frame(height: geometry.size.height * 0.3)
+                            .frame(height: geometry.size.height * 0.15)
                         }
                         
                         
@@ -137,37 +137,67 @@ struct RecapView: View {
                         GameReviewView(viewManager: viewManager, game: userModel.games.sorted(by: { $0.date > $1.date }).first!, isAppClip: true)
                     }
                     
-                    Button {
-                        if let url = URL(string: "https://apps.apple.com/app/id6745438125") {
-                            UIApplication.shared.open(url)
-                        }
-                    } label: {
-                        HStack{
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Download Full App Now!")
-                                    .foregroundStyle(.mainOpp)
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                
-                                Text("Tap here to download the full MiniMate app to save your progress and track your scores across multiple rounds!")
-                                    .foregroundStyle(.mainOpp)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.leading)
-                                    .padding(.trailing)
+                    
+                    
+                        if let game = userModel.games.sorted(by: { $0.date > $1.date }).first, game.courseID == "FC" && game.holeInOneLastHole{
+                            HStack{
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Get your free Blizzard!")
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Text("Because you got a hole in one on the last hole, we're giving you a free Blizzard!")
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                        .padding(.trailing)
+                                }
+                                Spacer()
+                                Image("shake")
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                Spacer()
                             }
-                            Spacer()
-                            Image("Icon")
-                                .resizable()
-                                .frame(width: 60, height: 60)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            Spacer()
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 25))
                         }
-                        .padding()
-                    }
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 25))
-                    .padding(.bottom)
+                        
+                        Button {
+                            if let url = URL(string: "https://apps.apple.com/app/id6745438125") {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            HStack{
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Download Full App Now!")
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Text("Tap here to download the full MiniMate app to save your progress and track your scores across multiple rounds!")
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                        .padding(.trailing)
+                                }
+                                Spacer()
+                                Image("Icon")
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                Spacer()
+                            }
+                            .padding()
+                        }
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                        .padding(.bottom)
+                    
                 }
                 .confettiCannon(trigger: $confettiTrigger, num: 40, confettis: [.shape(.slimRectangle)])
                 .onAppear {
