@@ -118,6 +118,11 @@ struct ProfileView: View {
                                 Text(user.id)
                             }
                             
+                            HStack {
+                                Text("Is Pro User:")
+                                Text(String(user.isPro))
+                            }
+                            
                             // Only allow edit/reset for non-social accounts
                             if let firebaseUser = authModel.firebaseUser,
                                !firebaseUser.providerData.contains(where: { $0.providerID == "google.com" || $0.providerID == "apple.com" }) {
@@ -149,8 +154,6 @@ struct ProfileView: View {
                             Text("User data not available.")
                         }
                     }
-                    
-                    
                     
                     // Account Management Section
                     Section("Account Management") {

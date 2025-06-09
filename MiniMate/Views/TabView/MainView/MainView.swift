@@ -340,7 +340,7 @@ struct MainView: View {
                         Spacer()
                         
                         // Donation Button
-                        if let userModel = authModel.userModel, userModel.isPro {
+                        if let userModel = authModel.userModel, !userModel.isPro {
                             HStack {
                                 Spacer()
                                 Button {

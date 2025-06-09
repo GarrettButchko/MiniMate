@@ -92,8 +92,6 @@ class IAPManager: ObservableObject {
                 break
             }
         }
-
-    
         withAnimation {
             authModel.userModel?.isPro = hasPro
         }

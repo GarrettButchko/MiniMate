@@ -178,12 +178,12 @@ struct MainTabView: View {
             }
             .onAppear {
                 authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
+                    if NetworkChecker.shared.isConnected {
+                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                    }
                     try? context.save()
                     Task {
                         await iapManager.isPurchasedPro(authModel: authModel)
-                        if NetworkChecker.shared.isConnected {
-                            authModel.saveUserModel(authModel.userModel!) { _ in }
-                        }
                     }
                 }
             }
