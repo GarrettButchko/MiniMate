@@ -19,16 +19,13 @@ struct ContentViewClip: View {
     
     let locFuncs = LocFuncs()
     
-    @State var ad: Ad? = nil
-    
     @State private var previousView: ViewType?
     @State private var hasLoadedUser = false
     
-    init(course: Course?){
+    init(auth: AuthViewModelClip, course: Course?){
         self.course = course
         
         // 1) create your AuthViewModel first
-        let auth = AuthViewModelClip()
         _authModel = StateObject(wrappedValue: auth)
         
         // 2) create an initial Game (or fetch one from your context)
@@ -69,39 +66,13 @@ struct ContentViewClip: View {
                     }
                 }
         }
-        .onAppear {
-            guard let course else {
-                print("⛔️ No course available, skipping ad fetch")
-                return
-            }
-
-            Task {
-                do {
-                    ad = nil
-                    let url = URL(string: "https://circuit-leaf.com/mini-mate/api/ads.json")!
-                    let ads: [Ad] = try await url.fetchAndDecode()
-
-                    for ad in ads {
-                        print("Comparing course ID: \(course.id) with ad ID: \(ad.id)")
-                        if course.id == ad.id {
-                            self.ad = ad
-                            print("✅ Found matching ad: \(ad.title)")
-                        }
-                    }
-                } catch {
-                    print("❌ Failed to fetch or decode ads: \(error.localizedDescription)")
-                    ad = nil
-                }
-            }
-        }
-
     }
     
     @ViewBuilder
     var activeView: some View {
         switch viewManager.currentView {
         case .main:
-            MainViewClip(course: course, ad: $ad, viewManager: viewManager, authModel: authModel, gameModel: gameModel)
+            MainViewClip(course: course, viewManager: viewManager, authModel: authModel, gameModel: gameModel)
                 .onAppear {
                     authModel.loadOrCreateUserIfNeeded(in: context){
                         try? context.save()
@@ -114,7 +85,7 @@ struct ContentViewClip: View {
                 }
             
         case .scoreCard:
-            ScoreCardViewClip(ad: $ad, viewManager: viewManager, authModel: authModel, gameModel: gameModel)
+            ScoreCardViewClip(course: course, viewManager: viewManager, authModel: authModel, gameModel: gameModel)
         }
     }
     

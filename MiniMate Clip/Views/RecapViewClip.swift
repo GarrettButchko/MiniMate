@@ -7,17 +7,26 @@
 import SwiftUI
 import ConfettiSwiftUI
 
-struct RecapView: View {
-    var userModel: UserModel
+struct RecapViewClip: View {
+    
+    @ObservedObject var authModel: AuthViewModelClip
+    
     @StateObject var viewManager: ViewManagerClip
     @State var confettiTrigger: Bool = false
     @State var showReviewSheet: Bool = false
+    
+    @State var showLeaderBoardAlert: Bool = false
+    
+    @State var email: String = ""
+    
+    let course: Course?
+    
     var sortedPlayers: [Player] {
-        let players = userModel.games.sorted(by: { $0.date > $1.date }).first!.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
+        let players = authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first!.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
         if players.count > 1 {
             return players
         } else {
-            return [userModel.games.sorted(by: { $0.date > $1.date }).first!.players[0]]
+            return [authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first!.players[0]]
         }
     }
     
@@ -36,46 +45,57 @@ struct RecapView: View {
                         .opacity(0.5)
                     Text("Congratulations!")
                         .font(.largeTitle)
+                        .alert("Add Local Player?", isPresented: $showLeaderBoardAlert) {
+                            TextField("Name", text: $email)
+                            Button("Add") { }
+                            Button("Cancel", role: .cancel) {}
+                        }
                     
                     Spacer()
                     
                     if sortedPlayers.count > 1 {
-                        
-                        HStack{
-                            PhotoIconView(photoURL: sortedPlayers[0].photoURL, name: sortedPlayers[0].name + "🥇", imageSize: 70, background: Color.yellow)
-                            Spacer()
-                            Text(sortedPlayers[0].totalStrokes.description)
-                                .font(.title)
-                                .foregroundStyle(Color.yellow)
-                                .padding()
+                        VStack{
+                            HStack{
+                                PhotoIconView(photoURL: sortedPlayers[0].photoURL, name: sortedPlayers[0].name + "🥇", imageSize: 70, background: Color.yellow)
+                                Spacer()
+                                Text(sortedPlayers[0].totalStrokes.description)
+                                    .font(.title)
+                                    .foregroundStyle(Color.yellow)
+                                    .padding()
+                            }
+                            AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[0])
                         }
                         .padding()
                         .background(Color.yellow.opacity(0.2))
                         .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
                         
-                        
-                        
                         HStack{
-                            HStack{
-                                PhotoIconView(photoURL: sortedPlayers[1].photoURL, name: sortedPlayers[1].name + "🥈", imageSize: 40, background: Color.gray)
-                                Spacer()
-                                Text(sortedPlayers[1].totalStrokes.description)
-                                    .font(.title)
-                                    .foregroundStyle(Color.gray)
-                                    .padding()
+                            VStack{
+                                HStack{
+                                    PhotoIconView(photoURL: sortedPlayers[1].photoURL, name: sortedPlayers[1].name + "🥈", imageSize: 40, background: Color.gray)
+                                    Spacer()
+                                    Text(sortedPlayers[1].totalStrokes.description)
+                                        .font(.title)
+                                        .foregroundStyle(Color.gray)
+                                        .padding()
+                                }
+                                AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[1])
                             }
                             .padding()
                             .background(Color.gray.opacity(0.2))
                             .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
                             
                             if sortedPlayers.count > 2{
-                                HStack{
-                                    PhotoIconView(photoURL: sortedPlayers[2].photoURL, name: sortedPlayers[2].name + "🥉", imageSize: 40, background: Color.brown)
-                                    Spacer()
-                                    Text(sortedPlayers[2].totalStrokes.description)
-                                        .font(.title)
-                                        .foregroundStyle(Color.brown)
-                                        .padding()
+                                VStack{
+                                    HStack{
+                                        PhotoIconView(photoURL: sortedPlayers[2].photoURL, name: sortedPlayers[2].name + "🥉", imageSize: 40, background: Color.brown)
+                                        Spacer()
+                                        Text(sortedPlayers[2].totalStrokes.description)
+                                            .font(.title)
+                                            .foregroundStyle(Color.brown)
+                                            .padding()
+                                    }
+                                    AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[2])
                                 }
                                 .padding()
                                 .background(Color.brown.opacity(0.2))
@@ -88,12 +108,15 @@ struct RecapView: View {
                         if sortedPlayers.count > 3 {
                             ScrollView{
                                 ForEach(sortedPlayers[3...]) { player in
-                                    HStack{
-                                        PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 30, background: .ultraThinMaterial)
-                                        Spacer()
-                                        Text(player.totalStrokes.description)
-                                            .font(.subheadline)
-                                            .padding()
+                                    VStack{
+                                        HStack{
+                                            PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 30, background: .ultraThinMaterial)
+                                            Spacer()
+                                            Text(player.totalStrokes.description)
+                                                .font(.subheadline)
+                                                .padding()
+                                        }
+                                        AddToLeaderBoardButton(authModel: authModel, course: course, player: player)
                                     }
                                     .padding()
                                     .background(.ultraThinMaterial)
@@ -105,12 +128,15 @@ struct RecapView: View {
                         
                         
                     } else {
-                        HStack{
-                            PhotoIconView(photoURL: sortedPlayers[0].photoURL, name: sortedPlayers[0].name, imageSize: 70, background: .ultraThinMaterial)
-                            Spacer()
-                            Text(sortedPlayers[0].totalStrokes.description)
-                                .font(.title)
-                                .padding()
+                        VStack{
+                            HStack{
+                                PhotoIconView(photoURL: sortedPlayers[0].photoURL, name: sortedPlayers[0].name, imageSize: 70, background: .ultraThinMaterial)
+                                Spacer()
+                                Text(sortedPlayers[0].totalStrokes.description)
+                                    .font(.title)
+                                    .padding()
+                            }
+                            AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[0])
                         }
                         .padding()
                         .background(.ultraThinMaterial)
@@ -122,22 +148,25 @@ struct RecapView: View {
                         Spacer()
                     }
                     
-                    Button{
-                        showReviewSheet = true
-                    } label: {
-                        ZStack{
-                            RoundedRectangle(cornerRadius: 25)
-                                .foregroundStyle(Color.blue)
-                            Text("Review Game")
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    .frame(width: 140, height: 40)
-                    .sheet(isPresented: $showReviewSheet){
-                        GameReviewView(viewManager: viewManager, game: userModel.games.sorted(by: { $0.date > $1.date }).first!, isAppClip: true)
-                    }
                     
-                    if let game = userModel.games.sorted(by: { $0.date > $1.date }).first, game.courseID == "FC" && game.holeInOneLastHole{
+                    
+                        Button{
+                            showReviewSheet = true
+                        } label: {
+                            ZStack{
+                                RoundedRectangle(cornerRadius: 25)
+                                    .foregroundStyle(Color.blue)
+                                Text("Review Game")
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .frame(width: 140, height: 40)
+                        .sheet(isPresented: $showReviewSheet){
+                            GameReviewView(viewManager: viewManager, game: authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first!, course: course, isAppClip: true)
+                        }
+                    
+                    
+                    if let game = authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first, game.courseID == "FC" && game.holeInOneLastHole{
                         FC
                     }
                     
@@ -212,3 +241,5 @@ struct RecapView: View {
         .clipShape(RoundedRectangle(cornerRadius: 25))
     }
 }
+
+

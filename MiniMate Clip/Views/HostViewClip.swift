@@ -86,6 +86,8 @@ struct HostViewClip: View {
         }
         .alert("Add Local Player?", isPresented: $showAddPlayerAlert) {
             TextField("Name", text: $newPlayerName)
+                .characterLimit($newPlayerName, maxLength: 18)
+                //.profanityFilter(text: $newPlayerName)
             Button("Add") { gameModel.addLocalPlayer(named: newPlayerName)}
             Button("Cancel", role: .cancel) {}
         }

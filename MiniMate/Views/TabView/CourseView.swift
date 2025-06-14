@@ -19,7 +19,7 @@ struct CourseView: View {
     
     @State var position: MapCameraPosition = .automatic
     @State var isUpperHalf: Bool = false
-    
+
     var body: some View {
         GeometryReader { geometry in
             if locationHandler.hasLocationAccess {
@@ -31,20 +31,33 @@ struct CourseView: View {
                     VStack {
                         // Top Bar
                         HStack {
-                            Text("Course Search")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                                .padding()
-                                .frame(height: 40)
-                                .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                .shadow(radius: 10)
+                            if #available(iOS 26.0, *) {
+                                Text("Course Search")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                    .padding()
+                                    .frame(height: 40)
+                                    .background(.ultraThinMaterial.opacity(0.1))
+                                    .glassEffect()
+                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                    .shadow(color: Color.black.opacity(0.1), radius: 10)
+                            } else {
+                                Text("Course Search")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                    .padding()
+                                    .frame(height: 40)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                                    .shadow(radius: 10)
+                            }
                             
                             Spacer()
                             
                             LocationButton(cameraPosition: $position, isUpperHalf: $isUpperHalf, selectedResult: locationHandler.bindingForSelectedItem(), locationHandler: locationHandler)
-                                .shadow(radius: 10)
+                                .shadow(color: Color.black.opacity(0.1), radius: 10)
                         }
                         
                         Spacer()
@@ -53,22 +66,44 @@ struct CourseView: View {
                         if !isUpperHalf {
                             searchButton
                         } else {
-                            VStack{
-                                if locationHandler.selectedItem != nil {
-                                    resultView
-                                        .frame(maxHeight: geometry.size.height * 0.4)
-                                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                                } else {
-                                    searchResultsView
-                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                            
+                            
+                            if #available(iOS 26.0, *) {
+                                VStack{
+                                    if locationHandler.selectedItem != nil {
+                                        resultView
+                                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                                    } else {
+                                        searchResultsView
+                                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                                    }
                                 }
+                                .padding()
+                                .frame(height: geometry.size.height * 0.4)
+                                .background(.ultraThinMaterial.opacity(0.1))
+                                .glassEffect(in: RoundedRectangle(cornerRadius: 25))
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .shadow(color: Color.black.opacity(0.1), radius: 10)
+                            } else {
+                                VStack{
+                                    if locationHandler.selectedItem != nil {
+                                        resultView
+                                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                                    } else {
+                                        searchResultsView
+                                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                                    }
+                                }
+                                .padding()
+                                .frame(height: geometry.size.height * 0.4)
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 25))
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .shadow(radius: 10)
                             }
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
-                            .frame(height: geometry.size.height * 0.4)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                            .shadow(radius: 10)
+
+                            
                         }
                     }
                     .padding(.horizontal)
@@ -98,7 +133,7 @@ struct CourseView: View {
         Map(position: $position, selection: locationHandler.bindingForSelectedItem()) {
             withAnimation(){
                 ForEach(locationHandler.mapItems, id: \.self) { item in
-                    if CourseResolver.matchName(item.name!) {
+                    if AdminCodeResolver.matchName(item.name!) {
                         Marker(item.name ?? "Unknown", coordinate: item.placemark.coordinate)
                             .tint(.purple)
                     } else {
@@ -262,7 +297,7 @@ struct CourseView: View {
                         }
                     }
                     
-                    if CourseResolver.matchName(locationHandler.bindingForSelectedItem().wrappedValue?.name ?? "Unknown") {
+                    if AdminCodeResolver.matchName(locationHandler.bindingForSelectedItem().wrappedValue?.name ?? "Unknown") {
                         HStack{
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 8) {
@@ -391,9 +426,6 @@ struct CourseView: View {
             .background(Color.clear)
         }
     }
-    
-    
-    
 }
 
 // MARK: - LocationButton
@@ -411,9 +443,16 @@ struct LocationButton: View {
             }
         }) {
             ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 40, height: 40)
+                if #available(iOS 26.0, *) {
+                    Circle()
+                        .fill(.ultraThinMaterial.opacity(0.1))
+                        .glassEffect()
+                        .frame(width: 40, height: 40)
+                } else {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 40, height: 40)
+                }
                 Image(systemName: "location.fill")
                     .resizable()
                     .foregroundColor(.primary)
@@ -450,7 +489,7 @@ struct SearchResultRow: View {
             .frame(height: 50)
             Spacer()
             
-            if CourseResolver.matchName(item.name ?? "Unknown Place"){
+            if AdminCodeResolver.matchName(item.name ?? "Unknown Place"){
                 Image(systemName: "star.fill")
                     .foregroundStyle(.purple)
             }

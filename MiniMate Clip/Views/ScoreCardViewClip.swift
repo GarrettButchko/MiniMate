@@ -10,8 +10,6 @@ struct ScoreCardViewClip: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     
-    @Binding var ad: Ad?
-    
     @State var course: Course?
     
     @StateObject var viewManager: ViewManagerClip
@@ -40,13 +38,10 @@ struct ScoreCardViewClip: View {
                 }
             }
             if showRecap {
-                RecapView(userModel: authModel.userModel!, viewManager: viewManager)
+                RecapViewClip(authModel: authModel, viewManager: viewManager, course: course)
                     .transition(.opacity)
             }
             
-        }
-        .onAppear {
-            course = CourseResolver.resolve(id: gameModel.gameValue.courseID)
         }
     }
     
@@ -55,13 +50,10 @@ struct ScoreCardViewClip: View {
         HStack {
             Text("Scorecard")
                 .font(.title).fontWeight(.bold)
-            if let logo = course?.logo{
+            if course?.logo != nil{
                 Divider()
                     .frame(height: 30)
-                Image(logo)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 40)
+                AsyncImageView(image: course?.logo, height: 40)
             }
             Spacer()
         }
@@ -209,22 +201,22 @@ struct ScoreCardViewClip: View {
                 }
             }
             
-            if let ad = ad, ad.title != ""{
+            if course?.adTitle != ""{
                 Button {
-                    if ad.link != "" {
-                        if let url = URL(string: ad.link) {
+                    if course?.adLink != "" {
+                        if let url = URL(string: (course?.adLink)!) {
                             UIApplication.shared.open(url)
                         }
                     }
                 } label: {
                     HStack{
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(ad.title)
+                            Text((course?.adTitle)!)
                                 .foregroundStyle(.mainOpp)
                                 .font(.headline)
                                 .fontWeight(.semibold)
                             
-                            Text(ad.text)
+                            Text((course?.adDescription)!)
                                 .foregroundStyle(.mainOpp)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -232,8 +224,8 @@ struct ScoreCardViewClip: View {
                                 .padding(.trailing)
                         }
                         Spacer()
-                        if ad.image != "" {
-                            AsyncImage(url: URL(string: ad.image)) { phase in
+                        if course?.adImage != "" {
+                            AsyncImage(url: URL(string: (course?.adImage)!)) { phase in
                                 switch phase {
                                 case .empty:
                                     ProgressView()
@@ -284,10 +276,10 @@ struct ScoreCardViewClip: View {
 
 // MARK: - PlayerScoreColumnView
 
-struct PlayerScoreColumnView: View {
+struct PlayerScoreColumnView<AuthViewModelType: AuthViewManager & ObservableObject, GameViewModelType: ObservableObject>: View {
     @Binding var player: Player
-    @ObservedObject var gameModel: GameViewModelClip
-    @StateObject var authModel: AuthViewModelClip
+    @StateObject var authModel: AuthViewModelType
+    @StateObject var gameModel: GameViewModelType
     
     var body: some View {
         VStack {
@@ -311,11 +303,11 @@ struct HoleRowView: View {
         }
     }
 }
-struct PlayerColumnsView: View {
+struct PlayerColumnsView<AuthViewModelType: AuthViewManager & ObservableObject, GameViewModelType: ObservableObject>: View {
     @Binding var players: [Player]
     @Binding var game: Game
-    @StateObject var authModel: AuthViewModelClip
-    @StateObject var gameModel: GameViewModelClip
+    @StateObject var authModel: AuthViewModelType
+    @StateObject var gameModel: GameViewModelType
     
     var body: some View {
         HStack {
@@ -324,13 +316,14 @@ struct PlayerColumnsView: View {
                 if player.id != game.players[0].id{
                     Divider()
                 }
-                PlayerScoreColumnView(
+                PlayerScoreColumnView<AuthViewModelType, GameViewModelType>(
                     player: $player,
-                    gameModel: gameModel,
-                    authModel: authModel
+                    authModel: authModel,
+                    gameModel: gameModel
                 )
                 .frame(width: 100)
             }
         }
     }
 }
+

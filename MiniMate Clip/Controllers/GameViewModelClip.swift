@@ -111,13 +111,16 @@ final class GameViewModelClip: ObservableObject {
     private func initializeHoles(for player: Player) {
         guard player.holes.count != game.numberOfHoles else { return }
         player.holes = []
-        if let course = CourseResolver.resolve(id: game.courseID), course.hasPars {
-            player.holes = course.holes
-        } else {
-            player.holes = (0..<game.numberOfHoles).map {
-                let hole = Hole(number: $0 + 1, par: 2)
-                hole.player = player
-                return hole
+        
+        AdminCodeResolver.resolve(id: game.courseID,authModel: authModel) { course in
+            if let course = course {
+                player.holes = course.holes
+            } else {
+                player.holes = (0..<self.game.numberOfHoles).map {
+                    let hole = Hole(number: $0 + 1, par: 2)
+                    hole.player = player
+                    return hole
+                }
             }
         }
     }

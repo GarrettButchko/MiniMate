@@ -16,7 +16,8 @@ struct ScoreCardView: View {
     
     @State private var scrollOffset: CGFloat = 0
     @State private var uuid: UUID? = nil
-    @State var ad: Ad? = nil
+    
+    @State private var course: Course?
     
     @State var showInfoView: Bool = false
     @State var showRecap: Bool = false
@@ -41,27 +42,13 @@ struct ScoreCardView: View {
                 }
             }
             if showRecap {
-                RecapView(userModel: authModel.userModel!, viewManager: viewManager)
+                RecapView(authModel: authModel, viewManager: viewManager, course: course)
                     .transition(.opacity)
             }
         }
         .onAppear {
-            Task {
-                do {
-                    ad = nil
-                    let url = URL(string: "https://circuit-leaf.com/mini-mate/api/ads.json")!
-                    let ads: [Ad] = try await url.fetchAndDecode()
-
-                    for ad in ads {
-                        if gameModel.gameValue.courseID == ad.id {
-                            self.ad = ad
-                            print("✅ Found matching ad: \(ad.title)")
-                        }
-                    }
-                } catch {
-                    print("❌ Failed to fetch or decode ads: \(error.localizedDescription)")
-                    ad = nil
-                }
+            AdminCodeResolver.resolve(id: gameModel.gameValue.courseID, authModel: authModel) { course in
+                self.course = course
             }
         }
     }
@@ -71,7 +58,7 @@ struct ScoreCardView: View {
         HStack {
             Text("Scorecard")
                 .font(.title).fontWeight(.bold)
-            if let logo = CourseResolver.resolve(id: gameModel.gameValue.courseID)?.logo{
+            if let logo = course?.logo{
                 Divider()
                     .frame(height: 30)
                 Image(logo)
@@ -100,7 +87,7 @@ struct ScoreCardView: View {
             totalRow
         }
         .background(
-            CourseResolver.resolve(id: gameModel.gameValue.courseID)?.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
+            course?.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
         )
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
@@ -165,7 +152,7 @@ struct ScoreCardView: View {
                 VStack{
                     Text("Hole \(i)")
                         .font(.body).fontWeight(.medium)
-                    if let course = CourseResolver.resolve(id: gameModel.gameValue.courseID), course.hasPars {
+                    if let course = course, course.hasPars {
                         Text("Par: \(course.pars[i - 1])")
                             .font(.caption)
                     }
@@ -182,7 +169,7 @@ struct ScoreCardView: View {
             VStack{
                 Text("Total")
                     .font(.title3).fontWeight(.semibold)
-                if let course = CourseResolver.resolve(id: gameModel.gameValue.courseID), course.hasPars {
+                if let course = course, course.hasPars {
                     Text("Par: \(course.pars.reduce(0, +))")
                         .font(.caption)
                 }
@@ -232,22 +219,22 @@ struct ScoreCardView: View {
                 }
             }
             
-            if let ad = ad {
+            if let course = course, course.adTitle != "" {
                 Button {
-                    if ad.link != "" {
-                        if let url = URL(string: ad.link) {
+                    if let link = course.adLink, link != "" {
+                        if let url = URL(string: link) {
                             UIApplication.shared.open(url)
                         }
                     }
                 } label: {
                     HStack{
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(ad.title)
+                            Text(course.adTitle!)
                                 .foregroundStyle(.mainOpp)
                                 .font(.headline)
                                 .fontWeight(.semibold)
                             
-                            Text(ad.text)
+                            Text(course.adDescription!)
                                 .foregroundStyle(.mainOpp)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -255,8 +242,8 @@ struct ScoreCardView: View {
                                 .padding(.trailing)
                         }
                         Spacer()
-                        if ad.image != "" {
-                            AsyncImage(url: URL(string: ad.image)) { phase in
+                        if course.adImage != "" {
+                            AsyncImage(url: URL(string: course.adImage!)) { phase in
                                 switch phase {
                                 case .empty:
                                     ProgressView()

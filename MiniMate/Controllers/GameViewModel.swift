@@ -118,8 +118,8 @@ final class GameViewModel: ObservableObject {
         lastUpdated = Date()
         self.game.location = location
         if let location = location{
-            if CourseResolver.matchName(location.name!) {
-                game.courseID = CourseResolver.nameToId(location.name!)
+            if AdminCodeResolver.matchName(location.name!) {
+                game.courseID = AdminCodeResolver.nameToId(location.name!)
             }
         }
         pushUpdate()

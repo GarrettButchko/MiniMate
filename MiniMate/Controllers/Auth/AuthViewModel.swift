@@ -14,12 +14,12 @@ import AuthenticationServices
 import CryptoKit
 
 /// ViewModel that manages Firebase Authentication and app-specific user data
-class AuthViewModel: ObservableObject {
+class AuthViewModel: ObservableObject, AuthViewManager {
     /// The currently authenticated Firebase user
     @Published var firebaseUser: FirebaseAuth.User?
     /// The user's app-specific data model
     @Published var userModel: UserModel?
-    private var gameListenerHandle: DatabaseHandle?
+    
     var currentNonce: String?
     /// The true Apple “user” string, exactly what Apple gives you.
     // ★ persist this across launches
@@ -90,7 +90,7 @@ class AuthViewModel: ObservableObject {
                             completion()  // ← DONE
                         } else {
                             // 🚀 Doesn’t exist anywhere → create new
-                            let finalName  = name ?? firebaseUser?.displayName ?? "Guest"
+                            let finalName  = name ?? firebaseUser?.displayName ?? "Guest" + String(Int.random(in: 10000...99999))
                             let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
                             let newUser = UserModel(
                                 id:       currentUserIdentifier,
@@ -113,7 +113,7 @@ class AuthViewModel: ObservableObject {
                     }
                 } else {
                     // 🚀 Doesn’t exist anywhere → create new
-                    let finalName  = "Guest"
+                    let finalName  = "Guest" + String(Int.random(in: 10000...99999))
                     let finalEmail = "guest@guest.mail"
                     let newUser = UserModel(
                         id:       currentUserIdentifier,
@@ -278,6 +278,38 @@ class AuthViewModel: ObservableObject {
         }
     }
     
+    func uploadCompanyImages(_ image: UIImage, id: String, key: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        guard let data = image.pngData() else {
+            return completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Image conversion failed"]
+            )))
+        }
+        
+        let ref = Storage.storage()
+            .reference()
+            .child(id)
+            .child("\(key).png")
+        
+        // 1️⃣ upload
+        ref.putData(data, metadata: nil) { meta, error in
+            if let error = error {
+                return completion(.failure(error))
+            }
+            // 2️⃣ get download URL
+            ref.downloadURL { result in
+                switch result {
+                case .failure(let error):
+                    return completion(.failure(error))
+                case .success(let url):
+                    // 3️⃣ update Firebase Auth
+                    completion(.success(url))
+                }
+            }
+        }
+    }
+    
 
     
     /// Signs in the user using Google Sign-In and Firebase
@@ -435,6 +467,72 @@ class AuthViewModel: ObservableObject {
         }
     }
     
+    /// Adds or updates a Course in Realtime Database
+    func addOrUpdateCourse(_ course: Course, completion: @escaping (Bool) -> Void) {
+        let ref = Database.database().reference().child("courses").child(course.id)
+        do {
+            let data = try JSONEncoder().encode(course)
+            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                ref.setValue(dict) { error, _ in
+                    completion(error == nil)
+                }
+            }
+        } catch {
+            print("❌ Encoding game error: \(error.localizedDescription)")
+            completion(false)
+        }
+    }
+    
+    /// Adds or updates a Course in Realtime Database
+    func addPlayerToLeaderBoard(courseId: String, player: Player, completion: @escaping (Bool) -> Void) {
+        let ref = Database.database().reference().child("courses").child(courseId).child("allPlayers")
+        do {
+            let data = try JSONEncoder().encode(player.toDTO())
+            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                ref.setValue(dict) { error, _ in
+                    completion(error == nil)
+                }
+            }
+        } catch {
+            print("❌ Encoding game error: \(error.localizedDescription)")
+            completion(false)
+        }
+    }
+    
+    /// Fetches a Game by code once
+    func fetchCourse(id: String, completion: @escaping (Course?) -> Void) {
+        let ref = Database.database().reference().child("courses").child(id)
+        ref.observeSingleEvent(of: .value) { snapshot in
+            guard let value = snapshot.value else {
+                completion(nil)
+                return
+            }
+
+            // Dump the raw dictionary for debugging
+            print("Raw snapshot value:", value)
+            
+            do {
+                guard let dict = value as? [String: Any] else {
+                    print("Course value is not a dictionary:", value)
+                    completion(nil)
+                    return
+                }
+                let data = try JSONSerialization.data(withJSONObject: dict)
+                
+                // For debugging: decode as [String: Any]
+                let jsonObject = try JSONSerialization.jsonObject(with: data)
+                print("JSON object:", jsonObject)
+                
+                let course = try JSONDecoder().decode(Course.self, from: data)
+                completion(course)
+            } catch {
+                print("❌ Decoding course error: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }
+    }
+    
+    
     /// Deletes the user's account after reauthentication
     func deleteAccount(reauthCredential: AuthCredential, completion: @escaping (Result<Void, Error>) -> Void) {
         guard let user = Auth.auth().currentUser else {
@@ -571,3 +669,4 @@ class AuthViewModel: ObservableObject {
       }
     }
 }
+

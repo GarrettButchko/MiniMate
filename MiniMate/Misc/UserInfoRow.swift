@@ -5,8 +5,7 @@
 //  Created by Garrett Butchko on 6/4/25.
 //
 
-import SwiftUICore
-
+import SwiftUI
 
 // Reusable row for displaying static user info
 struct UserInfoRow: View {

@@ -8,19 +8,20 @@ import SwiftUI
 struct GameReviewView<ViewManagerType: NavigatableViewManager>: View {
     @StateObject var viewManager: ViewManagerType
     var game: Game
-    @State var course: Course?
+    let course: Course?
     
     let isAppClip: Bool
+    
     @State private var scrollOffset: CGFloat
     @State private var uuid: UUID?
     @State private var showInfoView: Bool
     
     // Custom init to assign @StateObject and normal vars
-    init(viewManager: ViewManagerType, game: Game, isAppClip: Bool = false, scrollOffset: CGFloat = 0, uuid: UUID? = nil, showInfoView: Bool = false) {
+    init(viewManager: ViewManagerType, game: Game, course: Course? = nil, isAppClip: Bool = false, scrollOffset: CGFloat = 0, uuid: UUID? = nil, showInfoView: Bool = false) {
         _viewManager = StateObject(wrappedValue: viewManager)
         self.game = game
         print(game.courseID as Any)
-        self.course = CourseResolver.resolve(id: game.courseID)
+        self.course = course
         self.isAppClip = isAppClip
         _scrollOffset = State(initialValue: scrollOffset)
         _uuid = State(initialValue: uuid)

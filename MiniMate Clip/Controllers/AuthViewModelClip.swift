@@ -5,9 +5,46 @@
 
 import Foundation
 import SwiftData
+import FirebaseDatabase
 
 /// ViewModel that manages Firebase Authentication and app-specific user data
-class AuthViewModelClip: ObservableObject {
+class AuthViewModelClip: ObservableObject, AuthViewManager {
+    /// Adds or updates a Course in Realtime Database
+    func addOrUpdateCourse(_ course: Course, completion: @escaping (Bool) -> Void) {
+        let ref = Database.database().reference().child("courses").child(course.id)
+        do {
+            let data = try JSONEncoder().encode(course)
+            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                ref.setValue(dict) { error, _ in
+                    completion(error == nil)
+                }
+            }
+        } catch {
+            print("❌ Encoding game error: \(error.localizedDescription)")
+            completion(false)
+        }
+    }
+
+    /// Fetches a Game by code once
+    func fetchCourse(id: String, completion: @escaping (Course?) -> Void) {
+        let ref = Database.database().reference().child("courses").child(id)
+        ref.observeSingleEvent(of: .value) { snapshot in
+            guard let value = snapshot.value as? [String: Any] else {
+                completion(nil)
+                return
+            }
+
+            do {
+                let data = try JSONSerialization.data(withJSONObject: value)
+                let course = try JSONDecoder().decode(Course.self, from: data)
+                completion(course)
+            } catch {
+                print("❌ Decoding course error: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }
+    }
+    
     
     /// The user's app-specific data model
     @Published var userModel: UserModel?
@@ -68,11 +105,12 @@ class AuthViewModelClip: ObservableObject {
             completion()    // ← DONE
         } else {
             
+            let guest = "Guest" + String(Int.random(in: 10000...99999))
                     // 🚀 Doesn’t exist anywhere → create new
-                    let finalName  = name ?? "Guest"
+                    let finalName  = name ?? guest
                     let finalEmail = "guest@guest.mail"
                     let newUser = UserModel(
-                        id:       finalName != "Guest" ? uid : "IDGuest",
+                        id:       finalName != guest ? uid : "IDGuest",
                         name:     finalName,
                         photoURL: nil,
                         email:    finalEmail,
@@ -85,6 +123,8 @@ class AuthViewModelClip: ObservableObject {
             }
         }
     }
+
+
 
     
     /// Generates a random alphanumeric nonce of the given length.

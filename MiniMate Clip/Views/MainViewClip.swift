@@ -6,15 +6,13 @@ struct MainViewClip: View {
     
     let course: Course?
     
-    @Binding var ad: Ad?
-    
     @ObservedObject var viewManager: ViewManagerClip
     @ObservedObject var authModel: AuthViewModelClip
     @ObservedObject var gameModel: GameViewModelClip
     
     @State private var isSheetPresented = false
     @State private var nameIsPresented = false
-    @State private var userName = "Guest"
+    @State private var userName = "Guest" + String(Int.random(in: 10000...99999))
     @State var showHost = false
     
     var body: some View {
@@ -31,13 +29,10 @@ struct MainViewClip: View {
                             .font(.title2)
                             .fontWeight(.semibold)
                     }
-                    if let logo = course?.logo{
+                    if course?.logo != ""{
                         Divider()
                             .frame(height: 30)
-                        Image(logo)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 40)
+                        AsyncImageView(image: course?.logo, height: 40)
                     }
                     
                     Spacer()
@@ -97,22 +92,22 @@ struct MainViewClip: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 25))
                                 .padding(.bottom)
                                 
-                                if let ad = ad, ad.title != ""{
+                                if let courseAdTitle = course?.adTitle, course?.adTitle != ""{
                                     Button {
-                                        if ad.link != "" {
-                                            if let url = URL(string: ad.link) {
+                                        if course?.adLink != "" {
+                                            if let url = URL(string: (course?.adLink)!) {
                                                 UIApplication.shared.open(url)
                                             }
                                         }
                                     } label: {
                                         HStack{
                                             VStack(alignment: .leading, spacing: 8) {
-                                                Text(ad.title)
+                                                Text(courseAdTitle)
                                                     .foregroundStyle(.mainOpp)
                                                     .font(.headline)
                                                     .fontWeight(.semibold)
                                                 
-                                                Text(ad.text)
+                                                Text((course?.adDescription)!)
                                                     .foregroundStyle(.mainOpp)
                                                     .font(.caption)
                                                     .foregroundStyle(.secondary)
@@ -120,31 +115,8 @@ struct MainViewClip: View {
                                                     .padding(.trailing)
                                             }
                                             Spacer()
-                                            if ad.image != "" {
-                                                AsyncImage(url: URL(string: ad.image)) { phase in
-                                                    switch phase {
-                                                    case .empty:
-                                                        ProgressView()
-                                                            .frame(height: 60)
-                                                    case .success(let image):
-                                                        image
-                                                            .resizable()
-                                                            .scaledToFill()
-                                                            .frame(height: 60)
-                                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                            .clipped()
-                                                    case .failure:
-                                                        Image(systemName: "photo")
-                                                            .resizable()
-                                                            .scaledToFit()
-                                                            .frame(height: 60)
-                                                            .foregroundColor(.gray)
-                                                            .background(Color.gray.opacity(0.2))
-                                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                    @unknown default:
-                                                        EmptyView()
-                                                    }
-                                                }
+                                            if course?.adImage != "" {
+                                                AsyncImageView(image: course?.adImage, height: 40)
                                             }
                                             Spacer()
                                         }
@@ -176,12 +148,9 @@ struct MainViewClip: View {
                                                     .padding(.trailing)
                                             }
                                             Spacer()
-                                            if let courselogo = course?.logo{
-                                                Image(courselogo)
-                                                    .resizable()
-                                                    .scaledToFit()
-                                                    .frame(height: 60)
-                                            }
+                                            
+                                            AsyncImageView(image: course?.logo, height: 40)
+                                            
                                             Spacer()
                                         }
                                         .padding()
@@ -231,7 +200,7 @@ struct MainViewClip: View {
                             ZStack {
                                 
                                 HStack(spacing: 16) {
-                                    gameModeButton(title: "Quick", icon: "person.fill", color: .blue) {
+                                    gameModeButton(title: "Start", icon: "person.fill", color: .blue) {
                                         
                                         gameModel.createGame(online: false, startingLoc: nil)
                                         showHost = true
@@ -256,18 +225,15 @@ struct MainViewClip: View {
         .ignoresSafeArea(.keyboard)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
-                if authModel.userModel?.name == "Guest"{
+                if authModel.userModel!.name.contains("Guest"){
                     nameIsPresented = true
                 }
             }
         }
         .alert("Add your name?", isPresented: $nameIsPresented) {
             TextField("Name", text: $userName)
-                .onChange(of: userName) { _, newValue in
-                    if newValue.count > 18 {
-                        userName = String(newValue.prefix(18))
-                    }
-                }
+                .characterLimit($userName, maxLength: 18)
+                //.profanityFilter(text: $userName)
             Button("Add") { authModel.userModel?.name = userName}
             Button("Cancel", role: .cancel) {}
         }

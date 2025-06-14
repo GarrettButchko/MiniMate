@@ -21,6 +21,9 @@ struct ProfileView: View {
     @State private var showGoogleDeleteConfirmation: Bool = false
     @State private var showAppleDeleteConfirmation: Bool = false
     
+    @State private var showAdminLogin: Bool = false
+    @State private var adminCode: String = ""
+    
     @State private var name: String = ""
     @State private var email: String = ""
     
@@ -155,6 +158,37 @@ struct ProfileView: View {
                         }
                     }
                     
+<<<<<<< HEAD
+=======
+                    Section("Admin") {
+                        if (authModel.userModel?.adminType) == nil{
+                            Button("Login As Admin") {
+                                showAdminLogin = true
+                            }
+                            .alert("Use your admin code to login", isPresented: $showAdminLogin) {
+                                TextField("Admin Code", text: $adminCode)
+                                Button("Login") {
+                                    if AdminCodeResolver.isAdminCodeThere(code: adminCode) {
+                                        authModel.userModel?.adminType = AdminCodeResolver.adminAndId[adminCode]?.id
+                                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                                    }
+                                }
+                                Button("Cancel", role: .cancel) {}
+                            } message: {
+                                Text("This will log you into your admin account.")
+                            }
+                            
+                        } else {
+                            Text("Admin of: \(authModel.userModel?.adminType ?? "Unknown")")
+                            
+                            Button("Logout of Admin Account") {
+                                authModel.userModel?.adminType = nil
+                                authModel.saveUserModel(authModel.userModel!) { _ in }
+                            }
+                        }
+                    }
+                    
+>>>>>>> online
                     // Account Management Section
                     Section("Account Management") {
                         if authModel.userModel?.id != "IDGuest" {

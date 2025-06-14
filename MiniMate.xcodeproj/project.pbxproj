@@ -24,6 +24,7 @@
 		2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */; };
 		21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A75C562DED16D100F32112 /* StoreKit.framework */; };
 		21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 21B352042DE665B1008B5815 /* GoogleMobileAds */; };
+		21C1A2542DF7A3F800F0846F /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 21C1A2532DF7A3F800F0846F /* FirebaseDatabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,22 +87,27 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Assets.xcassets,
+				Controllers/AdminCodeResolver.swift,
 				"Controllers/Bundle-Decodable.swift",
-				Controllers/CourseResolver.swift,
 				Controllers/LocFuncs.swift,
-				DataModels/Ad.swift,
+				Controllers/NetworkChecker.swift,
 				DataModels/Course.swift,
 				DataModels/Game.swift,
 				DataModels/Hole.swift,
 				DataModels/MapItemDTO.swift,
 				DataModels/Player.swift,
 				DataModels/UserModel.swift,
+				Misc/AddToLeaderBoardButton.swift,
+				Misc/AsyncImageView.swift,
+				Misc/CharacterLimitModifier.swift,
 				Misc/InterstitialAdView.swift,
-				Misc/Locations.swift,
+				"Misc/IsValidEmail-String.swift",
 				Misc/NumberPickerView.swift,
 				Misc/PhotoIconView.swift,
+				Misc/ProfanityFilter.swift,
 				Misc/SynchronizedScrollViews.swift,
 				Misc/UserInfoRow.swift,
+				Protocols/AuthViewManager.swift,
 				Protocols/NavigatableViewManager.swift,
 				Views/TabView/MainView/TitleView.swift,
 				Views/TabView/Stats/BarChartView.swift,
@@ -160,6 +166,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21C1A2542DF7A3F800F0846F /* FirebaseDatabase in Frameworks */,
 				21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */,
 				2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */,
 			);
@@ -256,6 +263,7 @@
 			packageProductDependencies = (
 				2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */,
 				21B352042DE665B1008B5815 /* GoogleMobileAds */,
+				21C1A2532DF7A3F800F0846F /* FirebaseDatabase */,
 			);
 			productName = "MiniMate Clip";
 			productReference = 21583BCB2DD2E77500EFB400 /* MiniMate Clip.app */;
@@ -269,7 +277,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1630;
-				LastUpgradeCheck = 1630;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					213F26F52D4D639100579FAE = {
 						CreatedOnToolsVersion = 16.2;
@@ -408,6 +416,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -466,6 +475,7 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -749,6 +759,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		21C1A2532DF7A3F800F0846F /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 210BDE4B2D4DDFB80012E465 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

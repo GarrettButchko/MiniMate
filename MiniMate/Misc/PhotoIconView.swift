@@ -29,12 +29,12 @@ struct PhotoIconView<Background: ShapeStyle>: View {
                             .frame(width: imageSize, height: imageSize)
                             .clipShape(Circle()) // keeps the round shape
                     case .failure:
-                        Image(systemName: "logoOpp")
+                        Image("logoOpp")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: imageSize, height: imageSize)
                     @unknown default:
-                        Image(systemName: "logoOpp")
+                        Image("logoOpp")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: imageSize, height: imageSize)

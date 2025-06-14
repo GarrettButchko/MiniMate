@@ -14,7 +14,7 @@ struct ContentView: View {
     
     let locFuncs = LocFuncs()
     
-    @State var ad: Ad? = nil
+    //@State var ad: Ad? = nil
     
     @State private var selectedTab = 1
     @State private var previousView: ViewType?
@@ -43,7 +43,7 @@ struct ContentView: View {
             Group {
                 switch viewManager.currentView {
                 case .main(let tab):
-                    MainTabView(viewManager: viewManager, authModel: authModel, gameModel: gameModel, ad: ad, selectedTab: tab)
+                    MainTabView(viewManager: viewManager, authModel: authModel, gameModel: gameModel, selectedTab: tab)
                     
                 case .login:
                     LoginView(
@@ -95,28 +95,6 @@ struct ContentView: View {
             }
         }
         .ignoresSafeArea(.all, edges: .bottom)
-        .onAppear {
-            Task {
-                do {
-                    ad = nil
-                    let url = URL(string: "https://circuit-leaf.com/mini-mate/api/ads.json")!
-                    let ads: [Ad] = try await url.fetchAndDecode()
-
-                    for ad in ads {
-                        if "MainAd" == ad.id {
-                            withAnimation(){
-                                self.ad = ad
-                            }
-                            print("✅ Found matching ad: \(ad.title)")
-                        }
-                    }
-                } catch {
-                    print("❌ Failed to fetch or decode ads: \(error.localizedDescription)")
-                    ad = nil
-                }
-            }
-        }
-        
     }
     
     // MARK: - Custom transition based on view switch
@@ -143,18 +121,17 @@ struct MainTabView: View {
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var gameModel: GameViewModel
-    let ad: Ad?
+    //let ad: Ad?
     @StateObject var locationHandler = LocationHandler()
     @StateObject var iapManager = IAPManager()
     
     
     @State var selectedTab: Int
     
-    init(viewManager: ViewManager, authModel: AuthViewModel, gameModel: GameViewModel, ad: Ad?, selectedTab: Int){
+    init(viewManager: ViewManager, authModel: AuthViewModel, gameModel: GameViewModel, selectedTab: Int){
         self.viewManager = viewManager
         self.authModel = authModel
         self.gameModel = gameModel
-        self.ad = ad
         self.selectedTab = selectedTab
     }
     
@@ -165,16 +142,20 @@ struct MainTabView: View {
                     .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                     .tag(0)
                 
-                MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel, ad: ad)
+                MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
                     .tabItem { Label("Home", systemImage: "house.fill") }
                     .tag(1)
-                if authModel.userModel?.id != "IDGuest" && NetworkChecker.shared.isConnected {
+                if NetworkChecker.shared.isConnected {
                     CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
                         .tabItem { Label("Courses", systemImage: "figure.golf") }
                         .tag(2)
-                    
-                    
                 }
+                if authModel.userModel?.adminType != nil{
+                    AdminView(viewManager: viewManager, authModel: authModel)
+                        .tabItem { Label("Admin", systemImage: "lock.shield") }
+                        .tag(3)
+                }
+                    
             }
             .onAppear {
                 authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {

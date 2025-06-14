@@ -27,6 +27,15 @@ class Player: Identifiable, Equatable {
     var totalStrokes: Int {
         holes.reduce(0) { $0 + $1.strokes }
     }
+    
+    var incomplete: Bool {
+        for hole in holes {
+            if (hole.strokes == 0) {
+                return true
+            }
+        }
+        return false
+    }
 
     @Relationship(deleteRule: .nullify)
     var game: Game?
@@ -91,7 +100,7 @@ class Player: Identifiable, Equatable {
     }
 }
 
-struct PlayerDTO: Codable {
+struct PlayerDTO: Codable, Identifiable, Equatable {
     var id: String
     var userId: String
     var name: String
@@ -99,4 +108,6 @@ struct PlayerDTO: Codable {
     var totalStrokes: Int
     var inGame: Bool
     var holes: [HoleDTO]
+    
+    
 }

@@ -118,10 +118,18 @@ struct StatsView: View {
         var gameTemp: [Game] = authModel.userModel!.games
         
         if !searchText.isEmpty {
-            gameTemp = gameTemp.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
+            withAnimation{
+                gameTemp = gameTemp.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
+            }
         }
         if latest {
-            gameTemp = gameTemp.sorted(by: {$0.date > $1.date})
+            withAnimation {
+                gameTemp = gameTemp.sorted(by: {$0.date > $1.date})
+            }
+        } else {
+            withAnimation{
+                gameTemp = gameTemp.sorted(by: {$0.date < $1.date})
+            }
         }
         return gameTemp
     }
@@ -135,7 +143,7 @@ struct StatsView: View {
                         .frame(height: 60)
                         .foregroundStyle(Color.clear)
                     if analyzer.hasGames {
-                        ForEach(games, id: \.id) { game in
+                        ForEach(games) { game in
                             Button {
                                 viewManager.navigateToGameReview(game)
                             } label: {
@@ -143,6 +151,7 @@ struct StatsView: View {
                                     .padding(.vertical)
                                     .transition(.opacity)
                             }
+                            .transition(.opacity)
                         }
                     } else {
                         Image("logoOpp")
@@ -157,9 +166,18 @@ struct StatsView: View {
                 HStack{
                     ZStack {
                         // Background with light fill
-                        RoundedRectangle(cornerRadius: 25)
-                            .fill(.ultraThinMaterial) // Light background
-                            .frame(height: 50)
+                        if #available(iOS 26.0, *) {
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(.ultraThinMaterial.opacity(0.5))
+                                .glassEffect()
+                                .frame(height: 50)
+                                .shadow(color: Color.black.opacity(0.1), radius: 10)
+                        } else {
+                            // Fallback on earlier versions
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(.ultraThinMaterial) // Light background
+                                .frame(height: 50)
+                        }
                         
                         HStack {
                             Image(systemName: "magnifyingglass")
@@ -181,9 +199,17 @@ struct StatsView: View {
                         
                         ZStack{
                             
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 50, height: 50)
+                            if #available(iOS 26.0, *) {
+                                Circle()
+                                    .fill(.ultraThinMaterial.opacity(0.5))
+                                    .glassEffect()
+                                    .frame(width: 50, height: 50)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 10)
+                            } else {
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .frame(width: 50, height: 50)
+                            }
                             
                             if latest{
                                 Image(systemName: "arrow.up")
@@ -391,6 +417,4 @@ struct GameGridView: View {
         }
     }
 }
-
-
 

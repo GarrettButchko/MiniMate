@@ -11,9 +11,9 @@ struct MainView: View {
     @ObservedObject var locationHandler: LocationHandler
     @ObservedObject var gameModel: GameViewModel
     
-    let ad: Ad?
+    //let ad: Ad?
 
-    @State private var userName = "Guest"
+    @State private var userName = "Guest" + String(Int.random(in: 10000...99999))
     @State private var nameIsPresented = false
     @State private var isSheetPresented = false
     @State var showLoginOverlay = false
@@ -107,63 +107,63 @@ struct MainView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 25))
                                     }
                                         
-                                    if let ad = ad, ad.title != ""{
-                                        Button {
-                                            if ad.link != "" {
-                                                if let url = URL(string: ad.link) {
-                                                    UIApplication.shared.open(url)
-                                                }
-                                            }
-                                        } label: {
-                                            HStack{
-                                                VStack(alignment: .leading, spacing: 8) {
-                                                    Text(ad.title)
-                                                        .foregroundStyle(.mainOpp)
-                                                        .font(.headline)
-                                                        .fontWeight(.semibold)
-                                                    
-                                                    Text(ad.text)
-                                                        .foregroundStyle(.mainOpp)
-                                                        .font(.caption)
-                                                        .foregroundStyle(.secondary)
-                                                        .multilineTextAlignment(.leading)
-                                                        .padding(.trailing)
-                                                }
-                                                Spacer()
-                                                if ad.image != "" {
-                                                    AsyncImage(url: URL(string: ad.image)) { phase in
-                                                        switch phase {
-                                                        case .empty:
-                                                            ProgressView()
-                                                                .frame(height: 60)
-                                                        case .success(let image):
-                                                            image
-                                                                .resizable()
-                                                                .scaledToFill()
-                                                                .frame(height: 60)
-                                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                                .clipped()
-                                                        case .failure:
-                                                            Image(systemName: "photo")
-                                                                .resizable()
-                                                                .scaledToFit()
-                                                                .frame(height: 60)
-                                                                .foregroundColor(.gray)
-                                                                .background(Color.gray.opacity(0.2))
-                                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                        @unknown default:
-                                                            EmptyView()
-                                                        }
-                                                    }
-                                                }
-                                                Spacer()
-                                            }
-                                            .padding()
-                                        }
-                                        .transition(.opacity)
-                                        .background(.ultraThinMaterial)
-                                        .clipShape(RoundedRectangle(cornerRadius: 25))
-                                    }
+                                    //if let ad = ad, ad.title != ""{
+                                      //  Button {
+                                        //    if ad.link != "" {
+                                          //      if let url = URL(string: ad.link) {
+                                            //        UIApplication.shared.open(url)
+                                              //  }
+                                            //}
+                                        //} label: {
+                                        //    HStack{
+                                        //        VStack(alignment: .leading, spacing: 8) {
+                                        //            Text(ad.title)
+                                        //                .foregroundStyle(.mainOpp)
+                                        //                .font(.headline)
+                                        //                .fontWeight(.semibold)
+                                        //
+                                        //            Text(ad.text)
+                                        //                .foregroundStyle(.mainOpp)
+                                        //               .font(.caption)
+                                        //                .foregroundStyle(.secondary)
+                                        //                .multilineTextAlignment(.leading)
+                                        //                .padding(.trailing)
+                                        //        }
+                                        //        Spacer()
+                                        //        if ad.image != "" {
+                                        //            AsyncImage(url: URL(string: ad.image)) { phase in
+                                        //                switch phase {
+                                        //                case .empty:
+                                        //                    ProgressView()
+                                        //                        .frame(height: 60)
+                                        //                case .success(let image):
+                                        //                    image
+                                        //                        .resizable()
+                                        //                        .scaledToFill()
+                                        //                        .frame(height: 60)
+                                        //                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        //                        .clipped()
+                                        //                case .failure:
+                                        //                    Image(systemName: "photo")
+                                        //                        .resizable()
+                                        //                        .scaledToFit()
+                                        //                        .frame(height: 60)
+                                        //                        .foregroundColor(.gray)
+                                        //                        .background(Color.gray.opacity(0.2))
+                                        //                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        //                @unknown default:
+                                        //                    EmptyView()
+                                        //                }
+                                        //            }
+                                        //        }
+                                        //        Spacer()
+                                        //    }
+                                        //    .padding()
+                                        //}
+                                        //.transition(.opacity)
+                                        //.background(.ultraThinMaterial)
+                                        //.clipShape(RoundedRectangle(cornerRadius: 25))
+                                    //}
                                     
                                     if analyzer.hasGames{
                                         Button {
@@ -334,8 +334,9 @@ struct MainView: View {
                             
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
+                        .ifAvailableGlassEffect()
                         .clipShape(RoundedRectangle(cornerRadius: 25))
+                        .shadow(color: Color.black.opacity(0.1), radius: 10)
                         
                         Spacer()
                         
@@ -477,5 +478,14 @@ struct MainView: View {
     }
 }
 
-
-
+extension View {
+    @ViewBuilder
+    func ifAvailableGlassEffect() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(in: RoundedRectangle(cornerRadius: 25))
+                .background(.ultraThinMaterial.opacity(0.1))
+        } else {
+            self.background(.ultraThinMaterial)
+        }
+    }
+}

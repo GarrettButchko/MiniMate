@@ -56,7 +56,7 @@ class Hole: Equatable, Identifiable {
     }
 }
 
-struct HoleDTO: Codable {
+struct HoleDTO: Codable, Equatable {
     var id: String
     var number: Int
     var par: Int

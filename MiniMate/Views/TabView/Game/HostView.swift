@@ -64,6 +64,7 @@ struct HostView: View {
         }
         .alert("Add Local Player?", isPresented: $showAddPlayerAlert) {
             TextField("Name", text: $newPlayerName)
+                .characterLimit($newPlayerName, maxLength: 18)
             Button("Add") { gameModel.addLocalPlayer(named: newPlayerName)}
             Button("Cancel", role: .cancel) {}
         }
@@ -109,8 +110,14 @@ struct HostView: View {
                 
                 DatePicker("Date & Time", selection: gameModel.binding(for: \.date))
                     .onChange(of: locationHandler.selectedItem) { _, newValue in
-                        if CourseResolver.matchName(newValue?.name ?? "Unknown"){
-                            gameModel.setNumberOfHole(CourseResolver.resolve(name: newValue?.name ?? "Unknown")?.numOfHoles ?? 18)
+                        if AdminCodeResolver.matchName(newValue?.name ?? "Unknown"){
+                            AdminCodeResolver.resolve(name: newValue?.name ?? "Unknown", authModel: authModel) { course in
+                                if let course = course {
+                                    gameModel.setNumberOfHole(course.numOfHoles)
+                                } else {
+                                    gameModel.setNumberOfHole(18)
+                                }
+                            }
                             withAnimation{
                                 showHolePicker = false
                             }
