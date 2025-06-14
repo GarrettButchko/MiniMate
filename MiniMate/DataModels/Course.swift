@@ -34,7 +34,7 @@ struct Course: Codable, Identifiable, Equatable{
         adLink: String? = nil,
         adImage: String? = nil,
         allPlayers: [PlayerDTO]? = nil,
-        emails: [String]? = nil
+        emails: [String]? = nil,
     ) {
         self.id = id
         self.name = name
@@ -52,16 +52,16 @@ struct Course: Codable, Identifiable, Equatable{
     
     static func == (lhs: Course, rhs: Course) -> Bool {
         return lhs.id == rhs.id &&
-               lhs.name == rhs.name &&
-               lhs.logo == rhs.logo &&
-               lhs.colorsS == rhs.colorsS &&
-               lhs.link == rhs.link &&
-               lhs.pars == rhs.pars &&
-               lhs.adTitle == rhs.adTitle &&
-               lhs.adDescription == rhs.adDescription &&
-               lhs.adLink == rhs.adLink &&
-               lhs.adImage == rhs.adImage &&
-               lhs.allPlayers == rhs.allPlayers &&
+        lhs.name == rhs.name &&
+        lhs.logo == rhs.logo &&
+        lhs.colorsS == rhs.colorsS &&
+        lhs.link == rhs.link &&
+        lhs.pars == rhs.pars &&
+        lhs.adTitle == rhs.adTitle &&
+        lhs.adDescription == rhs.adDescription &&
+        lhs.adLink == rhs.adLink &&
+        lhs.adImage == rhs.adImage &&
+        lhs.allPlayers == rhs.allPlayers &&
         lhs.emails == rhs.emails
     }
     

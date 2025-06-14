@@ -21,7 +21,7 @@ struct AddToLeaderBoardButton: View{
     let player: Player
     
     var body: some View {
-        if let course = course, AdminCodeResolver.isAdminCodeThere(code: AdminCodeResolver.getCode(id: course.id)) && !(ProfanityFilter.containsBlockedWord(player.name) && player.incomplete) && !added{
+        if let course = course, AdminCodeResolver.isAdminCodeThere(code: AdminCodeResolver.getCode(id: course.id)) && !(ProfanityFilter.containsBlockedWord(player.name) && player.incomplete) && !added && AdminCodeResolver.idToTier(course.id)! >= 2{
             Button{
                 alert = true
             } label: {

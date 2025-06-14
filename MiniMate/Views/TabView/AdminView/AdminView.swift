@@ -71,7 +71,7 @@ struct CreatorView: View {
             }
             .padding([.top, .horizontal])
             
-            var filteredAdminAndId: [String: IdAndName] {
+            var filteredAdminAndId: [String: SmallCourse] {
                 var adminAndIdTemp = AdminCodeResolver.adminAndId
                 if !searchText.isEmpty {
                     withAnimation {
@@ -162,36 +162,37 @@ struct LocationView: View {
                     }
                     
                     
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Leader Board")
-                                .font(.title3).fontWeight(.bold)
-                                .foregroundStyle(.mainOpp)
-                            Spacer()
-                            Button {
-                                withAnimation(){
-                                    editOn.toggle()
-                                }
-                            } label: {
-                                if course.leaderBoard != nil{
-                                    Text(editOn ? "Done" : "Edit")
-                                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    if AdminCodeResolver.idToTier(course.id)! >= 2{
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Leader Board")
+                                    .font(.title3).fontWeight(.bold)
+                                    .foregroundStyle(.mainOpp)
+                                Spacer()
+                                Button {
+                                    withAnimation(){
+                                        editOn.toggle()
+                                    }
+                                } label: {
+                                    if course.leaderBoard != nil{
+                                        Text(editOn ? "Done" : "Edit")
+                                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                                    }
                                 }
                             }
-                        }
-                        if let leaderBoard = course.leaderBoard{
-                            ScrollView{
-                                LeaderBoardList(authModel: authModel, players: leaderBoard, course: course, editOn: $editOn)
+                            if let leaderBoard = course.leaderBoard{
+                                ScrollView{
+                                    LeaderBoardList(authModel: authModel, players: leaderBoard, course: course, editOn: $editOn)
+                                }
+                            } else {
+                                Text("No players in leader board yet.")
+                                Spacer()
                             }
-                        } else {
-                            Text("No players in leader board yet.")
-                            Spacer()
                         }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 25))
                     }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 25))
                     
                     Button {
                         showSettings = true
@@ -215,6 +216,7 @@ struct LocationView: View {
                 
             } else {
                 Text("Your course could not load please wait a moment and try again.")
+                
                 Button {
                     AdminCodeResolver.resolve(id: id, authModel: authModel) { course in
                         if let course = course{
@@ -227,6 +229,7 @@ struct LocationView: View {
                 } label: {
                     Text("Retry")
                 }
+                .padding()
                 
                 Button {
                     self.course = Course(id: id, name: AdminCodeResolver.idToName(id) ?? "Error")

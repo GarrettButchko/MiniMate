@@ -158,8 +158,6 @@ struct ProfileView: View {
                         }
                     }
                     
-<<<<<<< HEAD
-=======
                     Section("Admin") {
                         if (authModel.userModel?.adminType) == nil{
                             Button("Login As Admin") {
@@ -188,7 +186,6 @@ struct ProfileView: View {
                         }
                     }
                     
->>>>>>> online
                     // Account Management Section
                     Section("Account Management") {
                         if authModel.userModel?.id != "IDGuest" {

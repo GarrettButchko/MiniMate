@@ -9,9 +9,9 @@ import SwiftUI
 
 final class AdminCodeResolver {
     
-    static let adminAndId: [String: IdAndName] = [
-        "543943": IdAndName(id: "CREATOR", name: "Creator"),
-        "329742": IdAndName(id: "FC", name: "Fore Corners Mini Golf")
+    static let adminAndId: [String: SmallCourse] = [
+        "543943": SmallCourse(id: "CREATOR", name: "Creator"),
+        "329742": SmallCourse(id: "FC", name: "Fore Corners Mini Golf", tier: 1)
     ]
     
     static func isAdminCodeThere(code: String?) -> Bool {
@@ -73,10 +73,15 @@ final class AdminCodeResolver {
         adminAndId.first { adminAndId[$0.key]?.id.lowercased() == id.lowercased() }?.value.name
     }
     
+    static func idToTier(_ id: String) -> Int? {
+        adminAndId.first { adminAndId[$0.key]?.id.lowercased() == id.lowercased() }?.value.tier
+    }
+    
 }
 
-struct IdAndName{
+struct SmallCourse{
     var id: String
     var name: String
+    var tier: Int? = nil
 }
 
