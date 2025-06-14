@@ -334,7 +334,7 @@ struct MainView: View {
                             
                         }
                         .padding()
-                        .ifAvailableGlassEffect()
+                        //.ifAvailableGlassEffect()
                         .clipShape(RoundedRectangle(cornerRadius: 25))
                         .shadow(color: Color.black.opacity(0.1), radius: 10)
                         
@@ -482,8 +482,8 @@ extension View {
     @ViewBuilder
     func ifAvailableGlassEffect() -> some View {
         if #available(iOS 26.0, *) {
-            self.glassEffect(in: RoundedRectangle(cornerRadius: 25))
-                .background(.ultraThinMaterial.opacity(0.1))
+            //self.glassEffect(in: RoundedRectangle(cornerRadius: 25))
+                //.background(.ultraThinMaterial.opacity(0.1))
         } else {
             self.background(.ultraThinMaterial)
         }

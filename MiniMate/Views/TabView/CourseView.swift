@@ -39,7 +39,7 @@ struct CourseView: View {
                                     .padding()
                                     .frame(height: 40)
                                     .background(.ultraThinMaterial.opacity(0.1))
-                                    .glassEffect()
+                                   // .glassEffect()
                                     .clipShape(RoundedRectangle(cornerRadius: 25))
                                     .shadow(color: Color.black.opacity(0.1), radius: 10)
                             } else {
@@ -81,7 +81,7 @@ struct CourseView: View {
                                 .padding()
                                 .frame(height: geometry.size.height * 0.4)
                                 .background(.ultraThinMaterial.opacity(0.1))
-                                .glassEffect(in: RoundedRectangle(cornerRadius: 25))
+                                //.glassEffect(in: RoundedRectangle(cornerRadius: 25))
                                 .clipShape(RoundedRectangle(cornerRadius: 25))
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                                 .shadow(color: Color.black.opacity(0.1), radius: 10)
@@ -446,7 +446,7 @@ struct LocationButton: View {
                 if #available(iOS 26.0, *) {
                     Circle()
                         .fill(.ultraThinMaterial.opacity(0.1))
-                        .glassEffect()
+                        //.glassEffect()
                         .frame(width: 40, height: 40)
                 } else {
                     Circle()
