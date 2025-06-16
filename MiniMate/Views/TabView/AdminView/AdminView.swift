@@ -48,7 +48,7 @@ struct CreatorView: View {
                     if #available(iOS 26.0, *) {
                         RoundedRectangle(cornerRadius: 25)
                             .fill(.ultraThinMaterial.opacity(0.5))
-                            .glassEffect()
+                            //.glassEffect()
                             .frame(height: 50)
                             .shadow(color: Color.black.opacity(0.1), radius: 10)
                     } else {
