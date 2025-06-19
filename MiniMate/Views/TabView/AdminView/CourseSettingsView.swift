@@ -112,7 +112,7 @@ struct CourseSettingsView: View {
     private var formView: some View {
         
         Form{
-            if AdminCodeResolver.idToTier(course.id)! >= 2 {
+            if AdminCodeResolver.idToTier(course.id)! >= 2 || authModel.userModel?.adminType == "CREATOR"{
                 Section("Course") {
                     HStack {
                         Text("Id:")

@@ -192,6 +192,12 @@ struct LocationView: View {
                         .padding()
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 25))
+                    } else {
+                        VStack{
+                            Spacer()
+                            Text("Upgrade to leaderboard tier to see a leaderboard.")
+                            Spacer()
+                        }
                     }
                     
                     Button {

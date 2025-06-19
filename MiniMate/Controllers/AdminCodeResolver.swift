@@ -11,7 +11,7 @@ final class AdminCodeResolver {
     
     static let adminAndId: [String: SmallCourse] = [
         "543943": SmallCourse(id: "CREATOR", name: "Creator"),
-        "329742": SmallCourse(id: "FC", name: "Fore Corners Mini Golf", tier: 1)
+        "329742": SmallCourse(id: "FC", name: "Fore Corners Mini Golf", tier: 2)
     ]
     
     static func isAdminCodeThere(code: String?) -> Bool {
