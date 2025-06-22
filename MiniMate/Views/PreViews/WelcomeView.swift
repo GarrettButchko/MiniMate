@@ -74,7 +74,7 @@ struct WelcomeView: View {
                     animationTriggered = true
                     if NetworkChecker.shared.isConnected{
                         withAnimation {
-                            viewManager.navigateToLogin()
+                            viewManager.navigateToSignIn()
                         }
                     } else {
                         showLoading = true
@@ -88,7 +88,7 @@ struct WelcomeView: View {
             // Run the check right away
         if NetworkChecker.shared.isConnected {
             withAnimation {
-                viewManager.navigateToLogin()
+                viewManager.navigateToSignIn()
             }
         } else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {

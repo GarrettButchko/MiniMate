@@ -10,12 +10,11 @@ import FirebaseAuth
 
 enum ViewType {
     case main(Int)
-    case login
-    case signup
     case welcome
     case scoreCard
     case gameReview(Game)
     case ad
+    case signIn
 }
 
 /// Manages app navigation state based on authentication status
@@ -36,13 +35,9 @@ class ViewManager: ObservableObject, @preconcurrency NavigatableViewManager {
     func navigateToMain(_ tab: Int) {
         currentView = .main(tab)
     }
-
-    func navigateToLogin() {
-        currentView = .login
-    }
-
-    func navigateToSignUp() {
-        currentView = .signup
+    
+    func navigateToSignIn() {
+        currentView = .signIn
     }
 
     func navigateToWelcome() {
@@ -67,12 +62,11 @@ extension ViewType: Equatable {
     static func == (lhs: ViewType, rhs: ViewType) -> Bool {
         switch (lhs, rhs) {
         case (.main, .main),
-             (.login, .login),
-             (.signup, .signup),
              (.welcome, .welcome),
             (.scoreCard, .scoreCard),
             (.gameReview, .gameReview),
-            (.ad, .ad):
+            (.ad, .ad),
+            (.signIn, .signIn):
             return true
         default:
             return false

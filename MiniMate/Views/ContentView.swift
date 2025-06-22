@@ -44,17 +44,6 @@ struct ContentView: View {
                 switch viewManager.currentView {
                 case .main(let tab):
                     MainTabView(viewManager: viewManager, authModel: authModel, gameModel: gameModel, selectedTab: tab)
-                    
-                case .login:
-                    LoginView(
-                        viewManager: viewManager,
-                        authModel: authModel
-                    )
-                case .signup:
-                    SignUpView(
-                        viewManager: viewManager,
-                        authModel: authModel
-                    )
                 case .welcome:
                     WelcomeView(viewManager: viewManager)
                     
@@ -69,6 +58,8 @@ struct ContentView: View {
                     InterstitialAdView(adUnitID: "ca-app-pub-8261962597301587/3394145015") {
                         viewManager.currentView = .main(1)
                     }
+                case .signIn:
+                    SignInView(authModel: authModel, viewManager: viewManager)
                 }
                 
             }
@@ -100,10 +91,6 @@ struct ContentView: View {
     // MARK: - Custom transition based on view switch
     private var currentTransition: AnyTransition {
         switch (previousView, viewManager.currentView) {
-        case (.login, .signup):
-            return .move(edge: .trailing)
-        case (.signup, .login):
-            return .move(edge: .leading)
         case (_, .main):
             return .opacity.combined(with: .scale)
         case (_, .welcome):

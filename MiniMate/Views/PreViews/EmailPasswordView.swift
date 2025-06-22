@@ -7,15 +7,19 @@ import SwiftUI
 import FirebaseAuth
 
 /// View for new users to sign up and create an account
-struct SignUpView: View {
+struct EmailPasswordView: View {
     @Environment(\.modelContext) private var context
 
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
-
+    
+    @Binding var showEmail: Bool
+    
+    @Binding var height: CGFloat
+    var geometry: GeometryProxy
+    
     @State private var email = ""
     @State private var password = ""
-    @State private var confirmPassword = ""
     @State private var errorMessage: String?
 
     @FocusState private var isTextFieldFocused: Bool
@@ -29,13 +33,13 @@ struct SignUpView: View {
                 // Title
                 VStack(spacing: 8) {
                     HStack {
-                        Text("Sign Up")
+                        Text("Sign Up / Login")
                             .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.pink)
                         Spacer()
                     }
                     HStack {
-                        Text("New users sign up here.")
+                        Text("Enter email and password")
                             .font(.system(size: 20, weight: .light))
                             .foregroundColor(.secondary)
                         Spacer()
@@ -65,19 +69,15 @@ struct SignUpView: View {
                             .stroke(.ultraThickMaterial))
                     }
 
-                    // Password + Confirm
-                    HStack(spacing: 12) {
-                        passwordField(title: "Password", text: $password)
-                        passwordField(title: "Confirm", text: $confirmPassword)
-                    }
+                    passwordField(title: "Password", text: $password)
 
                     // Sign Up Button
-                    Button(action: signUp) {
+                    Button(action: signIn) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 25)
                                 .frame(width: 150, height: 50)
-                                .foregroundColor(.accentColor)
-                            Text("Sign Up")
+                                .foregroundColor(.pink)
+                            Text("Sign Up / Login")
                                 .foregroundColor(.white)
                         }
                     }
@@ -85,7 +85,7 @@ struct SignUpView: View {
                     // Error
                     if let errorMessage = errorMessage {
                         Text(errorMessage)
-                            .foregroundColor(.red)
+                            .foregroundColor(.pink)
                             .font(.caption)
                             .multilineTextAlignment(.center)
                     }
@@ -99,7 +99,12 @@ struct SignUpView: View {
             HStack {
                 Button(action: {
                     isTextFieldFocused = false
-                    withAnimation { viewManager.navigateToLogin() }
+                    withAnimation {
+                        showEmail = false
+                    }
+                    
+                    height = geometry.size.height * 0.3
+                    
                 }) {
                     Circle()
                         .fill(.ultraThinMaterial)
@@ -107,6 +112,7 @@ struct SignUpView: View {
                         .overlay(
                             Image(systemName: "arrow.left")
                                 .font(.headline)
+                                .foregroundStyle(.pink)
                         )
                 }
                 Spacer()
@@ -140,30 +146,38 @@ struct SignUpView: View {
         }
     }
 
-    private func signUp() {
-        guard password == confirmPassword else {
-            errorMessage = "Passwords do not match."
-            return
-        }
-        authModel.createUser(email: email, password: password) { result in
+    private func signIn() {
+        authModel.signIn(email: email, password: password) { result in
             switch result {
-            case .success(let user):
+            case .success(let firebaseUser):
                 errorMessage = nil
-                // Create app-specific user model
-                let newUser = UserModel(
-                    id: user.uid,
-                    name: email,
-                    email: email,
-                    games: []
-                )
-                authModel.userModel = newUser
-                context.insert(newUser)
-                authModel.saveUserModel(newUser) { _ in }
-                viewManager.navigateToMain(1)
-                user.sendEmailVerification { _ in }
+                /// If user is in local storage
+                authModel.loadOrCreateUserIfNeeded(user: firebaseUser, name: email, in: context) {
+                    viewManager.navigateToMain(1)
+                }
+                
+            case .failure(_):
+                authModel.createUser(email: email, password: password) { result in
+                    switch result {
+                    case .success(let user):
+                        errorMessage = nil
+                        // Create app-specific user model
+                        let newUser = UserModel(
+                            id: user.uid,
+                            name: email,
+                            email: email,
+                            games: []
+                        )
+                        authModel.userModel = newUser
+                        context.insert(newUser)
+                        authModel.saveUserModel(newUser) { _ in }
+                        viewManager.navigateToMain(1)
+                        user.sendEmailVerification { _ in }
 
-            case .failure(let error):
-                errorMessage = error.localizedDescription
+                    case .failure(let error):
+                        errorMessage = error.localizedDescription
+                    }
+                }
             }
         }
     }
