@@ -32,7 +32,7 @@ struct SignInView: View {
         GeometryReader{ geometry in
             ZStack {
                 Rectangle()
-                    .foregroundStyle(Gradient(colors: [.blue, .green, .green]))
+                    .foregroundStyle(Gradient(colors: [.blue, .green]))
                     .ignoresSafeArea()
                 VStack{
                     HStack{
@@ -48,26 +48,28 @@ struct SignInView: View {
                                 .colorScheme(.dark)
                                 
                         }
+                        
+                        Spacer()
+                        
                         Image("logoOpp")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 100, height: 200)
+                            .frame(width: 75, height: 75)
                             .colorScheme(.dark)
                     }
+                    .padding(.horizontal)
                     
                     
                     Spacer()
                     
-                    Text(errorMessage ?? "")
+                   // Text(errorMessage ?? "")
                     
                     Spacer()
                     
                     ZStack{
-                        RoundedRectangle(cornerRadius: 20)
-                            .ignoresSafeArea()
-                            .shadow(radius: 10)
+                        RoundedRectangle(cornerRadius: 35)
                             .foregroundStyle(.ultraThinMaterial)
-                            .frame(maxWidth: 430)
+                            
                         
                         if !showEmailSignIn {
                             StartButtons(
@@ -87,13 +89,16 @@ struct SignInView: View {
                         }
                     }
                     .frame(height: height)
+                    .frame(maxWidth: 430)
                     .animation(.bouncy.speed(1.5), value: height)
+                    .padding()
+                    .padding(.bottom)
                     
                 }
             }
             .onAppear {
                 //withAnimation{
-                    height = geometry.size.height * 0.3
+                    height = 220
                 //}
             }
         }
@@ -114,7 +119,6 @@ struct StartButtons: View {
     
     var body: some View {
         VStack(){
-            Spacer()
             // Email / Password Button
             Button {
                 withAnimation {
@@ -124,8 +128,8 @@ struct StartButtons: View {
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 25)
-                        .foregroundStyle(.pink)
-                    Text("Other")
+                        .foregroundStyle(.green)
+                    Text("Email / Password")
                         .foregroundStyle(.white)
                         .fontWeight(.semibold)
                         .font(.system(size: 18))
@@ -188,7 +192,6 @@ struct StartButtons: View {
             .signInWithAppleButtonStyle(colorScheme == .light ? .black : .white)
             .frame(height: 50)
             .cornerRadius(25)
-            Spacer()
         }
     }
 }

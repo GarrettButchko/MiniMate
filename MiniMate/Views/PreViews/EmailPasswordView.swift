@@ -35,7 +35,7 @@ struct EmailPasswordView: View {
                     HStack {
                         Text("Sign Up / Login")
                             .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(.pink)
+                            .foregroundColor(.primary)
                         Spacer()
                     }
                     HStack {
@@ -76,7 +76,7 @@ struct EmailPasswordView: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 25)
                                 .frame(width: 150, height: 50)
-                                .foregroundColor(.pink)
+                                .foregroundColor(.green)
                             Text("Sign Up / Login")
                                 .foregroundColor(.white)
                         }
@@ -103,7 +103,7 @@ struct EmailPasswordView: View {
                         showEmail = false
                     }
                     
-                    height = geometry.size.height * 0.3
+                    height = 220
                     
                 }) {
                     Circle()
@@ -112,7 +112,7 @@ struct EmailPasswordView: View {
                         .overlay(
                             Image(systemName: "arrow.left")
                                 .font(.headline)
-                                .foregroundStyle(.pink)
+                                .foregroundStyle(.green)
                         )
                 }
                 Spacer()
