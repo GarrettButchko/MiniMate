@@ -46,6 +46,7 @@ struct AddToLeaderBoardButton: View{
                     .disabled(!email.isValidEmail)
                 Button("Cancel", role: .cancel) {}
             }
+            .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
     
@@ -62,14 +63,18 @@ struct AddToLeaderBoardButton: View{
                 updatedCourse.emails?.append(email)
                 self.course = updatedCourse
                 authModel.addOrUpdateCourse(updatedCourse) { _ in }
-                added = true
+                withAnimation {
+                    added = true
+                }
             }
         } else {
             updatedCourse.allPlayers?.append(player.toDTO())
             updatedCourse.emails?.append(email)
             self.course = updatedCourse
             authModel.addOrUpdateCourse(updatedCourse) { _ in }
-            added = true
+            withAnimation {
+                added = true
+            }
         }
     }
 }

@@ -10,6 +10,8 @@ struct ScoreCardView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     
+    @State var course: Course?
+    
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
     @ObservedObject var gameModel: GameViewModel
@@ -17,12 +19,12 @@ struct ScoreCardView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var uuid: UUID? = nil
     
-    @State private var course: Course?
-    
     @State var showInfoView: Bool = false
     @State var showRecap: Bool = false
     
     @State private var hasUploaded = false   // renamed for clarity
+    
+    @State var showEndGame: Bool = false
     
     var body: some View {
         ZStack{
@@ -42,8 +44,28 @@ struct ScoreCardView: View {
                 }
             }
             if showRecap {
-                RecapView(authModel: authModel, viewManager: viewManager, course: course)
-                    .transition(.opacity)
+                RecapView(authModel: authModel, viewManager: viewManager, course: course){
+                    Button {
+                        if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
+                    
+                                viewManager.navigateToAd()
+                            
+                        } else {
+                            viewManager.navigateToMain(1)
+                        }
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color.blue)
+                                .frame(width: 220, height: 60)
+                            Text("Go Back to Main Menu")
+                                .foregroundColor(.white).fontWeight(.bold)
+                                .padding(.horizontal, 30)
+                        }
+                    }
+                    .padding(.bottom)
+                }
+                .transition(.opacity)
             }
         }
         .onAppear {
@@ -203,11 +225,7 @@ struct ScoreCardView: View {
         VStack{
             HStack {
                 Button {
-                    gameModel.setCompletedGame(true)
-                    endGame()
-                    withAnimation {
-                        showRecap = true
-                    }
+                    showEndGame = true
                 }  label: {
                     ZStack {
                         RoundedRectangle(cornerRadius: 25)
@@ -216,6 +234,18 @@ struct ScoreCardView: View {
                         Text("Complete Game")
                             .foregroundColor(.white).fontWeight(.bold)
                     }
+                }
+                .alert("Complete Game?", isPresented: $showEndGame) {
+                    Button("Complete") {
+                        gameModel.setCompletedGame(true)
+                        endGame()
+                        withAnimation {
+                            showRecap = true
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("You will not be able to change your scores after this point.")
                 }
             }
             

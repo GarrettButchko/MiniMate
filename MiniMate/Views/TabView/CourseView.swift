@@ -336,25 +336,37 @@ struct CourseView: View {
                                 if let phone = selected.phoneNumber,
                                    let phoneURL = URL(string: "tel://\(phone.filter { $0.isNumber })") {
                                     Link(destination: phoneURL) {
-                                        Label("Call \(phone)", systemImage: "phone")
-                                            .font(.callout)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal)
-                                            .padding(.vertical, 6)
-                                            .background(Color.green)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        
+                                        HStack{
+                                            Spacer()
+                                            Label("Call \(phone)", systemImage: "phone")
+                                                .font(.callout)
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 6)
+                                        .background(Color.green)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        
+                                            
                                     }
                                 }
 
                                 if let url = selected.url {
                                     Link(destination: url) {
-                                        Label("Visit Website", systemImage: "safari")
-                                            .font(.callout)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal)
-                                            .padding(.vertical, 6)
-                                            .background(Color.blue)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        HStack{
+                                            Spacer()
+                                            Label("Visit Website", systemImage: "safari")
+                                                .font(.callout)
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 6)
+                                        .background(Color.blue)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        
                                     }
                                 }
                             }

@@ -7,12 +7,12 @@
 import SwiftUI
 import ConfettiSwiftUI
 
-struct RecapView: View {
-    @ObservedObject var authModel: AuthViewModel
-    
-    @StateObject var viewManager: ViewManager
+struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewManager & ObservableObject, Content: View>: View {
+    @ObservedObject var authModel: AM
+    @StateObject var viewManager: VM
     @State var confettiTrigger: Bool = false
     @State var showReviewSheet: Bool = false
+    
     
     @State var email: String = ""
     
@@ -28,6 +28,8 @@ struct RecapView: View {
             return [authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first!.players[0]]
         }
     }
+    
+    let content: () -> Content
     
     
     var body: some View {
@@ -160,23 +162,7 @@ struct RecapView: View {
                     }
                     
                     
-                    Button {
-                        if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
-                            viewManager.navigateToAd()
-                        } else {
-                            viewManager.navigateToMain(1)
-                        }
-                    }  label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 25)
-                                .fill(Color.blue)
-                                .frame(width: 220, height: 60)
-                            Text("Go Back to Main Menu")
-                                .foregroundColor(.white).fontWeight(.bold)
-                                .padding(.horizontal, 30)
-                        }
-                    }
-                    .padding(.bottom)
+                    content()
                 }
                 .confettiCannon(trigger: $confettiTrigger, num: 40, confettis: [.shape(.slimRectangle)])
                 .onAppear {
@@ -187,6 +173,6 @@ struct RecapView: View {
             }
         }
     }
+    
 }
-
 

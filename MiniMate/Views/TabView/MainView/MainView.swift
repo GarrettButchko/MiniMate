@@ -334,7 +334,7 @@ struct MainView: View {
                             
                         }
                         .padding()
-                        //.ifAvailableGlassEffect()
+                        .ifAvailableGlassEffect()
                         .clipShape(RoundedRectangle(cornerRadius: 25))
                         .shadow(color: Color.black.opacity(0.1), radius: 10)
                         

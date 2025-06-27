@@ -259,45 +259,7 @@ struct CourseSettingsView: View {
                 }
                 
                 
-                Section ("Pars"){
-                    ForEach(course.holes) { hole in
-                        HStack{
-                            Text("Hole \(hole.number):")
-                            Spacer()
-                            
-                            NumberPickerView(selectedNumber: Binding(
-                                get: { hole.par},
-                                set: {
-                                    course.pars[hole.number] = $0
-                                    authModel.addOrUpdateCourse(course) { _ in }
-                                }
-                            ), minNumber: 0, maxNumber: 10)
-                            .frame(width: 75)
-                        }
-                    }
-                    .onDelete { indices in
-                        let filteredIndices = indices.filter { $0 != 0 }
-                        for index in filteredIndices {
-                            withAnimation(){
-                                _ = course.pars.remove(at: index)
-                                authModel.addOrUpdateCourse(course) { _ in }
-                            }
-                        }
-                    }
-                    
-                    
-                    Button {
-                        withAnimation(){
-                            course.pars.append(0)
-                            authModel.addOrUpdateCourse(course) { _ in }
-                        }
-                    } label: {
-                        HStack{
-                            Image(systemName: "plus")
-                            Text("Add Par")
-                        }
-                    }
-                }
+                
             }
             
             
@@ -305,40 +267,36 @@ struct CourseSettingsView: View {
                 HStack {
                     Text("Ad Title:")
                     Spacer()
-                    TextField("Ad Title", text: Binding(
+                    TextEditor(text: Binding(
                         get: { course.adTitle ?? "" },
                         set: {
-                            course.adTitle = $0.isEmpty ? nil : $0
+                            // Limit to 10 characters manually
+                            let newValue = String($0.prefix(20))
+                            course.adTitle = newValue.isEmpty ? nil : newValue
                             authModel.addOrUpdateCourse(course) { _ in }
                         }
                     ))
-                    .textFieldStyle(.roundedBorder)
-                    .characterLimit(Binding(
-                        get: { course.adTitle ?? "" },
-                        set: {
-                            course.adTitle = $0.isEmpty ? nil : $0
-                            authModel.addOrUpdateCourse(course) { _ in }
-                        }
-                    ), maxLength: 10)
+                    .frame(minHeight: 36, maxHeight: 60)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    )
                 }
                 HStack {
                     Text("Ad Description:")
                     Spacer()
-                    TextField("Ad Description", text: Binding(
+                    TextEditor(text: Binding(
                         get: { course.adDescription ?? "" },
                         set: {
-                            course.adDescription = $0.isEmpty ? nil : $0
+                            let newValue = String($0.prefix(80))
+                            course.adDescription = newValue.isEmpty ? nil : newValue
                             authModel.addOrUpdateCourse(course) { _ in }
                         }
                     ))
-                    .textFieldStyle(.roundedBorder)
-                    .characterLimit(Binding(
-                        get: { course.adDescription ?? "" },
-                        set: {
-                            course.adDescription = $0.isEmpty ? nil : $0
-                            authModel.addOrUpdateCourse(course) { _ in }
-                        }
-                    ), maxLength: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    )
                 }
                 HStack {
                     Text("Ad Link:")
@@ -412,6 +370,46 @@ struct CourseSettingsView: View {
                     }
                 }
             }
+            
+            Section ("Pars"){
+                ForEach(course.holes) { hole in
+                    HStack{
+                        Text("Hole \(hole.number):")
+                        Spacer()
+                        
+                        NumberPickerView(selectedNumber: Binding(
+                            get: { hole.par},
+                            set: {
+                                course.pars[hole.number] = $0
+                                authModel.addOrUpdateCourse(course) { _ in }
+                            }
+                        ), minNumber: 0, maxNumber: 10)
+                        .frame(width: 75)
+                    }
+                }
+                .onDelete { indices in
+                    let filteredIndices = indices.filter { $0 != 0 }
+                    for index in filteredIndices {
+                        withAnimation(){
+                            _ = course.pars.remove(at: index)
+                            authModel.addOrUpdateCourse(course) { _ in }
+                        }
+                    }
+                }
+                
+                
+                Button {
+                    withAnimation(){
+                        course.pars.append(0)
+                        authModel.addOrUpdateCourse(course) { _ in }
+                    }
+                } label: {
+                    HStack{
+                        Image(systemName: "plus")
+                        Text("Add Par")
+                    }
+                }
+            }
         }
     }
     
@@ -436,4 +434,5 @@ struct SystemColorPicker: View {
 // Example:
 // TextField("Max 10 chars", text: $yourText)
 //   .characterLimit($yourText, maxLength: 10)
+
 

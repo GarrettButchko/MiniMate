@@ -23,6 +23,8 @@ struct ScoreCardViewClip: View {
     
     @State private var hasUploaded = false   // renamed for clarity
     
+    @State var showEndGame: Bool = false
+    
     var body: some View {
         ZStack{
             VStack {
@@ -38,8 +40,46 @@ struct ScoreCardViewClip: View {
                 }
             }
             if showRecap {
-                RecapViewClip(authModel: authModel, viewManager: viewManager, course: course)
+                RecapView(authModel: authModel, viewManager: viewManager, course: course){
+                    Group{
+                        if let game = authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first, game.courseID == "FC" && game.holeInOneLastHole {
+                            FC
+                        }
+                        
+                        Button {
+                            if let url = URL(string: "https://apps.apple.com/app/id6745438125") {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            HStack{
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Download Full App Now!")
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Text("Tap here to download the full MiniMate app to save your progress and track your scores across multiple rounds!")
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                        .padding(.trailing)
+                                }
+                                Spacer()
+                                Image("Icon")
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                Spacer()
+                            }
+                            .padding()
+                        }
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                        .padding(.bottom)
+                    }
                     .transition(.opacity)
+                }
             }
             
         }
@@ -185,11 +225,7 @@ struct ScoreCardViewClip: View {
         VStack{
             HStack {
                 Button {
-                    gameModel.setCompletedGame(true)
-                    endGame()
-                    withAnimation {
-                        showRecap = true
-                    }
+                    showEndGame = true
                 }  label: {
                     ZStack {
                         RoundedRectangle(cornerRadius: 25)
@@ -199,6 +235,19 @@ struct ScoreCardViewClip: View {
                             .foregroundColor(.white).fontWeight(.bold)
                     }
                 }
+                .alert("Complete Game?", isPresented: $showEndGame) {
+                    Button("Complete") {
+                        gameModel.setCompletedGame(true)
+                        endGame()
+                        withAnimation {
+                            showRecap = true
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("You will not be able to change your scores after this point.")
+                }
+                
             }
             
             if course?.adTitle != ""{
@@ -271,6 +320,34 @@ struct ScoreCardViewClip: View {
         gameModel.finishAndPersistGame(in: context)
         // 2️⃣ now it’s safe to navigate
         
+    }
+    
+    var FC: some View{
+        
+        HStack{
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Get your free Blizzard!")
+                    .foregroundStyle(.mainOpp)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                
+                Text("Go to the counter to get your ticket for your blizzard!")
+                    .foregroundStyle(.mainOpp)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .padding(.trailing)
+            }
+            Spacer()
+            Image("shake")
+                .resizable()
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            Spacer()
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 25))
     }
 }
 
