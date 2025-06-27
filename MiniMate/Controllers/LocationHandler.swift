@@ -81,7 +81,7 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = "mini golf"
         request.region = region
-        if #available(iOS 16.0, *) {
+        if #available(iOS 18.0, *) {
             request.pointOfInterestFilter = .init(including: [.miniGolf])
         }
 
@@ -131,7 +131,7 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = "mini golf"
         request.region = region
-        if #available(iOS 16.0, *) {
+        if #available(iOS 18.0, *) {
             request.pointOfInterestFilter = .init(including: [.miniGolf])
         }
 
