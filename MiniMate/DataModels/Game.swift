@@ -55,7 +55,7 @@ class Game: Equatable {
         case id, location, date, completed,
              numberOfHoles, started, dismissed,
              totalTime, live, lastUpdated,
-             players, courseID  // <-- added courseID
+             players, courseID, editOn  // <-- added courseID
     }
 
     init(

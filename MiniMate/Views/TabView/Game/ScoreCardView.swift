@@ -242,6 +242,8 @@ struct ScoreCardView: View {
                         withAnimation {
                             showRecap = true
                         }
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: {

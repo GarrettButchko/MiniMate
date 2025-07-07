@@ -408,30 +408,6 @@ struct CourseView: View {
                                 : AnyShapeStyle(.ultraThinMaterial))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     
-                    
-                    
-                    if let timeZone = locationHandler.bindingForSelectedItem().wrappedValue?.timeZone {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4){
-                                HStack(spacing: 8) {
-                                    Image(systemName: "clock")
-                                    Text("Timezone")
-                                        .font(.headline)
-                                }
-                                Text(timeZone.identifier)
-                                    .font(.callout)
-                            }
-                            Spacer()
-                        }
-                        .padding()
-                        .background(colorScheme == .light
-                                    ? AnyShapeStyle(Color.white)
-                                    : AnyShapeStyle(.ultraThinMaterial))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    
-                    // MARK: - Timezone
-                    
                 }
             }
             .scrollContentBackground(.hidden)

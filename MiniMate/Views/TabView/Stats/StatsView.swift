@@ -22,6 +22,10 @@ struct StatsView: View {
     
     @State var latest = true
     @State var editOn = false
+    @State private var editingGameID: String? = nil
+    
+    @State private var offsetX: CGFloat = 0
+        @State private var isDismissed = false
     
     var body: some View {
         if let userModel = authModel.userModel {
@@ -42,29 +46,6 @@ struct StatsView: View {
                     .animation(.easeInOut(duration: 0.35), value: pickedSection)
                     
                     Spacer()
-                    
-                    ZStack{
-                        if pickedSection == "Games" {
-                            Button {
-                                withAnimation{
-                                    editOn.toggle()
-                                }
-                            } label: {
-                                if editOn {
-                                    Text("Done")
-                                        .transition(.opacity)
-                                } else {
-                                    Text("Edit")
-                                        .transition(.opacity)
-                                }
-                            }
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .move(edge: .trailing).combined(with: .opacity)
-                            ))
-                        }
-                    }
-                    .animation(.easeInOut(duration: 0.3), value: pickedSection)
                 }
                 
                 Picker("Section", selection: $pickedSection) {
@@ -114,44 +95,39 @@ struct StatsView: View {
     }
     
     var games: [Game] {
+        guard let userModel = authModel.userModel else { return [] }
+        let allGames = userModel.games
         
-        var gameTemp: [Game] = authModel.userModel!.games
-        
-        if !searchText.isEmpty {
-            withAnimation{
-                gameTemp = gameTemp.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
-            }
-        }
-        if latest {
-            withAnimation {
-                gameTemp = gameTemp.sorted(by: {$0.date > $1.date})
-            }
+        let filteredGames: [Game]
+        if searchText.isEmpty {
+            filteredGames = allGames
         } else {
-            withAnimation{
-                gameTemp = gameTemp.sorted(by: {$0.date < $1.date})
-            }
+            filteredGames = allGames.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
         }
-        return gameTemp
+        
+        let sortedGames: [Game]
+        if latest {
+            sortedGames = filteredGames.sorted { $0.date > $1.date }
+        } else {
+            sortedGames = filteredGames.sorted { $0.date < $1.date }
+        }
+        
+        return sortedGames
     }
     
     private var gamesSection: some View {
         ZStack{
-            ScrollView{
+            
+                ScrollView{
                     let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
                     
                     Rectangle()
-                        .frame(height: 60)
+                        .frame(height: 80)
                         .foregroundStyle(Color.clear)
                     if analyzer.hasGames {
                         ForEach(games) { game in
-                            Button {
-                                viewManager.navigateToGameReview(game)
-                            } label: {
-                                GameGridView(editOn: $editOn, authModel: authModel, game: game)
-                                    .padding(.vertical)
-                                    .transition(.opacity)
-                            }
-                            .transition(.opacity)
+                            GameRow(game: game, editOn: $editOn, editingGameID: $editingGameID, offsetX: $offsetX, authModel: authModel, viewManager: viewManager)
+                                .transition(.opacity)
                         }
                     } else {
                         Image("logoOpp")
@@ -159,9 +135,7 @@ struct StatsView: View {
                             .frame(width: 50, height: 50)
                             .padding()
                     }
-                
-                
-            }
+                }
             VStack{
                 HStack{
                     ZStack {
@@ -273,105 +247,6 @@ struct StatsView: View {
             }
     }
 
-}
-
-
-
-
-struct GameGridView: View {
-    @Binding var editOn: Bool
-    @StateObject var authModel: AuthViewModel
-    @Environment(\.modelContext) private var context
-    var game: Game
-    var sortedPlayers: [Player] {
-        game.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) { // Adds vertical spacing
-            // Game Info & Players Row
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(game.date.formatted(date: .abbreviated, time: .shortened))
-                        .font(.title3).fontWeight(.bold)
-                        .foregroundStyle(.mainOpp)
-                    
-                    Text("Number of Holes: \(game.numberOfHoles)")
-                        .font(.caption).foregroundColor(.secondary)
-                }
-                
-                    
-                    if game.players.count > 1 {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) { // Player icon spacing
-                                ForEach(game.players) { player in
-                                    if game.players.count != 0{
-                                        if player.id != game.players[0].id {
-                                            Divider()
-                                                .frame(height: 50)
-                                        }
-                                    }
-                                    
-                                        if sortedPlayers[0] == player {
-                                            PhotoIconView(photoURL: player.photoURL, name: player.name + "🥇", imageSize: 20, background: Color.yellow)
-                                        } else {
-                                            PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 20, background: .ultraThinMaterial)
-                                        }
-                                    
-                                }
-                            }
-                        }
-                        .frame(height: 50)
-                    } else {
-                        PhotoIconView(photoURL: game.players[0].photoURL, name: game.players[0].name, imageSize: 20, background: .ultraThinMaterial)
-                    }
-                
-            }
-            
-            // Bar Chart
-            BarChartView(data: averageStrokes(), title: "Average Strokes")
-            
-            if editOn {
-                HStack{
-                    
-                    ShareLink(item: makeShareableSummary(for: game)) {
-                      Image(systemName: "square.and.arrow.up")
-                            .font(.title2)
-                    }
-                    .padding()
-                    
-                    Button {
-                        if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
-                            withAnimation {
-                                
-                                _ = authModel.userModel?.games.remove(at: index)
-                            }
-                            authModel.saveUserModel(authModel.userModel!) { _ in }
-                        }
-                        context.delete(game)
-                    } label: {
-                        ZStack{
-                            Rectangle().fill(Color.red)
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                
-                            Text("Delete Game")
-                                .foregroundStyle(.white)
-                        }
-                    }
-                }
-                .transition(.asymmetric(
-                    insertion: .move(edge: .top).combined(with: .opacity),
-                    removal: .move(edge: .top).combined(with: .opacity)
-                ))
-                .frame(height: 32)
-            }
-        }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 25))
-    }
-    
-    
     /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
     func makeShareableSummary(for game: Game) -> String {
       var lines = ["MiniMate Scorecard",
@@ -393,6 +268,76 @@ struct GameGridView: View {
       lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
       return lines.joined(separator: "\n")
     }
+}
+
+
+
+
+struct GameGridView: View {
+    @Binding var editOn: Bool
+    @StateObject var authModel: AuthViewModel
+    @Environment(\.modelContext) private var context
+    var game: Game
+    var sortedPlayers: [Player] {
+        game.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
+    }
+
+    // FIXED: Bracket mismatch in GameGridView.body
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) { // Adds vertical spacing
+            // Game Info & Players Row
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(game.date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.title3).fontWeight(.bold)
+                        .foregroundStyle(.mainOpp)
+                    
+                    Text("Number of Holes: \(game.numberOfHoles)")
+                        .font(.caption).foregroundColor(.secondary)
+                }
+                
+                
+                if game.players.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) { // Player icon spacing
+                            ForEach(game.players) { player in
+                                if game.players.count != 0{
+                                    if player.id != game.players[0].id {
+                                        Divider()
+                                            .frame(height: 50)
+                                    }
+                                }
+                                
+                                if sortedPlayers[0] == player {
+                                    PhotoIconView(photoURL: player.photoURL, name: player.name + "🥇", imageSize: 20, background: Color.yellow)
+                                } else {
+                                    PhotoIconView(photoURL: player.photoURL, name: player.name, imageSize: 20, background: .ultraThinMaterial)
+                                }
+                                
+                            }
+                        }
+                    }
+                    .frame(height: 50)
+                } else {
+                    if sortedPlayers.count != 0 {
+                        PhotoIconView(photoURL: sortedPlayers[0].photoURL, name: sortedPlayers[0].name, imageSize: 20, background: .ultraThinMaterial)
+                    }
+                }
+                
+            }
+            
+            // Bar Chart
+            BarChartView(data: averageStrokes(), title: "Average Strokes")
+            
+            
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 25))
+    }
+    
+    
+    
     
     /// Returns one Hole per hole-number, whose `strokes` is the integer average
     /// across all players for that hole.
@@ -415,6 +360,155 @@ struct GameGridView: View {
             let avg = total / playerCount
             return Hole(number: idx + 1, par: 2, strokes: avg)
         }
+    }
+}
+
+struct GameRow: View {
+    var game: Game
+    @Binding var editOn: Bool
+    @Binding var editingGameID: String?
+    @Binding var offsetX: CGFloat
+    @StateObject var authModel: AuthViewModel
+    @Environment(\.modelContext) var context
+    var viewManager: ViewManager
+    @State private var lastOffsetX: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { proxy in
+            
+            HStack{
+                    GameGridView(editOn: $editOn, authModel: authModel, game: game)
+                        .padding(.vertical)
+                        .frame(width: proxy.size.width)
+                        .transition(.opacity)
+                        .offset(x: editingGameID == game.id ? offsetX : 0)
+                        .animation(.easeOut(duration: 0.3), value: offsetX)
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    if value.translation.width < 0 { // dragging left only
+                                        let totalOffset = lastOffsetX + value.translation.width
+                                        offsetX = totalOffset
+                                        if editingGameID != game.id{
+                                            editingGameID = game.id
+                                        }
+                                    }
+                                    if lastOffsetX + value.translation.width < 0 { // dragging left only
+                                        let totalOffset = lastOffsetX + value.translation.width
+                                        offsetX = totalOffset
+                                    }
+                                }
+                                .onEnded { value in
+                                    if value.translation.width < -220 {
+                                        // Slide off screen
+                                        withAnimation {
+                                            offsetX = -500
+                                            if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
+                                                _ = authModel.userModel?.games.remove(at: index)
+                                                
+                                                authModel.saveUserModel(authModel.userModel!) { _ in
+                                                    editingGameID = nil
+                                                }
+                                                context.delete(game)
+                                                
+                                            }
+                                        }
+                                    } else if value.translation.width > -220 && value.translation.width < -50 {
+                                        
+                                        withAnimation {
+                                            offsetX = -100
+                                        }
+                                        
+                                    } else {
+                                        withAnimation {
+                                            offsetX = 0
+                                            editingGameID = nil
+                                        }
+                                    }
+                                    
+                                    lastOffsetX = offsetX
+                                }
+                        )
+                        .onTapGesture {
+                            if editingGameID != game.id {
+                                viewManager.navigateToGameReview(game)
+                            }
+                        }
+                
+                
+                if editingGameID == game.id && offsetX < -10{
+                    
+                    VStack{
+                        
+                        if offsetX > -220 {
+                            ShareLink(item: makeShareableSummary(for: game)) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .fill(Color.blue)
+                                    
+                                    if offsetX < -50{
+                                        Image(systemName: "square.and.arrow.up")
+                                            .font(.title2)
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                            }
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                        
+                        Button {
+                            if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
+                                withAnimation {
+                                    
+                                    _ = authModel.userModel?.games.remove(at: index)
+                                }
+                                authModel.saveUserModel(authModel.userModel!) { _ in }
+                            }
+                            context.delete(game)
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 25)
+                                    .fill(Color.red)
+                                if offsetX < -50{
+                                    Image(systemName: "xmark")
+                                        .foregroundStyle(.white)
+                                        .font(.title2)
+                                }
+                            }
+                        }
+                    }
+                    .offset(x: editingGameID == game.id ? offsetX : 0)
+                    .frame(width: -offsetX - 10)
+                    .animation(.easeOut(duration: 0.3), value: offsetX)
+                    .padding(.trailing, 20)
+                    .transition(.opacity)
+                    .padding([.trailing, .vertical])
+                }
+            }
+        }
+        .frame(height: 210)
+    }
+    
+    /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
+    func makeShareableSummary(for game: Game) -> String {
+      var lines = ["MiniMate Scorecard",
+                   "Date: \(game.date.formatted(.dateTime))",
+                   ""]
+      
+      for player in game.players {
+          var holeLine = ""
+          
+          for hole in player.holes {
+                holeLine += "|\(hole.strokes)"
+          }
+          
+          lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
+          lines.append("Holes " + holeLine)
+          
+      }
+      lines.append("")
+      lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
+      return lines.joined(separator: "\n")
     }
 }
 
