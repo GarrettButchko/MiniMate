@@ -24,8 +24,17 @@ struct StatsView: View {
     @State var editOn = false
     @State private var editingGameID: String? = nil
     
-    @State private var offsetX: CGFloat = 0
-        @State private var isDismissed = false
+    @State private var isDismissed = false
+    
+    @State private var shareContent: String = ""
+    @State private var isSharePresented: Bool = false
+    
+    /// Presents the share sheet with the given text content.
+    /// This method sets the content to be shared and triggers the presentation of the share sheet.
+    private func presentShareSheet(with text: String) {
+        shareContent = text
+        isSharePresented = true
+    }
     
     var body: some View {
         if let userModel = authModel.userModel {
@@ -91,6 +100,9 @@ struct StatsView: View {
                 .animation(.easeInOut(duration: 0.3), value: pickedSection)
             }
             .padding([.top, .horizontal])
+            .sheet(isPresented: $isSharePresented) {
+                ActivityView(activityItems: [shareContent])
+            }
         }
     }
     
@@ -126,7 +138,7 @@ struct StatsView: View {
                         .foregroundStyle(Color.clear)
                     if analyzer.hasGames {
                         ForEach(games) { game in
-                            GameRow(game: game, editOn: $editOn, editingGameID: $editingGameID, offsetX: $offsetX, authModel: authModel, viewManager: viewManager)
+                            GameRow(game: game, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, viewManager: viewManager, presentShareSheet: presentShareSheet)
                                 .transition(.opacity)
                         }
                     } else {
@@ -367,127 +379,44 @@ struct GameRow: View {
     var game: Game
     @Binding var editOn: Bool
     @Binding var editingGameID: String?
-    @Binding var offsetX: CGFloat
     @StateObject var authModel: AuthViewModel
     @Environment(\.modelContext) var context
     var viewManager: ViewManager
-    @State private var lastOffsetX: CGFloat = 0
+    var presentShareSheet: (String) -> Void
+    
 
     var body: some View {
         GeometryReader { proxy in
-            
             HStack{
-                    GameGridView(editOn: $editOn, authModel: authModel, game: game)
-                        .padding(.vertical)
-                        .frame(width: proxy.size.width)
-                        .transition(.opacity)
-                        .offset(x: editingGameID == game.id ? offsetX : 0)
-                        .animation(.easeOut(duration: 0.3), value: offsetX)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    if value.translation.width < 0 { // dragging left only
-                                        let totalOffset = lastOffsetX + value.translation.width
-                                        offsetX = totalOffset
-                                        if editingGameID != game.id{
-                                            editingGameID = game.id
-                                        }
-                                    }
-                                    if lastOffsetX + value.translation.width < 0 { // dragging left only
-                                        let totalOffset = lastOffsetX + value.translation.width
-                                        offsetX = totalOffset
-                                    }
-                                }
-                                .onEnded { value in
-                                    if value.translation.width < -220 {
-                                        // Slide off screen
-                                        withAnimation {
-                                            offsetX = -500
-                                            if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
-                                                _ = authModel.userModel?.games.remove(at: index)
-                                                
-                                                authModel.saveUserModel(authModel.userModel!) { _ in
-                                                    editingGameID = nil
-                                                }
-                                                context.delete(game)
-                                                
-                                            }
-                                        }
-                                    } else if value.translation.width > -220 && value.translation.width < -50 {
-                                        
-                                        withAnimation {
-                                            offsetX = -100
-                                        }
-                                        
-                                    } else {
-                                        withAnimation {
-                                            offsetX = 0
-                                            editingGameID = nil
-                                        }
-                                    }
-                                    
-                                    lastOffsetX = offsetX
-                                }
-                        )
-                        .onTapGesture {
-                            if editingGameID != game.id {
-                                viewManager.navigateToGameReview(game)
-                            }
-                        }
-                
-                
-                if editingGameID == game.id && offsetX < -10{
-                    
-                    VStack{
-                        
-                        if offsetX > -220 {
-                            ShareLink(item: makeShareableSummary(for: game)) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 25)
-                                        .fill(Color.blue)
-                                    
-                                    if offsetX < -50{
-                                        Image(systemName: "square.and.arrow.up")
-                                            .font(.title2)
-                                            .foregroundStyle(.white)
-                                    }
-                                }
-                            }
-                            .transition(.scale.combined(with: .opacity))
-                        }
-                        
-                        Button {
-                            if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
-                                withAnimation {
-                                    
-                                    _ = authModel.userModel?.games.remove(at: index)
-                                }
-                                authModel.saveUserModel(authModel.userModel!) { _ in }
-                            }
-                            context.delete(game)
-                        } label: {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 25)
-                                    .fill(Color.red)
-                                if offsetX < -50{
-                                    Image(systemName: "xmark")
-                                        .foregroundStyle(.white)
-                                        .font(.title2)
-                                }
-                            }
-                        }
-                    }
-                    .offset(x: editingGameID == game.id ? offsetX : 0)
-                    .frame(width: -offsetX - 10)
-                    .animation(.easeOut(duration: 0.3), value: offsetX)
-                    .padding(.trailing, 20)
+                GameGridView(editOn: $editOn, authModel: authModel, game: game)
+                    .padding(.vertical)
+                    .frame(width: proxy.size.width)
                     .transition(.opacity)
-                    .padding([.trailing, .vertical])
+                    .swipeMod(
+                        editingID: $editingGameID,
+                        id: game.id,
+                        buttonPressFunction: {
+                            viewManager.navigateToGameReview(game)
+                        },
+                        buttonOne: ButtonSkim(color: Color.blue,
+                                              systemImage: "square.and.arrow.up",
+                                              string: makeShareableSummary(for: game))
+                    ) {
+                        if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
+                            withAnimation {
+                                
+                                _ = authModel.userModel?.games.remove(at: index)
+                            }
+                            authModel.saveUserModel(authModel.userModel!) { _ in }
+                        }
+                        context.delete(game)
+                    }
                 }
             }
-        }
         .frame(height: 210)
-    }
+        }
+        
+    
     
     /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
     func makeShareableSummary(for game: Game) -> String {
@@ -512,3 +441,12 @@ struct GameRow: View {
     }
 }
 
+struct ActivityView: UIViewControllerRepresentable {
+    var activityItems: [Any]
+    var applicationActivities: [UIActivity]? = nil
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems,
+                                 applicationActivities: applicationActivities)
+    }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}

@@ -17,8 +17,11 @@ struct CourseView: View {
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var locationHandler: LocationHandler
     
+    @StateObject private var viewModel = LookAroundViewModel()
+    
     @State var position: MapCameraPosition = .automatic
     @State var isUpperHalf: Bool = false
+    @State private var hasAppeared = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -121,11 +124,14 @@ struct CourseView: View {
                 }
             }
         }
-        .onAppear(){
-            isUpperHalf = false
-            locationHandler.mapItems = []
-            locationHandler.selectedItem = nil
-            position = locationHandler.updateCameraPosition()
+        .onAppear {
+            if !hasAppeared {
+                hasAppeared = true
+                isUpperHalf = false
+                locationHandler.mapItems = []
+                locationHandler.selectedItem = nil
+                position = locationHandler.updateCameraPosition()
+            }
         }
     }
     
@@ -320,10 +326,25 @@ struct CourseView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     
+                    
+                    
                     // MARK: - Contact Info
                     if let selected = locationHandler.bindingForSelectedItem().wrappedValue,
                        selected.phoneNumber != nil || selected.url != nil {
                         
+                        VStack {
+                            LookAroundPreview(scene: $viewModel.scene)
+                                .frame(height: 300)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+    
+                            if viewModel.scene == nil {
+                                ProgressView("Loading Look Around...")
+                                    .frame(height: 300)
+                            }
+                        }
+                        .onAppear {
+                            viewModel.fetchScene(for: selected)
+                        }
                         
                         HStack {
                             VStack(alignment: .leading, spacing: 8) {
@@ -496,3 +517,4 @@ struct SearchResultRow: View {
         return components.joined(separator: ", ")
     }
 }
+

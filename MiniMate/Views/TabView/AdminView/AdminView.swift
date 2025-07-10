@@ -97,7 +97,8 @@ struct CreatorView: View {
                                 Image(systemName: "arrow.forward")
                                     .foregroundStyle(.mainOpp)
                             }
-                        }.sheet(isPresented: $showSheet) {
+                        }
+                        .sheet(isPresented: $showSheet) {
                             if let adminId = selectedAdminId{
                                 LocationView(authModel: authModel, id: adminId)
                             } else {
