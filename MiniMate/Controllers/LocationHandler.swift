@@ -5,20 +5,20 @@
 //  Created by Garrett Butchko on 1/15/25.
 //  Updated: Implement CLLocationManagerDelegate methods to capture user location.
 
+import Contacts
 import MapKit
 import SwiftUI
-import Contacts
 
 class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var mapItems: [MKMapItem] = []
     @Published var selectedItem: MKMapItem?
     @Published var userLocation: CLLocationCoordinate2D?
     private let manager = CLLocationManager()
-    
-    var hasLocationAccess: Bool {
-        (manager.authorizationStatus == .authorizedAlways || manager.authorizationStatus == .authorizedWhenInUse)
-    }
 
+    var hasLocationAccess: Bool {
+        (manager.authorizationStatus == .authorizedAlways
+            || manager.authorizationStatus == .authorizedWhenInUse)
+    }
 
     override init() {
         super.init()
@@ -30,7 +30,10 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     // MARK: - CLLocationManagerDelegate
 
-    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+    func locationManager(
+        _ manager: CLLocationManager,
+        didChangeAuthorization status: CLAuthorizationStatus
+    ) {
         switch status {
         case .authorizedWhenInUse, .authorizedAlways:
             manager.startUpdatingLocation()
@@ -41,14 +44,20 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManager(
+        _ manager: CLLocationManager,
+        didUpdateLocations locations: [CLLocation]
+    ) {
         guard let location = locations.last else { return }
         DispatchQueue.main.async {
             self.userLocation = location.coordinate
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationManager(
+        _ manager: CLLocationManager,
+        didFailWithError error: Error
+    ) {
         print("Location manager failed: \(error.localizedDescription)")
     }
 
@@ -64,7 +73,9 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         Binding(
             get: { self.selectedItem?.idString },
             set: { newID in
-                self.selectedItem = self.mapItems.first(where: { $0.idString == newID })
+                self.selectedItem = self.mapItems.first(where: {
+                    $0.idString == newID
+                })
             }
         )
     }
@@ -100,13 +111,21 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
 
             let sorted: [MKMapItem]
             if let coord = self.userLocation {
-                let userLoc = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
+                let userLoc = CLLocation(
+                    latitude: coord.latitude,
+                    longitude: coord.longitude
+                )
                 sorted = items.sorted { a, b in
-                    let la = CLLocation(latitude: a.placemark.coordinate.latitude,
-                                        longitude: a.placemark.coordinate.longitude)
-                    let lb = CLLocation(latitude: b.placemark.coordinate.latitude,
-                                        longitude: b.placemark.coordinate.longitude)
-                    return la.distance(from: userLoc) < lb.distance(from: userLoc)
+                    let la = CLLocation(
+                        latitude: a.placemark.coordinate.latitude,
+                        longitude: a.placemark.coordinate.longitude
+                    )
+                    let lb = CLLocation(
+                        latitude: b.placemark.coordinate.latitude,
+                        longitude: b.placemark.coordinate.longitude
+                    )
+                    return la.distance(from: userLoc)
+                        < lb.distance(from: userLoc)
                 }
             } else {
                 sorted = items
@@ -119,14 +138,13 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
-    
     func findClosestMiniGolf(completion: @escaping (MKMapItem?) -> Void) {
         guard let userLoc = userLocation else {
             completion(nil)
             return
         }
 
-        let region = makeRegion(centeredOn: userLoc, radiusInMeters: 8046.72) // 5 miles in meters
+        let region = makeRegion(centeredOn: userLoc, radiusInMeters: 8046.72)  // 5 miles in meters
 
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = "mini golf"
@@ -137,24 +155,37 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
 
         let search = MKLocalSearch(request: request)
         search.start { response, error in
-            guard error == nil, let items = response?.mapItems, !items.isEmpty else {
+            guard error == nil, let items = response?.mapItems, !items.isEmpty
+            else {
                 completion(nil)
                 return
             }
 
-            let userLocation = CLLocation(latitude: userLoc.latitude, longitude: userLoc.longitude)
+            let userLocation = CLLocation(
+                latitude: userLoc.latitude,
+                longitude: userLoc.longitude
+            )
             let sorted = items.sorted {
-                let a = CLLocation(latitude: $0.placemark.coordinate.latitude, longitude: $0.placemark.coordinate.longitude)
-                let b = CLLocation(latitude: $1.placemark.coordinate.latitude, longitude: $1.placemark.coordinate.longitude)
-                return a.distance(from: userLocation) < b.distance(from: userLocation)
+                let a = CLLocation(
+                    latitude: $0.placemark.coordinate.latitude,
+                    longitude: $0.placemark.coordinate.longitude
+                )
+                let b = CLLocation(
+                    latitude: $1.placemark.coordinate.latitude,
+                    longitude: $1.placemark.coordinate.longitude
+                )
+                return a.distance(from: userLocation)
+                    < b.distance(from: userLocation)
             }
 
             completion(sorted.first)
         }
     }
-    
+
     // MARK: - Camera Positioning
-    func updateCameraPosition(_ selectedResult: MKMapItem? = nil) -> MapCameraPosition {
+    func updateCameraPosition(_ selectedResult: MKMapItem? = nil)
+        -> MapCameraPosition
+    {
         var cameraPosition: MapCameraPosition = .automatic
 
         if let selected = selectedResult {
@@ -172,20 +203,31 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
                 )
             )
         } else if !mapItems.isEmpty {
-            if let region = computeBoundingRegion(from: mapItems, offsetDownward: true) {
+            if let region = computeBoundingRegion(
+                from: mapItems,
+                offsetDownward: true
+            ) {
                 cameraPosition = .region(region)
             }
         } else if let userLoc = userLocation {
             cameraPosition = .region(
-                MKCoordinateRegion(center: userLoc,
-                                   span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05))
+                MKCoordinateRegion(
+                    center: userLoc,
+                    span: MKCoordinateSpan(
+                        latitudeDelta: 0.05,
+                        longitudeDelta: 0.05
+                    )
+                )
             )
         }
 
         return cameraPosition
     }
 
-    private func computeBoundingRegion(from items: [MKMapItem], offsetDownward: Bool = false) -> MKCoordinateRegion? {
+    private func computeBoundingRegion(
+        from items: [MKMapItem],
+        offsetDownward: Bool = false
+    ) -> MKCoordinateRegion? {
         let coords = items.map { $0.placemark.coordinate }
         guard !coords.isEmpty else { return nil }
 
@@ -194,16 +236,37 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         let minLon = coords.map { $0.longitude }.min() ?? 0
         let maxLon = coords.map { $0.longitude }.max() ?? 0
 
-        let latPadding = (maxLat - minLat) * 0.3
-        let lonPadding = (maxLon - minLon) * 0.3
+        // Padding as a fraction of the points' range
+        let latRange = maxLat - minLat
+        let lonRange = maxLon - minLon
+        let topPaddingFactor: Double = 0.15 // 20% extra padding on top
+        let bottomPaddingFactor: Double = 0.1 // 10% padding on bottom
+        let lonPaddingFactor: Double = 0.0 // same as before
 
-        let centerLat = ((minLat + maxLat) / 2) - (offsetDownward ? latPadding : 0)
+        // The points should fit in the top 2/5 (40%) of the region,
+        // so expand the total vertical span by dividing by 0.4
+        let paddedLatDelta = latRange / 0.5
+        let topPadding = paddedLatDelta * topPaddingFactor
+        let bottomPadding = paddedLatDelta * bottomPaddingFactor
+        let latitudeDelta = paddedLatDelta + topPadding + bottomPadding
+        let longitudeDelta = lonRange + (lonRange * lonPaddingFactor)
+
+        // Shift center UPWARD so region places points at top
+        let regionBottom = minLat - bottomPadding
+        let regionTop = maxLat + topPadding
+        // center = halfway between regionTop and regionBottom, shifted up
+        let centerLat = regionTop - latitudeDelta * 0.5
         let centerLon = (minLon + maxLon) / 2
 
-        let span = MKCoordinateSpan(latitudeDelta: (maxLat - minLat) + latPadding,
-                                    longitudeDelta: (maxLon - minLon) + lonPadding)
+        let span = MKCoordinateSpan(
+            latitudeDelta: latitudeDelta,
+            longitudeDelta: longitudeDelta
+        )
 
-        return MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon), span: span)
+        return MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+            span: span
+        )
     }
 
     // MARK: - Helpers
@@ -211,7 +274,9 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         let placemark = mapItem.placemark
         var components: [String] = []
         if let sub = placemark.subThoroughfare { components.append(sub) }
-        if let thoroughfare = placemark.thoroughfare { components.append(thoroughfare) }
+        if let thoroughfare = placemark.thoroughfare {
+            components.append(thoroughfare)
+        }
         if let locality = placemark.locality { components.append(locality) }
         if let area = placemark.administrativeArea { components.append(area) }
         return components.joined(separator: ", ")
@@ -219,8 +284,10 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     func setClosestValue() {
         guard selectedItem == nil, let userLoc = userLocation else { return }
-        let region = MKCoordinateRegion(center: userLoc,
-                                        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05))
+        let region = MKCoordinateRegion(
+            center: userLoc,
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )
         performSearch(in: region) { _ in
             self.setSelectedItem(self.mapItems.first)
         }

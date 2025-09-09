@@ -95,7 +95,7 @@ struct MainView: View {
                                 VStack(spacing: 20){
                                     Rectangle()
                                         .fill(Color.clear)
-                                        .frame(height: 115)
+                                        .frame(height: 100)
                                     
                                     if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
                                         VStack{
@@ -212,8 +212,6 @@ struct MainView: View {
                         TitleView()
                             .frame(height: 150)
                         
-                        
-                        
                         VStack {
                             HStack {
                                 ZStack {
@@ -239,9 +237,9 @@ struct MainView: View {
                                             .frame(width: 30, height: 30)
                                     }
                                 }
-
+                                
                                 Spacer()
-
+                                
                                 ZStack {
                                     if isOnlineMode {
                                         Text("Online Options")
@@ -256,15 +254,15 @@ struct MainView: View {
                                     }
                                 }
                                 .animation(.easeInOut(duration: 0.35), value: isOnlineMode)
-
+                                
                                 Spacer()
-
+                                
                                 // Mirror the left spacer for symmetry
                                 Circle()
                                     .fill(Color.clear)
                                     .frame(width: 30, height: 30)
                             }
-
+                            
                             ZStack {
                                 if isOnlineMode {
                                     HStack(spacing: 16) {
@@ -277,7 +275,7 @@ struct MainView: View {
                                             HostView(showHost: $showHost, authModel: authModel, viewManager: viewManager, locationHandler: locationHandler, gameModel: gameModel)
                                                 .presentationDetents([.large])
                                         }
-
+                                        
                                         gameModeButton(title: "Join", icon: "person.2.fill", color: .orange) {
                                             gameModel.resetGame()
                                             showJoin = true
@@ -334,9 +332,11 @@ struct MainView: View {
                             
                         }
                         .padding()
-                        .ifAvailableGlassEffect()
-                        .clipShape(RoundedRectangle(cornerRadius: 25))
-                        .shadow(color: Color.black.opacity(0.1), radius: 10)
+                        .background(content: {
+                            RoundedRectangle(cornerRadius: 25)
+                                    .ifAvailableGlassEffect()
+                        })
+                    
                         
                         Spacer()
                         
@@ -478,14 +478,18 @@ struct MainView: View {
     }
 }
 
-extension View {
+extension Shape {
     @ViewBuilder
     func ifAvailableGlassEffect() -> some View {
         if #available(iOS 26.0, *) {
-            //self.glassEffect(in: RoundedRectangle(cornerRadius: 25))
-                //.background(.ultraThinMaterial.opacity(0.1))
+            self.fill(.ultraThinMaterial.opacity(0.1))
+                .glassEffect(in: self)
+                .clipShape(self)
+                .shadow(color: Color.black.opacity(0.1), radius: 10)
         } else {
-            self.background(.ultraThinMaterial)
+            self.fill(.ultraThinMaterial)
+                .clipShape(self)
+                .shadow(radius: 10)
         }
     }
 }

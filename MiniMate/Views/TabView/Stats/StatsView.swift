@@ -136,6 +136,7 @@ struct StatsView: View {
                     Rectangle()
                         .frame(height: 80)
                         .foregroundStyle(Color.clear)
+                    
                     if analyzer.hasGames {
                         ForEach(games) { game in
                             GameRow(game: game, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, viewManager: viewManager, presentShareSheet: presentShareSheet)
@@ -148,22 +149,15 @@ struct StatsView: View {
                             .padding()
                     }
                 }
+            
             VStack{
                 HStack{
                     ZStack {
-                        // Background with light fill
-                        if #available(iOS 26.0, *) {
-                            RoundedRectangle(cornerRadius: 25)
-                                .fill(.ultraThinMaterial.opacity(0.5))
-                                //.glassEffect()
-                                .frame(height: 50)
-                                .shadow(color: Color.black.opacity(0.1), radius: 10)
-                        } else {
-                            // Fallback on earlier versions
-                            RoundedRectangle(cornerRadius: 25)
-                                .fill(.ultraThinMaterial) // Light background
-                                .frame(height: 50)
-                        }
+                        
+                        RoundedRectangle(cornerRadius: 25)
+                            .ifAvailableGlassEffect()
+                            .frame(height: 50)
+                        
                         
                         HStack {
                             Image(systemName: "magnifyingglass")
@@ -185,17 +179,10 @@ struct StatsView: View {
                         
                         ZStack{
                             
-                            if #available(iOS 26.0, *) {
-                                Circle()
-                                    .fill(.ultraThinMaterial.opacity(0.5))
-                                    //.glassEffect()
-                                    .frame(width: 50, height: 50)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 10)
-                            } else {
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                                    .frame(width: 50, height: 50)
-                            }
+                            Circle()
+                                .ifAvailableGlassEffect()
+                                .frame(width: 50, height: 50)
+                                
                             
                             if latest{
                                 Image(systemName: "arrow.up")

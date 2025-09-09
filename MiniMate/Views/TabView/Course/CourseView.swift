@@ -34,28 +34,19 @@ struct CourseView: View {
                     VStack {
                         // Top Bar
                         HStack {
-                            if #available(iOS 26.0, *) {
-                                Text("Course Search")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                                    .padding()
-                                    .frame(height: 40)
-                                    .background(.ultraThinMaterial.opacity(0.1))
-                                   // .glassEffect()
-                                    .clipShape(RoundedRectangle(cornerRadius: 25))
-                                    .shadow(color: Color.black.opacity(0.1), radius: 10)
-                            } else {
-                                Text("Course Search")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                                    .padding()
-                                    .frame(height: 40)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(RoundedRectangle(cornerRadius: 25))
-                                    .shadow(radius: 10)
-                            }
+                            
+                            Text("Course Search")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .padding()
+                                .frame(height: 40)
+                                .background(content: {
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .ifAvailableGlassEffect()
+                                })
+                                
+                            
                             
                             Spacer()
                             
@@ -70,42 +61,30 @@ struct CourseView: View {
                             searchButton
                         } else {
                             
-                            
-                            if #available(iOS 26.0, *) {
-                                VStack{
-                                    if locationHandler.selectedItem != nil {
-                                        resultView
-                                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                                    } else {
-                                        searchResultsView
-                                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                                    }
+                            VStack{
+                                if locationHandler.selectedItem != nil {
+                                    resultView
+                                        .padding([.horizontal, .top])
+                                        .background(content: {
+                                            RoundedRectangle(cornerRadius: 25)
+                                                .ifAvailableGlassEffect()
+                                        })
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                                } else {
+                                    searchResultsView
+                                        .padding([.horizontal, .top])
+                                        .background(content: {
+                                            RoundedRectangle(cornerRadius: 25)
+                                                .ifAvailableGlassEffect()
+                                        })
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                        .clipShape(RoundedRectangle(cornerRadius: 25))
                                 }
-                                .padding()
-                                .frame(height: geometry.size.height * 0.4)
-                                .background(.ultraThinMaterial.opacity(0.1))
-                                //.glassEffect(in: RoundedRectangle(cornerRadius: 25))
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                                .shadow(color: Color.black.opacity(0.1), radius: 10)
-                            } else {
-                                VStack{
-                                    if locationHandler.selectedItem != nil {
-                                        resultView
-                                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                                    } else {
-                                        searchResultsView
-                                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                                    }
-                                }
-                                .padding()
-                                .frame(height: geometry.size.height * 0.4)
-                                .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                                .shadow(radius: 10)
                             }
-
+                            .frame(height: geometry.size.height * 0.4)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        
                             
                         }
                     }
@@ -224,10 +203,10 @@ struct CourseView: View {
                     
                     Text("Cancel")
                         .frame(width: 70, height: 30)
-                        .background(colorScheme == .light
-                                    ? AnyShapeStyle(Color.white)
-                                    : AnyShapeStyle(.ultraThinMaterial))
+                        .background(.blue)
+                        .foregroundStyle(.white)
                         .clipShape(Capsule())
+                        .shadow(color: Color.black.opacity(0.1), radius: 5)
                     
                 }
             }
@@ -251,6 +230,9 @@ struct CourseView: View {
                         Text("Fetching location...")
                     }
                 }
+                Rectangle()
+                    .fill(.clear)
+                    .frame(height: 4)
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
@@ -273,10 +255,10 @@ struct CourseView: View {
                         
                         Text("Back")
                             .frame(width: 70, height: 30)
-                            .background(colorScheme == .light
-                                        ? AnyShapeStyle(Color.white)
-                                        : AnyShapeStyle(.ultraThinMaterial))
+                            .background(.blue)
+                            .foregroundStyle(.white)
                             .clipShape(Capsule())
+                            .shadow(color: Color.black.opacity(0.1), radius: 5)
                         
                         
                     }
@@ -333,15 +315,19 @@ struct CourseView: View {
                        selected.phoneNumber != nil || selected.url != nil {
                         
                         VStack {
-                            LookAroundPreview(scene: $viewModel.scene)
-                                .frame(height: 300)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-    
                             if viewModel.scene == nil {
-                                ProgressView("Loading Look Around...")
-                                    .frame(height: 300)
+                                HStack{
+                                    Spacer()
+                                    ProgressView("Loading Look Around...")
+                                    Spacer()
+                                }
+                            } else {
+                                LookAroundPreview(scene: $viewModel.scene)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .shadow(color: Color.black.opacity(0.1), radius: 10)
                             }
                         }
+                        .frame(height: 200)
                         .onAppear {
                             viewModel.fetchScene(for: selected)
                         }
@@ -391,6 +377,7 @@ struct CourseView: View {
                                     }
                                 }
                             }
+                            .shadow(color: Color.black.opacity(0.1), radius: 10)
                             Spacer()
                         }
                         .padding()
@@ -398,8 +385,6 @@ struct CourseView: View {
                                     ? AnyShapeStyle(Color.white)
                                     : AnyShapeStyle(.ultraThinMaterial))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                        
                     }
                     
                     // MARK: - Location Info
@@ -430,6 +415,10 @@ struct CourseView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     
                 }
+                
+                Rectangle()
+                    .fill(.clear)
+                    .frame(height: 8)
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
@@ -452,19 +441,13 @@ struct LocationButton: View {
             }
         }) {
             ZStack {
-                if #available(iOS 26.0, *) {
-                    Circle()
-                        .fill(.ultraThinMaterial.opacity(0.1))
-                        //.glassEffect()
-                        .frame(width: 40, height: 40)
-                } else {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 40, height: 40)
-                }
+                Circle()
+                    .ifAvailableGlassEffect()
+                    .frame(width: 40, height: 40)
+                
                 Image(systemName: "location.fill")
                     .resizable()
-                    .foregroundColor(.primary)
+                    .foregroundColor(.mainOpp)
                     .frame(width: 20, height: 20)
             }
         }
