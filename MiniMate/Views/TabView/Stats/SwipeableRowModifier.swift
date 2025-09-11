@@ -78,63 +78,11 @@ struct SwipeableRowModifier: ViewModifier {
         content
             .offset(x: offsetX)
             .animation(.easeOut(duration: 0.3), value: offsetX)
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        // Only handle horizontal drags, ignore vertical drags so scrolling works
-                        
-                            if value.translation.width < resetPoint { // dragging left only
-                                withAnimation(){
-                                    let totalOffset = lastOffsetX + value.translation.width
-                                    offsetX = totalOffset
-                                    if editingID != id {
-                                        editingID = id
-                                    }
-                                }
-                            }
-                            if lastOffsetX + value.translation.width < resetPoint { // dragging left only
-                                withAnimation(){
-                                    let totalOffset = lastOffsetX + value.translation.width
-                                    offsetX = totalOffset
-                                }
-                            }
-                            if offsetX == deletePoint {
-                                let generator = UIImpactFeedbackGenerator(style: .medium)
-                                generator.impactOccurred()
-                            }
-                        
-                    }
-                    .onEnded { value in
-                        // Only handle horizontal drags
-                        
-                            if offsetX < -220 {
-                                // Slide off screen
-                                if let deleteFunction = deleteFunction {
-                                    withAnimation(){
-                                        deleteFunction()
-                                    }
-                                }
-                            } else if offsetX > deletePoint && offsetX < commitPoint {
-                                withAnimation {
-                                    offsetX = -100
-                                }
-                            } else {
-                                withAnimation(){
-                                    editingID = nil
-                                }
-                                
-                            }
-                            withAnimation(){
-                                lastOffsetX = offsetX
-                            }
-                        
-                    }
+            .simultaneousGesture(dragGesture)
+            .highPriorityGesture(
+                tapGesture
+                    .exclusively(before: dragGesture)
             )
-            .onTapGesture {
-                if editingID != id {
-                    buttonPressFunction()
-                }
-            }
             .onChange(of: editingID) { oldValue, newValue in
                 if newValue != id {
                     withAnimation(){
@@ -166,19 +114,25 @@ struct SwipeableRowModifier: ViewModifier {
                         }
                     }
                     
-                    Button {
-                        deleteFunc()
-                    } label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 25)
-                                .fill(Color.red)
-                            if offsetX < -35 {
-                                Image(systemName: "xmark")
-                                    .foregroundStyle(.white)
-                                    .font(.title2)
-                                    .opacity(offsetX < -50 ? 1 : 0)
+                    GeometryReader { proxy in
+                        Button {
+                            deleteFunc()
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 25)
+                                    .fill(Color.red)
+                                if offsetX < -35 {
+                                    Image(systemName: "xmark")
+                                        .foregroundStyle(.white)
+                                        .font(.title2)
+                                        .opacity(offsetX < commitPoint ? 1 : 0)
+                                }
+                                
                             }
-                            
+                        }
+                        .onChange(of: proxy.size.height) { _, newValue in
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
                         }
                     }
                 } else {
@@ -206,6 +160,64 @@ struct SwipeableRowModifier: ViewModifier {
             .padding([.trailing, .vertical])
         }
     }
+    
+    var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 20)
+            .onChanged { value in
+                
+                    if value.translation.width < resetPoint { // dragging left only
+                        withAnimation(){
+                            let totalOffset = lastOffsetX + value.translation.width
+                            offsetX = totalOffset
+                            if editingID != id {
+                                editingID = id
+                            }
+                        }
+                    }
+                    if lastOffsetX + value.translation.width < resetPoint {
+                        withAnimation(){
+                            let totalOffset = lastOffsetX + value.translation.width
+                            offsetX = totalOffset
+                        }
+                    }
+                    if offsetX == deletePoint {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                    }
+                
+            }
+            .onEnded { value in
+
+                    if offsetX < deletePoint {
+                        if let deleteFunction = deleteFunction {
+                            withAnimation(){
+                                deleteFunction()
+                            }
+                        }
+                    } else if offsetX > deletePoint && offsetX < commitPoint {
+                        withAnimation {
+                            offsetX = pausePoint
+                        }
+                    } else {
+                        withAnimation(){
+                            editingID = nil
+                        }
+                    }
+                    withAnimation(){
+                        lastOffsetX = offsetX
+                    }
+                
+            }
+    }
+    
+    var tapGesture: some Gesture {
+        TapGesture()
+            .onEnded { _ in
+                if editingID != id {
+                    buttonPressFunction()
+                }
+            }
+    }
 }
 
 extension View {
@@ -220,4 +232,3 @@ extension View {
         ))
     }
 }
-

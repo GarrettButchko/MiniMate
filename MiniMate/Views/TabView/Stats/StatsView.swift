@@ -130,25 +130,26 @@ struct StatsView: View {
     private var gamesSection: some View {
         ZStack{
             
-                ScrollView{
-                    let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
-                    
-                    Rectangle()
-                        .frame(height: 80)
-                        .foregroundStyle(Color.clear)
-                    
-                    if analyzer.hasGames {
-                        ForEach(games) { game in
-                            GameRow(game: game, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, viewManager: viewManager, presentShareSheet: presentShareSheet)
-                                .transition(.opacity)
-                        }
-                    } else {
-                        Image("logoOpp")
-                            .resizable()
-                            .frame(width: 50, height: 50)
-                            .padding()
+            ScrollView {
+                let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
+                
+                Rectangle()
+                    .frame(height: 80)
+                    .foregroundStyle(Color.clear)
+                
+                if analyzer.hasGames {
+                    ForEach(games) { game in
+                        GameRow(game: game, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, viewManager: viewManager, presentShareSheet: presentShareSheet)
+                            .transition(.opacity)
                     }
+                } else {
+                    Image("logoOpp")
+                        .resizable()
+                        .frame(width: 50, height: 50)
+                        .padding()
                 }
+            }
+            
             
             VStack{
                 HStack{
