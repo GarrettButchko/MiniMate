@@ -16,8 +16,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "21583BCA2DD2E77500EFB400"
-               BuildableName = "MiniMate Clip.app"
-               BlueprintName = "MiniMate Clip"
+               BuildableName = "MiniMate_Clip.app"
+               BlueprintName = "MiniMate_Clip"
                ReferencedContainer = "container:MiniMate.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,8 +46,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "21583BCA2DD2E77500EFB400"
-            BuildableName = "MiniMate Clip.app"
-            BlueprintName = "MiniMate Clip"
+            BuildableName = "MiniMate_Clip.app"
+            BlueprintName = "MiniMate_Clip"
             ReferencedContainer = "container:MiniMate.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -71,8 +71,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "21583BCA2DD2E77500EFB400"
-            BuildableName = "MiniMate Clip.app"
-            BlueprintName = "MiniMate Clip"
+            BuildableName = "MiniMate_Clip.app"
+            BlueprintName = "MiniMate_Clip"
             ReferencedContainer = "container:MiniMate.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

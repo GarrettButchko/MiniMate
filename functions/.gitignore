@@ -1,2 +1,70 @@
-node_modules/
-*.local
+# Xcode user-specific data
+*.xcuserstate
+*.xcuserdatad
+*.xccheckout
+*.moved-aside
+*.xcscmblueprint
+
+# Xcode build products
+build/
+DerivedData/
+*.o
+*.linkfilelist
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# CocoaPods (if you ever use it)
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Firebase / Google Services
+GoogleService-Info.plist
+MiniMate_Clip/GoogleService-Info.plist
+MiniMate Clip/GoogleService-Info.plist
+
+
+# Env files and local secrets
+*.env
+.env.*
+*.key
+*.pem
+*.p12
+*.mobileprovision
+*.cert
+*.der
+
+# User-specific Xcode project files
+project.xcworkspace/xcuserdata/
+project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+*.xcworkspace/xcuserdata/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Logs
+*.log
+
+# Temporary files
+*.swp
+*.swo
+*.tmp
