@@ -1,6 +1,6 @@
 {
-  "title": "MiniMate",
+  "title": "Mini Mate",
   "type": "iOS App",
-  "languages": ["Swift", "SwiftUI", "MapKit", "Firebase"],
+  "languages": [],
   "photos": []
 }
