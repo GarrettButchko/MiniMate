@@ -119,5 +119,4 @@ struct UserStatsAnalyzer {
     var hasGames: Bool {
         !(user.games.isEmpty)
     }
-    
 }

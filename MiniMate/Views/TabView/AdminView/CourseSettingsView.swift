@@ -257,32 +257,29 @@ struct CourseSettingsView: View {
                         .textFieldStyle(.roundedBorder)
                     }
                 }
-                
-                
-                
             }
             
             
             Section("Ad") {
-                HStack {
+                VStack {
                     Text("Ad Title:")
                     Spacer()
                     TextEditor(text: Binding(
                         get: { course.adTitle ?? "" },
                         set: {
                             // Limit to 10 characters manually
-                            let newValue = String($0.prefix(20))
+                            let newValue = String($0.prefix(40))
                             course.adTitle = newValue.isEmpty ? nil : newValue
                             authModel.addOrUpdateCourse(course) { _ in }
                         }
                     ))
-                    .frame(minHeight: 36, maxHeight: 60)
+                    .frame(minHeight: 40, maxHeight: 80)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(Color.gray.opacity(0.5), lineWidth: 1)
                     )
                 }
-                HStack {
+                VStack {
                     Text("Ad Description:")
                     Spacer()
                     TextEditor(text: Binding(
@@ -293,11 +290,13 @@ struct CourseSettingsView: View {
                             authModel.addOrUpdateCourse(course) { _ in }
                         }
                     ))
+                    .frame(minHeight: 60, maxHeight: 120)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(Color.gray.opacity(0.5), lineWidth: 1)
                     )
                 }
+                
                 HStack {
                     Text("Ad Link:")
                     Spacer()

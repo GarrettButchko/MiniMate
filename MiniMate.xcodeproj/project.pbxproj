@@ -19,23 +19,9 @@
 		215679C22D5175D9001BE574 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 215679C12D5175D9001BE574 /* FirebaseStorage */; };
 		215679C42D5175D9001BE574 /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 215679C32D5175D9001BE574 /* FirebaseStorageCombine-Community */; };
 		21583BC62DD2E48200EFB400 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */; };
-		21583BD72DD2E77600EFB400 /* MiniMate_Clip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 21583BCB2DD2E77500EFB400 /* MiniMate_Clip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2177134D2DDE6AC700AF367E /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 2177134C2DDE6AC700AF367E /* GoogleMobileAds */; };
-		2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */; };
 		21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A75C562DED16D100F32112 /* StoreKit.framework */; };
-		21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 21B352042DE665B1008B5815 /* GoogleMobileAds */; };
-		21C1A2542DF7A3F800F0846F /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 21C1A2532DF7A3F800F0846F /* FirebaseDatabase */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		21583BD52DD2E77600EFB400 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 213F26EE2D4D639100579FAE /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 21583BCA2DD2E77500EFB400;
-			remoteInfo = "MiniMate Clip";
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		210340152DBC4D5200F78FBF /* Embed Foundation Extensions */ = {
@@ -54,7 +40,6 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
 			dstSubfolderSpec = 16;
 			files = (
-				21583BD72DD2E77600EFB400 /* MiniMate_Clip.app in Embed App Clips */,
 			);
 			name = "Embed App Clips";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -64,60 +49,16 @@
 /* Begin PBXFileReference section */
 		210340022DBC4D5100F78FBF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		213F26F62D4D639100579FAE /* MiniMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiniMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		21583BCB2DD2E77500EFB400 /* MiniMate_Clip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiniMate_Clip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21A75C562DED16D100F32112 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		211967A42EB8073600D43CD1 /* Exceptions for "MiniMate_Clip" folder in "MiniMate_Clip" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 21583BCA2DD2E77500EFB400 /* MiniMate_Clip */;
-		};
 		211D233B2D55707100558873 /* Exceptions for "MiniMate" folder in "MiniMate" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 213F26F52D4D639100579FAE /* MiniMate */;
-		};
-		21583BDE2DD2EB5700EFB400 /* Exceptions for "MiniMate" folder in "MiniMate_Clip" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Assets.xcassets,
-				Controllers/AdminCodeResolver.swift,
-				"Controllers/Bundle-Decodable.swift",
-				Controllers/LocFuncs.swift,
-				Controllers/NetworkChecker.swift,
-				DataModels/Course.swift,
-				DataModels/Game.swift,
-				DataModels/Hole.swift,
-				DataModels/MapItemDTO.swift,
-				DataModels/Player.swift,
-				DataModels/UserModel.swift,
-				Misc/AddToLeaderBoardButton.swift,
-				Misc/AsyncImageView.swift,
-				Misc/CharacterLimitModifier.swift,
-				Misc/InterstitialAdView.swift,
-				"Misc/IsValidEmail-String.swift",
-				Misc/NumberPickerView.swift,
-				Misc/PhotoIconView.swift,
-				Misc/ProfanityFilter.swift,
-				Misc/SynchronizedScrollViews.swift,
-				Misc/UserInfoRow.swift,
-				Protocols/AuthViewManager.swift,
-				Protocols/NavigatableViewManager.swift,
-				Views/TabView/Game/RecapView.swift,
-				Views/TabView/MainView/TitleView.swift,
-				Views/TabView/Stats/BarChartView.swift,
-				Views/TabView/Stats/GameInfoReviewView.swift,
-				Views/TabView/Stats/GameReviewView.swift,
-				Views/TabView/Stats/SectionStatsView.swift,
-				Views/TabView/Stats/StatCard.swift,
-			);
-			target = 21583BCA2DD2E77500EFB400 /* MiniMate_Clip */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -126,17 +67,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				211D233B2D55707100558873 /* Exceptions for "MiniMate" folder in "MiniMate" target */,
-				21583BDE2DD2EB5700EFB400 /* Exceptions for "MiniMate" folder in "MiniMate_Clip" target */,
 			);
 			path = MiniMate;
-			sourceTree = "<group>";
-		};
-		21583BCC2DD2E77500EFB400 /* MiniMate_Clip */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				211967A42EB8073600D43CD1 /* Exceptions for "MiniMate_Clip" folder in "MiniMate_Clip" target */,
-			);
-			path = MiniMate_Clip;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -163,16 +95,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		21583BC82DD2E77500EFB400 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				21C1A2542DF7A3F800F0846F /* FirebaseDatabase in Frameworks */,
-				21B352052DE665B1008B5815 /* GoogleMobileAds in Frameworks */,
-				2184F4492DD3BDAC00C2D056 /* ConfettiSwiftUI in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -189,7 +111,6 @@
 			isa = PBXGroup;
 			children = (
 				213F26F82D4D639100579FAE /* MiniMate */,
-				21583BCC2DD2E77500EFB400 /* MiniMate_Clip */,
 				21033FFF2DBC4D5100F78FBF /* Frameworks */,
 				213F26F72D4D639100579FAE /* Products */,
 			);
@@ -199,7 +120,6 @@
 			isa = PBXGroup;
 			children = (
 				213F26F62D4D639100579FAE /* MiniMate.app */,
-				21583BCB2DD2E77500EFB400 /* MiniMate_Clip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -220,7 +140,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				21583BD62DD2E77600EFB400 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				213F26F82D4D639100579FAE /* MiniMate */,
@@ -245,31 +164,6 @@
 			productReference = 213F26F62D4D639100579FAE /* MiniMate.app */;
 			productType = "com.apple.product-type.application";
 		};
-		21583BCA2DD2E77500EFB400 /* MiniMate_Clip */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 21583BD82DD2E77600EFB400 /* Build configuration list for PBXNativeTarget "MiniMate_Clip" */;
-			buildPhases = (
-				21583BC72DD2E77500EFB400 /* Sources */,
-				21583BC82DD2E77500EFB400 /* Frameworks */,
-				21583BC92DD2E77500EFB400 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				21583BCC2DD2E77500EFB400 /* MiniMate_Clip */,
-			);
-			name = MiniMate_Clip;
-			packageProductDependencies = (
-				2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */,
-				21B352042DE665B1008B5815 /* GoogleMobileAds */,
-				21C1A2532DF7A3F800F0846F /* FirebaseDatabase */,
-			);
-			productName = "MiniMate Clip";
-			productReference = 21583BCB2DD2E77500EFB400 /* MiniMate_Clip.app */;
-			productType = "com.apple.product-type.application.on-demand-install-capable";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -282,9 +176,6 @@
 				TargetAttributes = {
 					213F26F52D4D639100579FAE = {
 						CreatedOnToolsVersion = 16.2;
-					};
-					21583BCA2DD2E77500EFB400 = {
-						CreatedOnToolsVersion = 16.3;
 					};
 				};
 			};
@@ -309,20 +200,12 @@
 			projectRoot = "";
 			targets = (
 				213F26F52D4D639100579FAE /* MiniMate */,
-				21583BCA2DD2E77500EFB400 /* MiniMate_Clip */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		213F26F42D4D639100579FAE /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		21583BC92DD2E77500EFB400 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -339,22 +222,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		21583BC72DD2E77500EFB400 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		21583BD62DD2E77600EFB400 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 21583BCA2DD2E77500EFB400 /* MiniMate_Clip */;
-			targetProxy = 21583BD52DD2E77600EFB400 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		213F27022D4D639200579FAE /* Debug */ = {
@@ -553,71 +421,6 @@
 			};
 			name = Release;
 		};
-		21583BD92DD2E77600EFB400 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = MiniMate_Clip/MiniMate_Clip.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_BITCODE = NO;
-				ENABLE_PREVIEWS = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MiniMate_Clip/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = MiniMate;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.2.7;
-				PRODUCT_BUNDLE_IDENTIFIER = net.circuitleaf.MiniMate.Clip;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		21583BDA2DD2E77600EFB400 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = MiniMate_Clip/MiniMate_Clip.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_BITCODE = NO;
-				ENABLE_PREVIEWS = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MiniMate_Clip/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = MiniMate;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.2.7;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = net.circuitleaf.MiniMate.Clip;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -635,15 +438,6 @@
 			buildConfigurations = (
 				213F27052D4D639200579FAE /* Debug */,
 				213F27062D4D639200579FAE /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		21583BD82DD2E77600EFB400 /* Build configuration list for PBXNativeTarget "MiniMate_Clip" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				21583BD92DD2E77600EFB400 /* Debug */,
-				21583BDA2DD2E77600EFB400 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -750,21 +544,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
-		};
-		2184F4482DD3BDAC00C2D056 /* ConfettiSwiftUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 21583BC42DD2E3DD00EFB400 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
-			productName = ConfettiSwiftUI;
-		};
-		21B352042DE665B1008B5815 /* GoogleMobileAds */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
-			productName = GoogleMobileAds;
-		};
-		21C1A2532DF7A3F800F0846F /* FirebaseDatabase */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 210BDE4B2D4DDFB80012E465 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseDatabase;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

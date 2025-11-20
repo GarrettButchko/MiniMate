@@ -470,16 +470,20 @@ class AuthViewModel: ObservableObject, AuthViewManager {
     /// Adds or updates a Course in Realtime Database
     func addOrUpdateCourse(_ course: Course, completion: @escaping (Bool) -> Void) {
         let ref = Database.database().reference().child("courses").child(course.id)
-        do {
-            let data = try JSONEncoder().encode(course)
-            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                ref.setValue(dict) { error, _ in
-                    completion(error == nil)
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let data = try JSONEncoder().encode(course)
+                if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    ref.setValue(dict) { error, _ in
+                        DispatchQueue.main.async {
+                            completion(error == nil)
+                        }
+                    }
                 }
+            } catch {
+                print("❌ Encoding course error: \(error.localizedDescription)")
+                DispatchQueue.main.async { completion(false) }
             }
-        } catch {
-            print("❌ Encoding game error: \(error.localizedDescription)")
-            completion(false)
         }
     }
     
@@ -499,38 +503,34 @@ class AuthViewModel: ObservableObject, AuthViewManager {
         }
     }
     
-    /// Fetches a Game by code once
+    
+    /// Fetches a Course by ID once, decoding safely on the main thread
     func fetchCourse(id: String, completion: @escaping (Course?) -> Void) {
         let ref = Database.database().reference().child("courses").child(id)
         ref.observeSingleEvent(of: .value) { snapshot in
             guard let value = snapshot.value else {
-                completion(nil)
+                DispatchQueue.main.async { completion(nil) }
                 return
             }
-
-            // Dump the raw dictionary for debugging
-            print("Raw snapshot value:", value)
             
             do {
                 guard let dict = value as? [String: Any] else {
                     print("Course value is not a dictionary:", value)
-                    completion(nil)
+                    DispatchQueue.main.async { completion(nil) }
                     return
                 }
+                
                 let data = try JSONSerialization.data(withJSONObject: dict)
-                
-                // For debugging: decode as [String: Any]
-                let jsonObject = try JSONSerialization.jsonObject(with: data)
-                print("JSON object:", jsonObject)
-                
                 let course = try JSONDecoder().decode(Course.self, from: data)
-                completion(course)
+                
+                DispatchQueue.main.async { completion(course) }
             } catch {
                 print("❌ Decoding course error: \(error.localizedDescription)")
-                completion(nil)
+                DispatchQueue.main.async { completion(nil) }
             }
         }
     }
+
     
     
     /// Deletes the user's account after reauthentication
