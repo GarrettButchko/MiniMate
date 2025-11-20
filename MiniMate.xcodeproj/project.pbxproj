@@ -72,7 +72,6 @@
 		211967A42EB8073600D43CD1 /* Exceptions for "MiniMate_Clip" folder in "MiniMate_Clip" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				"GoogleService-Info.sample.plist",
 				Info.plist,
 			);
 			target = 21583BCA2DD2E77500EFB400 /* MiniMate_Clip */;

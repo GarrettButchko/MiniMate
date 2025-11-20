@@ -252,7 +252,6 @@ class LocationHandler: NSObject, ObservableObject, CLLocationManagerDelegate {
         let longitudeDelta = lonRange + (lonRange * lonPaddingFactor)
 
         // Shift center UPWARD so region places points at top
-        let regionBottom = minLat - bottomPadding
         let regionTop = maxLat + topPadding
         // center = halfway between regionTop and regionBottom, shifted up
         let centerLat = regionTop - latitudeDelta * 0.5
