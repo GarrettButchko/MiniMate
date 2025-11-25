@@ -7,26 +7,30 @@
 import SwiftUI
 import ConfettiSwiftUI
 
-struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewManager & ObservableObject, Content: View>: View {
+struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: ObservableObject, Content: View>: View {
+    @Environment(\.modelContext) private var context
     @ObservedObject var authModel: AM
     @StateObject var viewManager: VM
+    
     @State var confettiTrigger: Bool = false
     @State var showReviewSheet: Bool = false
-    
+    @State var showLeaderBoardAlert: Bool = false
     
     @State var email: String = ""
     
     @State var course: Course?
     
-    @State var showLeaderBoardAlert: Bool = false
+    @State var game: Game?
+    
+    var gameID: String
+    
+    private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
     
     var sortedPlayers: [Player] {
-        let players = authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first!.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
-        if players.count > 1 {
-            return players
-        } else {
-            return [authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first!.players[0]]
-        }
+        guard let game = game else { return [] }
+
+        let players = game.players.sorted { $0.totalStrokes < $1.totalStrokes }
+        return players.isEmpty ? [] : players
     }
     
     let content: () -> Content
@@ -59,7 +63,7 @@ struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewMana
                                     .foregroundStyle(Color.yellow)
                                     .padding()
                             }
-                            AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[0])
+                            AddToLeaderBoardButton(course: course, player: sortedPlayers[0])
                         }
                         .padding()
                         .background(Color.yellow.opacity(0.2))
@@ -77,7 +81,7 @@ struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewMana
                                         .foregroundStyle(Color.gray)
                                         .padding()
                                 }
-                                AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[1])
+                                AddToLeaderBoardButton(course: course, player: sortedPlayers[1])
                             }
                             .padding()
                             .background(Color.gray.opacity(0.2))
@@ -93,7 +97,7 @@ struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewMana
                                             .foregroundStyle(Color.brown)
                                             .padding()
                                     }
-                                    AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[2])
+                                    AddToLeaderBoardButton(course: course, player: sortedPlayers[2])
                                 }
                                 .padding()
                                 .background(Color.brown.opacity(0.2))
@@ -114,7 +118,7 @@ struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewMana
                                                 .font(.subheadline)
                                                 .padding()
                                         }
-                                        AddToLeaderBoardButton(authModel: authModel, course: course, player: player)
+                                        AddToLeaderBoardButton(course: course, player: player)
                                     }
                                     .padding()
                                     .background(.ultraThinMaterial)
@@ -129,18 +133,21 @@ struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewMana
                         VStack{
                             HStack{
                                 PhotoIconView(photoURL: sortedPlayers[0].photoURL, name: sortedPlayers[0].name, imageSize: 70, background: .ultraThinMaterial)
+                                
                                 Spacer()
+                                
                                 Text(sortedPlayers[0].totalStrokes.description)
                                     .font(.title)
                                     .padding()
                             }
-                            AddToLeaderBoardButton(authModel: authModel, course: course, player: sortedPlayers[0])
+                            AddToLeaderBoardButton(course: course, player: sortedPlayers[0])
                         }
                         .padding()
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerSize: CGSize(width: 25, height: 25)))
                         
                     }
+                    
                     if sortedPlayers.count < 3 {
                         Spacer()
                         Spacer()
@@ -158,11 +165,13 @@ struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewMana
                     }
                     .frame(width: 140, height: 40)
                     .sheet(isPresented: $showReviewSheet){
-                        GameReviewView(viewManager: viewManager, game: authModel.userModel!.games.sorted(by: { $0.date > $1.date }).first!, course: course, isAppClip: true)
+                        if let game = game {
+                            GameReviewView(viewManager: viewManager, game: game, course: course, isAppClip: true)
+                        }
                     }
                     
-                    
                     content()
+                    
                 }
                 .confettiCannon(trigger: $confettiTrigger, num: 40, confettis: [.shape(.slimRectangle)])
                 .onAppear {
@@ -171,8 +180,15 @@ struct RecapView<VM: NavigatableViewManager & ObservableObject, AM: AuthViewMana
                 }
                 .padding()
             }
+            
+        }
+        .onAppear {
+            uniGameRepo.fetch(id: gameID) { game in
+                if let game = game {
+                    self.game = game
+                }
+            }
         }
     }
-    
 }
 

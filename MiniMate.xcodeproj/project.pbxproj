@@ -20,6 +20,7 @@
 		215679C42D5175D9001BE574 /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 215679C32D5175D9001BE574 /* FirebaseStorageCombine-Community */; };
 		21583BC62DD2E48200EFB400 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */; };
 		2177134D2DDE6AC700AF367E /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 2177134C2DDE6AC700AF367E /* GoogleMobileAds */; };
+		21A0A6AA2ECFCEE60060A93D /* MarqueeText in Frameworks */ = {isa = PBXBuildFile; productRef = 21A0A6A92ECFCEE60060A93D /* MarqueeText */; };
 		21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A75C562DED16D100F32112 /* StoreKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -87,6 +88,7 @@
 				21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */,
 				215679AE2D5175D9001BE574 /* FirebaseFirestore in Frameworks */,
 				215679B82D5175D9001BE574 /* FirebaseInstallations in Frameworks */,
+				21A0A6AA2ECFCEE60060A93D /* MarqueeText in Frameworks */,
 				211D23372D556B3C00558873 /* GoogleSignIn in Frameworks */,
 				215679A42D5175D9001BE574 /* FirebaseAuthCombine-Community in Frameworks */,
 				215679A82D5175D9001BE574 /* FirebaseCrashlytics in Frameworks */,
@@ -159,6 +161,7 @@
 				211D23382D556B3C00558873 /* GoogleSignInSwift */,
 				21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */,
 				2177134C2DDE6AC700AF367E /* GoogleMobileAds */,
+				21A0A6A92ECFCEE60060A93D /* MarqueeText */,
 			);
 			productName = MiniMate;
 			productReference = 213F26F62D4D639100579FAE /* MiniMate.app */;
@@ -193,6 +196,7 @@
 				211D23352D556B3C00558873 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				21583BC42DD2E3DD00EFB400 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
 				2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				21A0A6A82ECFCEE60060A93D /* XCRemoteSwiftPackageReference "MarqueeText" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 213F26F72D4D639100579FAE /* Products */;
@@ -477,6 +481,14 @@
 				minimumVersion = 12.4.0;
 			};
 		};
+		21A0A6A82ECFCEE60060A93D /* XCRemoteSwiftPackageReference "MarqueeText" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/joekndy/MarqueeText.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -544,6 +556,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2177134B2DDE6AC700AF367E /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		21A0A6A92ECFCEE60060A93D /* MarqueeText */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21A0A6A82ECFCEE60060A93D /* XCRemoteSwiftPackageReference "MarqueeText" */;
+			productName = MarqueeText;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

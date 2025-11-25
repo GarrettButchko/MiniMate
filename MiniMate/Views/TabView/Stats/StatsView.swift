@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Charts
+import MarqueeText
 
 struct StatsView: View {
     
@@ -14,6 +15,8 @@ struct StatsView: View {
     
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
+    
+    @State var userGames: [Game] = []
     
     var pickerSections = ["Games", "Overview"]
     
@@ -28,6 +31,8 @@ struct StatsView: View {
     
     @State private var shareContent: String = ""
     @State private var isSharePresented: Bool = false
+    
+    private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
     
     /// Presents the share sheet with the given text content.
     /// This method sets the content to be shared and triggers the presentation of the share sheet.
@@ -94,7 +99,7 @@ struct StatsView: View {
                                 editOn = false
                             }
                         }
-                            
+                        
                     }
                 }
                 .animation(.easeInOut(duration: 0.3), value: pickedSection)
@@ -103,18 +108,20 @@ struct StatsView: View {
             .sheet(isPresented: $isSharePresented) {
                 ActivityView(activityItems: [shareContent])
             }
+            .onAppear{
+                uniGameRepo.fetchAll(ids: userModel.gameIDs) { games in
+                    userGames = games
+                }
+            }
         }
     }
     
     var games: [Game] {
-        guard let userModel = authModel.userModel else { return [] }
-        let allGames = userModel.games
-        
         let filteredGames: [Game]
         if searchText.isEmpty {
-            filteredGames = allGames
+            filteredGames = userGames
         } else {
-            filteredGames = allGames.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
+            filteredGames = userGames.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
         }
         
         let sortedGames: [Game]
@@ -129,7 +136,6 @@ struct StatsView: View {
     
     private var gamesSection: some View {
         ZStack{
-            
             ScrollView {
                 let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
                 
@@ -139,7 +145,7 @@ struct StatsView: View {
                 
                 if analyzer.hasGames {
                     ForEach(games) { game in
-                        GameRow(game: game, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, viewManager: viewManager, presentShareSheet: presentShareSheet)
+                        GameRow(context: _context, games: $userGames, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, game: game, viewManager: viewManager, presentShareSheet: presentShareSheet)
                             .transition(.opacity)
                     }
                 } else {
@@ -183,7 +189,7 @@ struct StatsView: View {
                             Circle()
                                 .ifAvailableGlassEffect()
                                 .frame(width: 50, height: 50)
-                                
+                            
                             
                             if latest{
                                 Image(systemName: "arrow.up")
@@ -208,65 +214,65 @@ struct StatsView: View {
     
     private var overViewSection: some View {
         ScrollView {
-                let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
-                
-                SectionStatsView(title: "Basic Stats") {
-                    HStack{
-                        StatCard(title: "Games Played", value: "\(analyzer.totalGamesPlayed)", color: .blue)
-                        StatCard(title: "Players Faced", value: "\(analyzer.totalPlayersFaced)", color: .green)
-                        StatCard(title: "Holes Played", value: "\(analyzer.totalHolesPlayed)", color: .blue)
-                    }
-                    
-                    HStack{
-                        StatCard(title: "Average Strokes per Game", value: String(format: "%.1f", analyzer.averageStrokesPerGame), color: .blue)
-                        StatCard(title: "Average Strokes per Hole", value: String(format: "%.1f", analyzer.averageStrokesPerHole), color: .green)
-                    }
+            let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
+            
+            SectionStatsView(title: "Basic Stats") {
+                HStack{
+                    StatCard(title: "Games Played", value: "\(analyzer.totalGamesPlayed)", color: .blue)
+                    StatCard(title: "Players Faced", value: "\(analyzer.totalPlayersFaced)", color: .green)
+                    StatCard(title: "Holes Played", value: "\(analyzer.totalHolesPlayed)", color: .blue)
                 }
-                .padding(.top)
                 
-                SectionStatsView(title: "Average 18 Hole Game"){
-                    BarChartView(data: analyzer.averageHoles18, title: "Average Strokes")
+                HStack{
+                    StatCard(title: "Average Strokes per Game", value: String(format: "%.1f", analyzer.averageStrokesPerGame), color: .blue)
+                    StatCard(title: "Average Strokes per Hole", value: String(format: "%.1f", analyzer.averageStrokesPerHole), color: .green)
                 }
-                .padding(.top)
-                
-                
-                SectionStatsView(title: "Misc Stats") {
-                    HStack{
-                        StatCard(title: "Best Game", value: "\(analyzer.bestGameStrokes ?? 0)", color: .blue)
-                        StatCard(title: "Worst Game", value: "\(analyzer.worstGameStrokes ?? 0)", color: .green)
-                        StatCard(title: "Hole in One's", value: "\(analyzer.holeInOneCount)", color: .blue)
-                    }
-                }
-                .padding(.top)
-                
-                SectionStatsView(title: "Average 9 Hole Game"){
-                    BarChartView(data: analyzer.averageHoles9, title: "Average Strokes")
-                }
-                .padding(.top)
-                
             }
+            .padding(.top)
+            
+            SectionStatsView(title: "Average 18 Hole Game"){
+                BarChartView(data: analyzer.averageHoles18, title: "Average Strokes")
+            }
+            .padding(.top)
+            
+            
+            SectionStatsView(title: "Misc Stats") {
+                HStack{
+                    StatCard(title: "Best Game", value: "\(analyzer.bestGameStrokes ?? 0)", color: .blue)
+                    StatCard(title: "Worst Game", value: "\(analyzer.worstGameStrokes ?? 0)", color: .green)
+                    StatCard(title: "Hole in One's", value: "\(analyzer.holeInOneCount)", color: .blue)
+                }
+            }
+            .padding(.top)
+            
+            SectionStatsView(title: "Average 9 Hole Game"){
+                BarChartView(data: analyzer.averageHoles9, title: "Average Strokes")
+            }
+            .padding(.top)
+            
+        }
     }
-
+    
     /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
     func makeShareableSummary(for game: Game) -> String {
-      var lines = ["MiniMate Scorecard",
-                   "Date: \(game.date.formatted(.dateTime))",
-                   ""]
-      
-      for player in game.players {
-          var holeLine = ""
-          
-          for hole in player.holes {
+        var lines = ["MiniMate Scorecard",
+                     "Date: \(game.date.formatted(.dateTime))",
+                     ""]
+        
+        for player in game.players {
+            var holeLine = ""
+            
+            for hole in player.holes {
                 holeLine += "|\(hole.strokes)"
-          }
-          
-          lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
-          lines.append("Holes " + holeLine)
-          
-      }
-      lines.append("")
-      lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
-      return lines.joined(separator: "\n")
+            }
+            
+            lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
+            lines.append("Holes " + holeLine)
+            
+        }
+        lines.append("")
+        lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
+        return lines.joined(separator: "\n")
     }
 }
 
@@ -281,16 +287,37 @@ struct GameGridView: View {
     var sortedPlayers: [Player] {
         game.players.sorted(by: { $0.totalStrokes < $1.totalStrokes })
     }
-
+    
     // FIXED: Bracket mismatch in GameGridView.body
     var body: some View {
         VStack(alignment: .leading, spacing: 16) { // Adds vertical spacing
             // Game Info & Players Row
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(game.date.formatted(date: .abbreviated, time: .shortened))
-                        .font(.title3).fontWeight(.bold)
+                    
+                    
+                    if let gameLocName = game.location?.name{
+                        MarqueeText(
+                            text: gameLocName,
+                            font: UIFont.preferredFont(forTextStyle: .title3),
+                            leftFade: 16,
+                            rightFade: 16,
+                            startDelay: 2 // recommend 1–2 seconds for a subtle Apple-like pause
+                        )
                         .foregroundStyle(.mainOpp)
+                        .font(.title3).fontWeight(.bold)
+                    } else {
+                        MarqueeText(
+                            text: game.date.formatted(date: .abbreviated, time: .shortened),
+                            font: UIFont.preferredFont(forTextStyle: .title3),
+                            leftFade: 16,
+                            rightFade: 16,
+                            startDelay: 2 // recommend 1–2 seconds for a subtle Apple-like pause
+                        )
+                        .foregroundStyle(.mainOpp)
+                        .font(.title3).fontWeight(.bold)
+                    }
+                    
                     
                     Text("Number of Holes: \(game.numberOfHoles)")
                         .font(.caption).foregroundColor(.secondary)
@@ -345,7 +372,7 @@ struct GameGridView: View {
         let holeCount   = game.numberOfHoles
         let playerCount = game.players.count
         guard playerCount > 0 else { return [] }
-
+        
         // 1) Sum strokes per hole index (0-based)
         var sums = [Int](repeating: 0, count: holeCount)
         for player in game.players {
@@ -354,7 +381,7 @@ struct GameGridView: View {
                 sums[idx] += hole.strokes
             }
         }
-
+        
         // 2) Build averaged Hole objects
         return sums.enumerated().map { (idx, total) in
             let avg = total / playerCount
@@ -364,15 +391,22 @@ struct GameGridView: View {
 }
 
 struct GameRow: View {
-    var game: Game
+    @Environment(\.modelContext) var context
+    
+    
+    
+    @Binding var games: [Game]
     @Binding var editOn: Bool
     @Binding var editingGameID: String?
     @StateObject var authModel: AuthViewModel
-    @Environment(\.modelContext) var context
+    
+    var game: Game
+    
     var viewManager: ViewManager
     var presentShareSheet: (String) -> Void
     
-
+    var localGameRepo: LocalGameRepository { LocalGameRepository(context: context) }
+    
     var body: some View {
         GeometryReader { proxy in
             HStack{
@@ -390,42 +424,48 @@ struct GameRow: View {
                                               systemImage: "square.and.arrow.up",
                                               string: makeShareableSummary(for: game))
                     ) {
-                        if let index = authModel.userModel?.games.firstIndex(where: { $0.id == game.id }) {
-                            withAnimation {
+                        withAnimation {
+                            // 1. Remove from userModel.gameIDs
+                            if var user = authModel.userModel {
+                                user.gameIDs.removeAll(where: { $0 == game.id })
+                                authModel.userModel = user
                                 
-                                _ = authModel.userModel?.games.remove(at: index)
+                                // Save updated userModel
+                                authModel.saveUserModel(user) { _ in }
                             }
-                            authModel.saveUserModel(authModel.userModel!) { _ in }
+                            
+                            // 2. Delete from SwiftData via local repo
+                            localGameRepo.delete(id: game.id) { _ in }
+
+                            // 3. Update UI
+                            games.removeAll(where: { $0.id == game.id })
                         }
-                        context.delete(game)
                     }
-                }
             }
-        .frame(height: 210)
         }
-        
-    
+        .frame(height: 210)
+    }
     
     /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
     func makeShareableSummary(for game: Game) -> String {
-      var lines = ["MiniMate Scorecard",
-                   "Date: \(game.date.formatted(.dateTime))",
-                   ""]
-      
-      for player in game.players {
-          var holeLine = ""
-          
-          for hole in player.holes {
+        var lines = ["MiniMate Scorecard",
+                     "Date: \(game.date.formatted(.dateTime))",
+                     ""]
+        
+        for player in game.players {
+            var holeLine = ""
+            
+            for hole in player.holes {
                 holeLine += "|\(hole.strokes)"
-          }
-          
-          lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
-          lines.append("Holes " + holeLine)
-          
-      }
-      lines.append("")
-      lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
-      return lines.joined(separator: "\n")
+            }
+            
+            lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
+            lines.append("Holes " + holeLine)
+            
+        }
+        lines.append("")
+        lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
+        return lines.joined(separator: "\n")
     }
 }
 

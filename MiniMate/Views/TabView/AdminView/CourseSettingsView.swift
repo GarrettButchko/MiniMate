@@ -18,15 +18,19 @@ struct CourseSettingsView: View {
     
     @State var image: UIImage? = nil
     
+    @State private var colorStringToDelete: String? = nil
     @State private var parIndexToDelete: Int? = nil
     @State private var showDeleteColor: Bool = false
-    @State private var colorStringToDelete: String? = nil
+    @State private var showColor: Bool = false
     
     let colors: [Color] = [
         .red, .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .pink, .brown, .gray, .black
     ]
     
-    @State private var showColor: Bool = false
+    let adminCodeResolver = AdminCodeResolver()
+    let courseRepo = CourseRepository()
+    
+    
     
     init(authModel: AuthViewModel, course: Course) {
         self.authModel = authModel
@@ -55,7 +59,7 @@ struct CourseSettingsView: View {
                                         Button {
                                             withAnimation(){
                                                 course.colorsS.append(colorToString(color))
-                                                authModel.addOrUpdateCourse(course) { _ in }
+                                                courseRepo.addOrUpdateCourse(course) { _ in }
                                                 showColor = false
                                             }
                                         } label: {
@@ -112,7 +116,7 @@ struct CourseSettingsView: View {
     private var formView: some View {
         
         Form{
-            if AdminCodeResolver.idToTier(course.id)! >= 2 || authModel.userModel?.adminType == "CREATOR"{
+            if adminCodeResolver.idToTier(course.id)! >= 2 || authModel.userModel?.adminType == "CREATOR"{
                 Section("Course") {
                     HStack {
                         Text("Id:")
@@ -175,7 +179,7 @@ struct CourseSettingsView: View {
                                         switch result {
                                         case .success(let url):
                                             course.logo = url.absoluteString
-                                            authModel.addOrUpdateCourse(course) { _ in }
+                                            courseRepo.addOrUpdateCourse(course) { _ in }
                                         case .failure(let error):
                                             print("❌ Photo upload failed:", error)
                                         }
@@ -214,7 +218,7 @@ struct CourseSettingsView: View {
                                                 withAnimation{
                                                     _ = course.colorsS.remove(at: index)
                                                 }
-                                                authModel.addOrUpdateCourse(course) { _ in }
+                                                courseRepo.addOrUpdateCourse(course) { _ in }
                                                 colorStringToDelete = nil
                                             }
                                         })
@@ -251,7 +255,7 @@ struct CourseSettingsView: View {
                             get: { course.link ?? "" },
                             set: {
                                 course.link = $0.isEmpty ? nil : $0
-                                authModel.addOrUpdateCourse(course) { _ in }
+                                courseRepo.addOrUpdateCourse(course) { _ in }
                             }
                         ))
                         .textFieldStyle(.roundedBorder)
@@ -270,7 +274,7 @@ struct CourseSettingsView: View {
                             // Limit to 10 characters manually
                             let newValue = String($0.prefix(40))
                             course.adTitle = newValue.isEmpty ? nil : newValue
-                            authModel.addOrUpdateCourse(course) { _ in }
+                            courseRepo.addOrUpdateCourse(course) { _ in }
                         }
                     ))
                     .frame(minHeight: 40, maxHeight: 80)
@@ -287,7 +291,7 @@ struct CourseSettingsView: View {
                         set: {
                             let newValue = String($0.prefix(80))
                             course.adDescription = newValue.isEmpty ? nil : newValue
-                            authModel.addOrUpdateCourse(course) { _ in }
+                            courseRepo.addOrUpdateCourse(course) { _ in }
                         }
                     ))
                     .frame(minHeight: 60, maxHeight: 120)
@@ -304,7 +308,7 @@ struct CourseSettingsView: View {
                         get: { course.adLink ?? "" },
                         set: {
                             course.adLink = $0.isEmpty ? nil : $0
-                            authModel.addOrUpdateCourse(course) { _ in }
+                            courseRepo.addOrUpdateCourse(course) { _ in }
                         }
                     ))
                     .textFieldStyle(.roundedBorder)
@@ -360,7 +364,7 @@ struct CourseSettingsView: View {
                                     switch result {
                                     case .success(let url):
                                         course.adImage = url.absoluteString
-                                        authModel.addOrUpdateCourse(course) { _ in }
+                                        courseRepo.addOrUpdateCourse(course) { _ in }
                                     case .failure(let error):
                                         print("❌ Photo upload failed:", error)
                                     }
@@ -380,7 +384,7 @@ struct CourseSettingsView: View {
                             get: { hole.par},
                             set: {
                                 course.pars[hole.number] = $0
-                                authModel.addOrUpdateCourse(course) { _ in }
+                                courseRepo.addOrUpdateCourse(course) { _ in }
                             }
                         ), minNumber: 0, maxNumber: 10)
                         .frame(width: 75)
@@ -391,7 +395,7 @@ struct CourseSettingsView: View {
                     for index in filteredIndices {
                         withAnimation(){
                             _ = course.pars.remove(at: index)
-                            authModel.addOrUpdateCourse(course) { _ in }
+                            courseRepo.addOrUpdateCourse(course) { _ in }
                         }
                     }
                 }
@@ -400,7 +404,7 @@ struct CourseSettingsView: View {
                 Button {
                     withAnimation(){
                         course.pars.append(0)
-                        authModel.addOrUpdateCourse(course) { _ in }
+                        courseRepo.addOrUpdateCourse(course) { _ in }
                     }
                 } label: {
                     HStack{
@@ -416,22 +420,3 @@ struct CourseSettingsView: View {
         return String(describing: color)
     }
 }
-
-
-struct SystemColorPicker: View {
-    
-    @Binding var isShown: Bool
-    var onColorSelected: (Color) -> Void
-    var body: some View {
-        
-    }
-}
-
-
-
-// Usage: In your TextField, apply .characterLimit($yourText, maxLength: N)
-// Example:
-// TextField("Max 10 chars", text: $yourText)
-//   .characterLimit($yourText, maxLength: 10)
-
-

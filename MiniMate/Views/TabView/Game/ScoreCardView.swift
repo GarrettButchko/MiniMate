@@ -44,7 +44,7 @@ struct ScoreCardView: View {
                 }
             }
             if showRecap {
-                RecapView(authModel: authModel, viewManager: viewManager, course: course){
+                RecapView(authModel: authModel, viewManager: viewManager, course: course, gameID: gameModel.gameValue.id){
                     Button {
                         if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
                     
@@ -69,8 +69,10 @@ struct ScoreCardView: View {
             }
         }
         .onAppear {
-            AdminCodeResolver.resolve(id: gameModel.gameValue.courseID, authModel: authModel) { course in
-                self.course = course
+            if let courseID = gameModel.gameValue.courseID {
+                AdminCodeResolver().resolve(id: courseID) { course in
+                    self.course = course
+                }
             }
         }
     }
@@ -159,7 +161,7 @@ struct ScoreCardView: View {
                     PlayerColumnsView(
                         players: gameModel.binding(for: \.players),
                         game: gameModel.bindingForGame(),
-                        authModel: authModel, gameModel: gameModel, online: gameModel.onlineGame
+                        authModel: authModel, gameModel: gameModel, online: gameModel.isOnline
                     )
                 }
             }

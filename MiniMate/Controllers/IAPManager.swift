@@ -56,9 +56,6 @@ class IAPManager: ObservableObject {
             return false
         }
     }
-
-
-    
     
     func listenForTransactions() async {
         for await update in Transaction.updates {

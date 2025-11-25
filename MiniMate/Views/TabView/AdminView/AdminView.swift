@@ -72,7 +72,7 @@ struct CreatorView: View {
             .padding([.top, .horizontal])
             
             var filteredAdminAndId: [String: SmallCourse] {
-                var adminAndIdTemp = AdminCodeResolver.adminAndId
+                var adminAndIdTemp = AdminCodeResolver().adminAndId
                 if !searchText.isEmpty {
                     withAnimation {
                         adminAndIdTemp = adminAndIdTemp.filter { $0.value.name.lowercased().contains(searchText.lowercased()) }
@@ -139,10 +139,16 @@ struct LocationView: View {
     @State private var listenerHandle: DatabaseHandle?
     
     @State var course: Course? = nil
+    @State var courseLeaderboard: CourseLeaderboard? = nil
+    
     @State var id: String
     
     @State var editOn: Bool = false
     @State var showSettings: Bool = false
+    
+    let adminCodeResolver = AdminCodeResolver()
+    
+    let courseLeaderBoardRepo = CourseLeaderboardRepository()
     
     var body: some View {
         VStack {
@@ -163,7 +169,7 @@ struct LocationView: View {
                     }
                     
                     
-                    if AdminCodeResolver.idToTier(course.id)! >= 2{
+                    if adminCodeResolver.idToTier(course.id)! >= 2{
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("Leader Board")
@@ -175,15 +181,15 @@ struct LocationView: View {
                                         editOn.toggle()
                                     }
                                 } label: {
-                                    if course.leaderBoard != nil{
+                                    if let leaderboard = courseLeaderboard?.leaderBoard{
                                         Text(editOn ? "Done" : "Edit")
                                             .transition(.move(edge: .trailing).combined(with: .opacity))
                                     }
                                 }
                             }
-                            if let leaderBoard = course.leaderBoard{
+                            if let leaderboard = courseLeaderboard?.leaderBoard, let courseLeaderboard = courseLeaderboard{
                                 ScrollView{
-                                    LeaderBoardList(authModel: authModel, players: leaderBoard, course: course, editOn: $editOn)
+                                    LeaderBoardList(players: leaderboard, course: course, courseLeaderboard: courseLeaderboard, courseLeaderboardRepo: courseLeaderBoardRepo, editOn: $editOn)
                                 }
                             } else {
                                 Text("No players in leader board yet.")
@@ -225,7 +231,7 @@ struct LocationView: View {
                 Text("Your course could not load please wait a moment and try again.")
                 
                 Button {
-                    AdminCodeResolver.resolve(id: id, authModel: authModel) { course in
+                    adminCodeResolver.resolve(id: id) { course in
                         if let course = course{
                             withAnimation(){
                                 self.course = course
@@ -239,7 +245,7 @@ struct LocationView: View {
                 .padding()
                 
                 Button {
-                    self.course = Course(id: id, name: AdminCodeResolver.idToName(id) ?? "Error")
+                    self.course = Course(id: id, name: adminCodeResolver.idToName(id) ?? "Error")
                 } label: {
                     Text("Create template course")
                 }
@@ -247,71 +253,46 @@ struct LocationView: View {
         }
         .padding()
         .onAppear {
-            AdminCodeResolver.resolve(id: id, authModel: authModel) { course in
+            adminCodeResolver.resolve(id: id) { course in
                 if let course = course{
                     withAnimation(){
                         self.course = course
                     }
-                    listenForCourseUpdates()
+                }
+            }
+            courseLeaderBoardRepo.fetchCourseLeaderboard(id: id) { courseLeaderboard in
+                if let courseLeaderboard = courseLeaderboard {
+                    self.courseLeaderboard = courseLeaderboard
+                    courseLeaderBoardRepo.listenForCourseUpdates(id: id, listenerHandle: &listenerHandle) { courseLeaderboard in
+                        if let courseLeaderboard = courseLeaderboard {
+                            self.courseLeaderboard = courseLeaderboard
+                        }
+                    }
                 }
             }
         }
         .onDisappear {
-            stopListening()
+            courseLeaderBoardRepo.stopListening(id: id, listenerHandle: &listenerHandle)
         }
     }
-    
-    func stopListening() {
-      let ref = Database.database().reference().child("courses").child(id)
-        guard let handle = listenerHandle else { return }
-      ref.removeObserver(withHandle: handle)
-      listenerHandle = nil
-    }
-    
-    func listenForCourseUpdates() {
-        let ref = Database.database().reference().child("courses").child(id)
-
-        listenerHandle = ref.observe(.value) { snapshot in
-            guard let value = snapshot.value, !(value is NSNull) else {
-                print("⚠️ Snapshot value is nil or NSNull for id: \(id)")
-                withAnimation {
-                    self.course = nil
-                }
-                return
-            }
-            guard let dict = value as? [String: Any] else {
-                print("⚠️ Snapshot value could not be cast to [String: Any]: \(value)")
-                return
-            }
-            do {
-                let data = try JSONSerialization.data(withJSONObject: dict)
-                let updatedCourse = try JSONDecoder().decode(Course.self, from: data)
-                if self.course == nil || self.course != updatedCourse {
-                    withAnimation {
-                        self.course = updatedCourse
-                    }
-                }
-            } catch {
-                print("❌ Failed to decode Course from snapshot: \(error.localizedDescription)")
-            }
-        }
-    }
-
 }
 
 struct LeaderBoardList: View {
-    @ObservedObject var authModel: AuthViewModel
-    
     @State private var localPlayers: [PlayerDTO]
-    var course: Course
-    @Binding var editOn: Bool
-    
     @State var selectedPlayer: PlayerDTO? = nil
     
-    init(authModel: AuthViewModel, players: [PlayerDTO], course: Course, editOn: Binding<Bool>) {
-        self.authModel = authModel
+    @Binding var editOn: Bool
+
+    var courseLeaderboard: CourseLeaderboard
+    var course: Course
+    
+    let courseLeaderboardRepo: CourseLeaderboardRepository
+    
+    init(players: [PlayerDTO], course: Course, courseLeaderboard: CourseLeaderboard, courseLeaderboardRepo: CourseLeaderboardRepository, editOn: Binding<Bool>) {
         self._editOn = editOn
         self.course = course
+        self.courseLeaderboardRepo = courseLeaderboardRepo
+        self.courseLeaderboard = courseLeaderboard
         self._localPlayers = State(initialValue: players)
     }
 
@@ -347,9 +328,9 @@ struct LeaderBoardList: View {
                         withAnimation{
                             _ = localPlayers.remove(at: index)
                         }
-                        var courseCopy = course
-                        courseCopy.allPlayers = localPlayers
-                        authModel.addOrUpdateCourse(courseCopy) { _ in }
+                        var leaderBoardCopy = courseLeaderboard
+                        leaderBoardCopy.allPlayers = localPlayers
+                        courseLeaderboardRepo.addOrUpdateCourseLeaderboard(leaderBoardCopy) { _ in }
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .resizable()

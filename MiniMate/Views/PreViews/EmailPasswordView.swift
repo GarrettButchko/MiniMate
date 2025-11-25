@@ -166,7 +166,7 @@ struct EmailPasswordView: View {
                             id: user.uid,
                             name: email,
                             email: email,
-                            games: []
+                            gameIDs: []
                         )
                         authModel.userModel = newUser
                         context.insert(newUser)

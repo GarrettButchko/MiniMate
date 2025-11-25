@@ -11,10 +11,6 @@ import SwiftData
 import MapKit
 import Contacts
 
-// MARK: - Player
-
-// MARK: - Player
-
 @Model
 class Player: Identifiable, Equatable {
     @Attribute(.unique) var id: String = UUID().uuidString
@@ -108,6 +104,4 @@ struct PlayerDTO: Codable, Identifiable, Equatable {
     var totalStrokes: Int
     var inGame: Bool
     var holes: [HoleDTO]
-    
-    
 }

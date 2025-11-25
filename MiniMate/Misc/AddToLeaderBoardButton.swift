@@ -8,20 +8,18 @@ import SwiftUI
 
 struct AddToLeaderBoardButton: View{
     
-    @State var alert: Bool = false
-    
-    var authModel: any AuthViewManager
-    
     @State var course: Course?
-    
-    @State var email: String = ""
-    
+    @State var alert: Bool = false
     @State var added: Bool = false
+    @State var email: String = ""
     
     let player: Player
     
+    let adminCodeResolver = AdminCodeResolver()
+    let courseLeaderBoardRepo = CourseLeaderboardRepository()
+    
     var body: some View {
-        if let course = course, AdminCodeResolver.isAdminCodeThere(code: AdminCodeResolver.getCode(id: course.id)) && !(ProfanityFilter.containsBlockedWord(player.name) && player.incomplete) && !added && AdminCodeResolver.idToTier(course.id)! >= 2{
+        if let course = course, adminCodeResolver.isAdminCodeThere(code: adminCodeResolver.getCode(id: course.id)) && !(ProfanityFilter.containsBlockedWord(player.name) && player.incomplete) && !added && adminCodeResolver.idToTier(course.id)! >= 2{
             Button{
                 alert = true
             } label: {
@@ -42,39 +40,14 @@ struct AddToLeaderBoardButton: View{
             .alert("Enter a valid email to add to leaderboard?", isPresented: $alert) {
                 TextField("Name", text: $email)
         
-                Button("Add") {addToLeaderBoard(max: 20, course: course)}
+                Button("Add") {
+                    courseLeaderBoardRepo.addPlayerToLiveLeaderboard(player: player, course: course, email: email, max: 20, added: $added, courseRepository: CourseRepository()) { _ in }
+                }
                     .disabled(!email.isValidEmail)
                 Button("Cancel", role: .cancel) {}
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
-    
-    func addToLeaderBoard(max numberOfPlayers: Int, course: Course) {
-        var updatedCourse = course
-        
-        if course.leaderBoard!.count > numberOfPlayers {
-            if updatedCourse.leaderBoard?[numberOfPlayers - 1].totalStrokes ?? 60 < player.toDTO().totalStrokes {
-                updatedCourse.allPlayers?.append(player.toDTO())
-                if let playerToRemove = updatedCourse.leaderBoard?[numberOfPlayers - 1],
-                   let index = updatedCourse.allPlayers?.firstIndex(of: playerToRemove) {
-                    updatedCourse.allPlayers?.remove(at: index)
-                }
-                updatedCourse.emails?.append(email)
-                self.course = updatedCourse
-                authModel.addOrUpdateCourse(updatedCourse) { _ in }
-                withAnimation {
-                    added = true
-                }
-            }
-        } else {
-            updatedCourse.allPlayers?.append(player.toDTO())
-            updatedCourse.emails?.append(email)
-            self.course = updatedCourse
-            authModel.addOrUpdateCourse(updatedCourse) { _ in }
-            withAnimation {
-                added = true
-            }
-        }
-    }
 }
+

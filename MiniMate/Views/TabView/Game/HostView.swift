@@ -36,6 +36,8 @@ struct HostView: View {
     
     @State var showHolePicker: Bool = true
     
+    let adminCodeResolver = AdminCodeResolver()
+    
     var body: some View {
         VStack {
             Capsule()
@@ -44,7 +46,7 @@ struct HostView: View {
                 .padding(10)
             
             HStack {
-                Text(gameModel.onlineGame ? "Hosting Game" : "Game Setup")
+                Text(gameModel.isOnline ? "Hosting Game" : "Game Setup")
                     .font(.title)
                     .fontWeight(.bold)
                     .padding(.leading, 30)
@@ -89,11 +91,10 @@ struct HostView: View {
     }
     
     // MARK: - Sections
-    
     private var gameInfoSection: some View {
         Group {
             Section {
-                if gameModel.onlineGame {
+                if gameModel.isOnline {
                     HStack {
                         Text("Game Code:")
                         Spacer()
@@ -110,8 +111,8 @@ struct HostView: View {
                 
                 DatePicker("Date & Time", selection: gameModel.binding(for: \.date))
                     .onChange(of: locationHandler.selectedItem) { _, newValue in
-                        if AdminCodeResolver.matchName(newValue?.name ?? "Unknown"){
-                            AdminCodeResolver.resolve(name: newValue?.name ?? "Unknown", authModel: authModel) { course in
+                        if adminCodeResolver.matchName(newValue?.name ?? "Unknown"){
+                            adminCodeResolver.resolve(name: newValue?.name ?? "Unknown") { course in
                                 if let course = course {
                                     gameModel.setNumberOfHole(course.numOfHoles)
                                 } else {
@@ -141,8 +142,6 @@ struct HostView: View {
                         )
                     }
                 }
-                
-                
             } header: {
                 Text("Game Info")
             }
@@ -254,6 +253,16 @@ struct HostView: View {
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                     }
                 }
+                .onAppear {
+                    locationHandler.findClosestMiniGolf { closestPlace in
+                        withAnimation {
+                            locationHandler.selectedItem = closestPlace
+                            
+                            showTextAndButtons = true
+                        }
+                        gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
+                    }
+                }
             }
         }
     }
@@ -281,7 +290,7 @@ struct HostView: View {
                         }
                         .padding(.horizontal)
                     }
-                    if gameModel.onlineGame {
+                    if gameModel.isOnline {
                         VStack {
                             ProgressView()
                                 .scaleEffect(1.5)

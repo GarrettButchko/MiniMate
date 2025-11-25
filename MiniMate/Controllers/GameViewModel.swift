@@ -15,17 +15,20 @@ import SwiftData
 
 @dynamicMemberLookup
 final class GameViewModel: ObservableObject {
-    // MARK: - Published Game State
     
+    // Published Game State
     @Published private var game: Game
 
-    // MARK: - Dependencies & Config
-    var onlineGame: Bool
+    // Dependencies & Config
+    private var onlineGame: Bool
+    private var lastUpdated: Date = Date()
+    
+    private var liveGameRepo = LiveGameRepository()
+    private var adminCodeResolver = AdminCodeResolver()
     private var authModel: AuthViewModel
     private var listenerHandle: DatabaseHandle?
-    private var lastUpdated: Date = Date()
-
-    // MARK: - Initialization
+    
+    // Initialization
     init(game: Game,
          authModel: AuthViewModel,
          onlineGame: Bool = true)
@@ -34,8 +37,7 @@ final class GameViewModel: ObservableObject {
         self.authModel = authModel
         self.onlineGame = onlineGame
     }
-
-    // MARK: - Dynamic Member Lookup
+    
     /// Read-only access: vm.someField == game.someField
     subscript<T>(dynamicMember keyPath: KeyPath<Game, T>) -> T {
         game[keyPath: keyPath]
@@ -64,11 +66,11 @@ final class GameViewModel: ObservableObject {
     }
 
     /// Expose full model if needed
-    // MARK: Alter Game
     var gameValue: Game { game }
     
+    var isOnline: Bool { onlineGame }
     
-    // MARK: - Public Actions
+    // Public Actions
     func resetGame() {
         setGame(Game())
     }
@@ -118,8 +120,8 @@ final class GameViewModel: ObservableObject {
         lastUpdated = Date()
         self.game.location = location
         if let location = location{
-            if AdminCodeResolver.matchName(location.name!) {
-                game.courseID = AdminCodeResolver.nameToId(location.name!)
+            if adminCodeResolver.matchName(location.name!) {
+                game.courseID = adminCodeResolver.nameToId(location.name!)
             }
         }
         pushUpdate()
@@ -145,7 +147,7 @@ final class GameViewModel: ObservableObject {
         lastUpdated = Date()
         game.lastUpdated = lastUpdated
         if onlineGame && authModel.userModel?.id != "IDGuest" {
-            authModel.addOrUpdateGame(game) { _ in }
+            liveGameRepo.addOrUpdateGame(game) { _ in }
         }
     }
 
@@ -224,11 +226,11 @@ final class GameViewModel: ObservableObject {
         }
     }
 
-
+    
     
     func deleteFromFirebaseGamesArr(){
         guard onlineGame else { return }
-        authModel.deleteGame(id: game.id) { result in
+        liveGameRepo.deleteGame(id: game.id) { result in
             if result {
                 print("Deleted Game id: " + self.game.id + " From Firebase")
             }
@@ -298,7 +300,7 @@ final class GameViewModel: ObservableObject {
     func joinGame(id: String, completion: @escaping (Bool) -> Void) {
         guard onlineGame else { return }
         resetGame()
-        authModel.fetchGame(id: id) { game in
+        liveGameRepo.fetchGame(id: id) { game in
             if let game = game, !game.dismissed, !game.started, !game.completed {
                 self.setGame(game)
                 self.addUser()
@@ -349,8 +351,6 @@ final class GameViewModel: ObservableObject {
         showHost.wrappedValue = false
     }
 
-    
-    // MARK: Game State
     func dismissGame() {
         guard !game.dismissed else { return }
         objectWillChange.send()
@@ -358,10 +358,8 @@ final class GameViewModel: ObservableObject {
         game.dismissed = true
         pushUpdate()            // push the “dismissed” flag
         deleteFromFirebaseGamesArr()
-
         resetGame()             // now creates a new Game with id == ""
     }
-
     
     /// Deep-clone the game you just finished, persist it locally & remotely, then reset.
     func finishAndPersistGame(in context: ModelContext) {
@@ -394,19 +392,14 @@ final class GameViewModel: ObservableObject {
             },
         )
 
-      // Now insert this *new* object
-      context.insert(finished)
-      do {
-        try context.save()
-        print("✅ Finished game saved locally")
-      } catch {
-        print("❌ Failed to save finished game locally:", error)
-      }
-
-      authModel.userModel?.games.append(finished)
+        UnifiedGameRepository(context: context).save(finished) { saved in
+            if saved {
+                self.authModel.userModel?.gameIDs.append(finished.id)
+            }
+        }
+        
         pushUpdate()
-
-      objectWillChange.send()
-      resetGame()
+        objectWillChange.send()
+        resetGame()
     }
 }

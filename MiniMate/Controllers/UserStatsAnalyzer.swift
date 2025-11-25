@@ -53,9 +53,6 @@ struct UserStatsAnalyzer {
         }.max()
     }
     
-    
-
-
     var holeInOneCount: Int {
         user.games.flatMap { $0.players }
             .filter { $0.userId == user.id }

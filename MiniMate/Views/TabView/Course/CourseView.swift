@@ -22,6 +22,8 @@ struct CourseView: View {
     @State var position: MapCameraPosition = .automatic
     @State var isUpperHalf: Bool = false
     @State private var hasAppeared = false
+    
+    let adminCodeResolver = AdminCodeResolver()
 
     var body: some View {
         GeometryReader { geometry in
@@ -118,7 +120,7 @@ struct CourseView: View {
         Map(position: $position, selection: locationHandler.bindingForSelectedItem()) {
             withAnimation(){
                 ForEach(locationHandler.mapItems, id: \.self) { item in
-                    if AdminCodeResolver.matchName(item.name!) {
+                    if adminCodeResolver.matchName(item.name!) {
                         Marker(item.name ?? "Unknown", coordinate: item.placemark.coordinate)
                             .tint(.purple)
                     } else {
@@ -285,7 +287,7 @@ struct CourseView: View {
                         }
                     }
                     
-                    if AdminCodeResolver.matchName(locationHandler.bindingForSelectedItem().wrappedValue?.name ?? "Unknown") {
+                    if adminCodeResolver.matchName(locationHandler.bindingForSelectedItem().wrappedValue?.name ?? "Unknown") {
                         HStack{
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 8) {
@@ -462,6 +464,8 @@ struct SearchResultRow: View {
     let item: MKMapItem
     let userLocation: CLLocationCoordinate2D
     
+    let adminCodeResolver = AdminCodeResolver()
+    
     var body: some View {
         HStack{
             VStack(alignment: .leading) {
@@ -481,7 +485,7 @@ struct SearchResultRow: View {
             .frame(height: 50)
             Spacer()
             
-            if AdminCodeResolver.matchName(item.name ?? "Unknown Place"){
+            if adminCodeResolver.matchName(item.name ?? "Unknown Place"){
                 Image(systemName: "star.fill")
                     .foregroundStyle(.purple)
             }

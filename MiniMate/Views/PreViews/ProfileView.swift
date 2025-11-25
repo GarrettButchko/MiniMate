@@ -20,20 +20,21 @@ struct ProfileView: View {
     @State private var editProfile: Bool = false
     @State private var showGoogleDeleteConfirmation: Bool = false
     @State private var showAppleDeleteConfirmation: Bool = false
-    
+    @State private var showingPhotoPicker = false
     @State private var showAdminLogin: Bool = false
-    @State private var adminCode: String = ""
+    @State private var isRed: Bool = true
     
+    @State private var adminCode: String = ""
     @State private var name: String = ""
     @State private var email: String = ""
-    
     @State private var botMessage: String = ""
-    @State private var isRed: Bool = true
+    
+    @State private var pickedImage: UIImage? = nil
     
     @State private var reauthCoordinator = AppleReauthCoordinator { _ in }
     
-    @State private var showingPhotoPicker = false
-    @State private var pickedImage: UIImage? = nil
+    private let adminCodeResolver = AdminCodeResolver()
+    private var localGameRepo: LocalGameRepository { LocalGameRepository(context: context) }
     
     var body: some View {
         ZStack {
@@ -166,8 +167,8 @@ struct ProfileView: View {
                             .alert("Use your admin code to login", isPresented: $showAdminLogin) {
                                 TextField("Admin Code", text: $adminCode)
                                 Button("Login") {
-                                    if AdminCodeResolver.isAdminCodeThere(code: adminCode) {
-                                        authModel.userModel?.adminType = AdminCodeResolver.adminAndId[adminCode]?.id
+                                    if adminCodeResolver.isAdminCodeThere(code: adminCode) {
+                                        authModel.userModel?.adminType = adminCodeResolver.adminAndId[adminCode]?.id
                                         authModel.saveUserModel(authModel.userModel!) { _ in }
                                     }
                                 }
@@ -227,8 +228,11 @@ struct ProfileView: View {
                                                 viewManager.navigateToWelcome()
                                                 
                                                 if let userModel = authModel.userModel {
-                                                    for game in userModel.games {
-                                                        context.delete(game)
+                                                    
+                                                    localGameRepo.deleteAll(ids: userModel.gameIDs) { completed in
+                                                        if completed {
+                                                            print("Deleted all local games for user")
+                                                        }
                                                     }
                                                     context.delete(LocFuncs().fetchUser(by: "IDGuest", context: context)!)
                                                 }
@@ -313,9 +317,11 @@ struct ProfileView: View {
                         viewManager.navigateToWelcome()
                         
                         if let userModel = authModel.userModel {
-                            let model = UserModel(id: userModel.id, name: userModel.name, photoURL: nil, email: userModel.email, games: [])
-                            for game in userModel.games {
-                                context.delete(game)
+                            let model = UserModel(id: userModel.id, name: userModel.name, photoURL: nil, email: userModel.email, gameIDs: [])
+                            localGameRepo.deleteAll(ids: userModel.gameIDs) { completed in
+                                if completed {
+                                    print("Deleted all local games for user")
+                                }
                             }
                             authModel.saveUserModel(model) { _ in
                                 authModel.setRawAppleId(nil)
@@ -336,5 +342,4 @@ struct ProfileView: View {
         controller.performRequests()
     }
 }
-
 

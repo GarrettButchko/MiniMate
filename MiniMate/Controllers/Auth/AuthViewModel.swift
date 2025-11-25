@@ -6,6 +6,7 @@
 import Foundation
 import FirebaseAuth
 import FirebaseDatabase
+import FirebaseFirestore
 import GoogleSignIn
 import FirebaseCore
 import FirebaseStorage
@@ -14,7 +15,7 @@ import AuthenticationServices
 import CryptoKit
 
 /// ViewModel that manages Firebase Authentication and app-specific user data
-class AuthViewModel: ObservableObject, AuthViewManager {
+class AuthViewModel: ObservableObject {
     /// The currently authenticated Firebase user
     @Published var firebaseUser: FirebaseAuth.User?
     /// The user's app-specific data model
@@ -97,7 +98,7 @@ class AuthViewModel: ObservableObject, AuthViewManager {
                                 name:     finalName,
                                 photoURL: firebaseUser?.photoURL,
                                 email:    finalEmail,
-                                games:    []
+                                gameIDs:    []
                             )
                             // Insert locally
                             context.insert(newUser)
@@ -120,7 +121,7 @@ class AuthViewModel: ObservableObject, AuthViewManager {
                         name:     finalName,
                         photoURL: nil,
                         email:    finalEmail,
-                        games:    []
+                        gameIDs:    []
                     )
                     // Insert locally
                     context.insert(newUser)
@@ -310,8 +311,6 @@ class AuthViewModel: ObservableObject, AuthViewManager {
         }
     }
     
-
-    
     /// Signs in the user using Google Sign-In and Firebase
     func signInWithGoogle(context: ModelContext, completion: @escaping (Result<FirebaseAuth.User, Error>) -> Void) {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
@@ -393,145 +392,6 @@ class AuthViewModel: ObservableObject, AuthViewManager {
             print("❌ Sign-out error: \(error.localizedDescription)")
         }
     }
-    
-    // MARK: - App Data Persistence
-    
-    /// Saves or updates the UserModel in Realtime Database
-    func saveUserModel(_ model: UserModel, completion: @escaping (Bool) -> Void) {
-        let uid = currentUserIdentifier
-        let ref = Database.database().reference().child("users").child(uid)
-        let dto = model.toDTO()
-        do {
-            let data = try JSONEncoder().encode(dto)
-            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                ref.setValue(dict) { error, _ in
-                    completion(error == nil)
-                }
-            }
-        } catch {
-            print("❌ Encoding error: \(error.localizedDescription)")
-            completion(false)
-        }
-    }
-    
-    /// Fetches UserModel by ID
-    func fetchUserModel(id: String, completion: @escaping (UserModel?) -> Void) {
-        let ref = Database.database().reference().child("users").child(id)
-        ref.observeSingleEvent(of: .value) { snapshot in
-            guard let data = snapshot.value as? [String: Any] else { completion(nil); return }
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: data)
-                let dto = try JSONDecoder().decode(UserDTO.self, from: jsonData)
-                let model = UserModel.fromDTO(dto)
-                DispatchQueue.main.async { self.userModel = model }
-                completion(model)
-            } catch {
-                print("❌ Decoding error: \(error.localizedDescription)")
-                completion(nil)
-            }
-        }
-    }
-    
-    
-    
-    /// Adds or updates a Game in Realtime Database
-    func addOrUpdateGame(_ game: Game, completion: @escaping (Bool) -> Void) {
-        let ref = Database.database().reference().child("games").child(game.id)
-        let dto = game.toDTO()
-        do {
-            let data = try JSONEncoder().encode(dto)
-            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                ref.setValue(dict) { error, _ in
-                    completion(error == nil)
-                }
-            }
-        } catch {
-            print("❌ Encoding game error: \(error.localizedDescription)")
-            completion(false)
-        }
-    }
-    
-    /// Fetches a Game by code once
-    func fetchGame(id: String, completion: @escaping (Game?) -> Void) {
-        let ref = Database.database().reference().child("games").child(id)
-        ref.observeSingleEvent(of: .value) { snapshot in
-            guard snapshot.value is [String: Any] else { completion(nil); return }
-            do {
-                let dto = try snapshot.data(as: GameDTO.self)
-                let model = Game.fromDTO(dto)
-                completion(model)
-            } catch {
-                print("❌ Decoding game error: \(error.localizedDescription)")
-                completion(nil)
-            }
-        }
-    }
-    
-    /// Adds or updates a Course in Realtime Database
-    func addOrUpdateCourse(_ course: Course, completion: @escaping (Bool) -> Void) {
-        let ref = Database.database().reference().child("courses").child(course.id)
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                let data = try JSONEncoder().encode(course)
-                if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    ref.setValue(dict) { error, _ in
-                        DispatchQueue.main.async {
-                            completion(error == nil)
-                        }
-                    }
-                }
-            } catch {
-                print("❌ Encoding course error: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(false) }
-            }
-        }
-    }
-    
-    /// Adds or updates a Course in Realtime Database
-    func addPlayerToLeaderBoard(courseId: String, player: Player, completion: @escaping (Bool) -> Void) {
-        let ref = Database.database().reference().child("courses").child(courseId).child("allPlayers")
-        do {
-            let data = try JSONEncoder().encode(player.toDTO())
-            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                ref.setValue(dict) { error, _ in
-                    completion(error == nil)
-                }
-            }
-        } catch {
-            print("❌ Encoding game error: \(error.localizedDescription)")
-            completion(false)
-        }
-    }
-    
-    
-    /// Fetches a Course by ID once, decoding safely on the main thread
-    func fetchCourse(id: String, completion: @escaping (Course?) -> Void) {
-        let ref = Database.database().reference().child("courses").child(id)
-        ref.observeSingleEvent(of: .value) { snapshot in
-            guard let value = snapshot.value else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-            
-            do {
-                guard let dict = value as? [String: Any] else {
-                    print("Course value is not a dictionary:", value)
-                    DispatchQueue.main.async { completion(nil) }
-                    return
-                }
-                
-                let data = try JSONSerialization.data(withJSONObject: dict)
-                let course = try JSONDecoder().decode(Course.self, from: data)
-                
-                DispatchQueue.main.async { completion(course) }
-            } catch {
-                print("❌ Decoding course error: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(nil) }
-            }
-        }
-    }
-
-    
     
     /// Deletes the user's account after reauthentication
     func deleteAccount(reauthCredential: AuthCredential, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -642,13 +502,7 @@ class AuthViewModel: ObservableObject, AuthViewManager {
     }
     
     
-    /// Deletes a Game from Realtime Database
-    func deleteGame(id: String, completion: @escaping (Bool) -> Void) {
-        let ref = Database.database().reference().child("games").child(id)
-        ref.removeValue { error, _ in
-            completion(error == nil)
-        }
-    }
+    
     
     func updateDisplayName(to newName: String, completion: @escaping (Error?) -> Void) {
       guard let user = Auth.auth().currentUser else {
@@ -667,6 +521,60 @@ class AuthViewModel: ObservableObject, AuthViewManager {
         }
         completion(error)
       }
+    }
+
+    
+    // MARK: UserModel
+    /// Saves or updates the UserModel in Firestore
+    func saveUserModel(_ model: UserModel, completion: @escaping (Bool) -> Void) {
+        let db = Firestore.firestore()
+        let uid = currentUserIdentifier
+        let ref = db.collection("users").document(uid)
+        
+        do {
+            // Firestore will merge if document exists
+            try ref.setData(from: model.toDTO(), merge: true) { error in
+                if let error = error {
+                    print("❌ Firestore save error: \(error.localizedDescription)")
+                    completion(false)
+                } else {
+                    completion(true)
+                }
+            }
+        } catch {
+            print("❌ Firestore encoding error: \(error)")
+            completion(false)
+        }
+    }
+
+    /// Fetchs the UserModel in Firestore
+    func fetchUserModel(id: String, completion: @escaping (UserModel?) -> Void) {
+        let db = Firestore.firestore()
+        let ref = db.collection("users").document(id)
+        
+        ref.getDocument { snapshot, error in
+            if let error = error {
+                print("❌ Firestore fetch error: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            guard let snapshot = snapshot, snapshot.exists else {
+                completion(nil)
+                return
+            }
+            
+            do {
+                // Decode directly from Firestore document
+                let dto = try snapshot.data(as: UserDTO.self)
+                let model = UserModel.fromDTO(dto)
+                DispatchQueue.main.async { self.userModel = model }
+                completion(model)
+            } catch {
+                print("❌ Firestore decoding error: \(error)")
+                completion(nil)
+            }
+        }
     }
 }
 

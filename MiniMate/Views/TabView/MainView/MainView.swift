@@ -12,6 +12,8 @@ struct MainView: View {
     @ObservedObject var gameModel: GameViewModel
     
     //let ad: Ad?
+    
+    @State var games: [Game] = []
 
     @State private var userName = "Guest" + String(Int.random(in: 10000...99999))
     @State private var nameIsPresented = false
@@ -24,10 +26,12 @@ struct MainView: View {
     @State var showGuestAdd: Bool = false
     @State var showenGuestAdd: Bool = false
     @State var alreadyShown: Bool = false
-    
     @State var editOn: Bool = false
-    
     @State var showDonation: Bool = false
+    
+    private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
+    
+    @State var idGuestGames: [Game] = []
     
     var body: some View {
         
@@ -167,7 +171,7 @@ struct MainView: View {
                                     
                                     if analyzer.hasGames{
                                         Button {
-                                            viewManager.navigateToGameReview(user.games.sorted(by: { $0.date > $1.date }).first!)
+                                            viewManager.navigateToGameReview(games.sorted(by: { $0.date > $1.date }).first!)
                                         } label: {
                                             SectionStatsView(title: "Last Game") {
                                                 HStack{
@@ -388,7 +392,15 @@ struct MainView: View {
             }
             .padding([.top, .horizontal])
             .onAppear(){
-                if authModel.userModel?.games.count == 0 && LocFuncs().fetchUser(by: "IDGuest", context: context) != nil && authModel.userModel?.id != "IDGuest" && LocFuncs().fetchUser(by: "IDGuest", context: context)?.games.count != 0 {
+                
+                if let idGuest: UserModel = LocFuncs().fetchUser(by: "IDGuest", context: context) {
+                    uniGameRepo.fetchAll(ids: idGuest.gameIDs) { games in
+                        idGuestGames = games
+                    }
+                }
+                
+                
+                if games.count == 0 && LocFuncs().fetchUser(by: "IDGuest", context: context) != nil && authModel.userModel?.id != "IDGuest" && idGuestGames.count != 0 {
                     
                     print(authModel.userModel?.id ?? "No ID")
                     withAnimation{
@@ -424,7 +436,7 @@ struct MainView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             ScrollView{
-                                ForEach(guestUser.games, id: \.self){ game in
+                                ForEach(idGuestGames, id: \.self){ game in
                                     GameGridView(editOn: $editOn, authModel: authModel, game: game)
                                 }
                             }
@@ -436,7 +448,7 @@ struct MainView: View {
                                         alreadyShown = true
                                         showGuestAdd = false
                                     }
-                                    authModel.userModel?.games.append(contentsOf: guestUser.games)
+                                    authModel.userModel!.gameIDs.append(contentsOf: idGuestGames.map(\.id))
                                     authModel.saveUserModel(authModel.userModel!){ _ in }
                                     context.delete(guestUser)
                                 }
@@ -458,7 +470,11 @@ struct MainView: View {
             }
         }
         .ignoresSafeArea(.keyboard)
-        
+        .onAppear{
+            uniGameRepo.fetchAll(ids: authModel.userModel?.gameIDs ?? []) { games in
+                self.games = games
+            }
+        }
     }
 
     func gameModeButton(title: String, icon: String? = nil, color: Color, action: @escaping () -> Void) -> some View {
@@ -493,3 +509,4 @@ extension Shape {
         }
     }
 }
+
