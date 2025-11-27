@@ -394,6 +394,9 @@ final class GameViewModel: ObservableObject {
             if saved {
                 print("Saved Game Everywhere")
                 self.authModel.userModel?.gameIDs.append(finished.id)
+                self.authModel.saveUserModel { completed in
+                    print("Updated online user")
+                }
             } else {
                 print("Error Saving Game")
             }

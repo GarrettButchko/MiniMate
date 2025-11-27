@@ -478,6 +478,11 @@ struct MainView: View {
             }
         }
         .ignoresSafeArea(.keyboard)
+        .onAppear(){
+            if let user = authModel.userModel {
+                self.analyzer = UserStatsAnalyzer(user: user, games: games, context: context)
+            }
+        }
         .onChange(of: games) { old, newGames in
             if let user = authModel.userModel {
                 self.analyzer = UserStatsAnalyzer(user: user, games: newGames, context: context)

@@ -19,10 +19,10 @@ struct Course: Codable, Identifiable, Equatable {
     var emails: [String]?
     
     // Analytics
-    var dailyCounts: [DailyCount]
-    var peakAnalytics: PeakAnalytics
-    var holeAnalytics: HoleAnalytics
-    var roundTimeAnalytics: RoundTimeAnalytics
+    var dailyCounts: [DailyCount]?
+    var peakAnalytics: PeakAnalytics?
+    var holeAnalytics: HoleAnalytics?
+    var roundTimeAnalytics: RoundTimeAnalytics?
 
     // MARK: - Init
     init(
@@ -70,8 +70,13 @@ struct Course: Codable, Identifiable, Equatable {
                lhs.adDescription == rhs.adDescription &&
                lhs.adLink == rhs.adLink &&
                lhs.adImage == rhs.adImage &&
-               lhs.emails == rhs.emails
+               lhs.emails == rhs.emails &&
+               lhs.dailyCounts == rhs.dailyCounts &&
+               lhs.peakAnalytics == rhs.peakAnalytics &&
+               lhs.holeAnalytics == rhs.holeAnalytics &&
+               lhs.roundTimeAnalytics == rhs.roundTimeAnalytics
     }
+
 
     // MARK: - Computed Properties
     var numOfHoles: Int {
@@ -112,7 +117,7 @@ struct Course: Codable, Identifiable, Equatable {
     }
 }
 
-struct DailyCount: Codable, Identifiable {
+struct DailyCount: Codable, Identifiable, Equatable {
     var id: String                  // e.g., "2025-11-22"
     var activeUsers: Int = 0        // number of users active that day
     var gamesPlayed: Int = 0        // optional metric
@@ -131,7 +136,7 @@ struct DailyCount: Codable, Identifiable {
     }
 }
 
-struct PeakAnalytics: Codable, Identifiable {
+struct PeakAnalytics: Codable, Identifiable, Equatable {
     var id: String = "peakAnalytics"
     // single doc per course
     var hourlyCounts: [Int]           // 24 integers, index 0 = 12AM-1AM, 23 = 11PM-12AM
@@ -143,7 +148,7 @@ struct PeakAnalytics: Codable, Identifiable {
     }
 }
 
-struct HoleAnalytics: Codable, Identifiable {
+struct HoleAnalytics: Codable, Identifiable, Equatable {
     var id: String = "holeAnalytics"   // single doc per course
     var totalStrokesPerHole: [Int]     // e.g., [totalHole1, totalHole2, ...]
     var playsPerHole: [Int]            // e.g., [numPlaysHole1, numPlaysHole2, ...]
@@ -161,7 +166,7 @@ struct HoleAnalytics: Codable, Identifiable {
     }
 }
 
-struct RoundTimeAnalytics: Codable, Identifiable {
+struct RoundTimeAnalytics: Codable, Identifiable, Equatable {
     var id: String = "roundTimeAnalytics"   // single doc per course
     var totalRoundSeconds: Int = 0          // cumulative total time of all rounds
     var numberOfRounds: Int = 0             // number of rounds played

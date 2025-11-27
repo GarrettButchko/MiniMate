@@ -108,6 +108,10 @@ class AuthViewModel: ObservableObject {
             
             if let remote = remote {
                 print("🔹 Found Firebase Firestore user \(remote.name)...")
+                
+                context.insert(remote)
+                try? context.save()
+                print("🔹 Added and saved user to context \(remote.name)...")
                 self.userModel = remote
                 
                 // ---- 4️⃣ THEN load games, THEN call completion ----
@@ -122,6 +126,8 @@ class AuthViewModel: ObservableObject {
                         completion()
                     }
                 }
+                context.insert(remote)
+                try? context.save()
                 
             } else {
                 // ---- 5️⃣ Create brand new remote + local user ----
@@ -554,14 +560,14 @@ class AuthViewModel: ObservableObject {
     
     // MARK: UserModel
     /// Saves or updates the UserModel in Firestore
-    func saveUserModel(_ model: UserModel, completion: @escaping (Bool) -> Void) {
+    func saveUserModel(_ model: UserModel? = nil, completion: @escaping (Bool) -> Void) {
         let db = Firestore.firestore()
         let uid = currentUserIdentifier
         let ref = db.collection("users").document(uid)
         
         do {
             // Firestore will merge if document exists
-            try ref.setData(from: model.toDTO(), merge: true) { error in
+            try ref.setData(from: (model != nil ? model!.toDTO() : userModel?.toDTO()), merge: true) { error in
                 if let error = error {
                     print("❌ Firestore save error: \(error.localizedDescription)")
                     completion(false)

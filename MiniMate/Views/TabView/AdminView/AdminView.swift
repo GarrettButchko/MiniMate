@@ -35,6 +35,8 @@ struct CreatorView: View {
     
     @State var searchText: String = ""
     
+    
+    
     var body: some View {
         VStack {
             VStack{
@@ -150,6 +152,8 @@ struct LocationView: View {
     
     let courseLeaderBoardRepo = CourseLeaderboardRepository()
     
+    @State private var isLoading = true
+    
     var body: some View {
         VStack {
             if let course = course {
@@ -231,12 +235,12 @@ struct LocationView: View {
                 Text("Your course could not load please wait a moment and try again.")
                 
                 Button {
+                    isLoading = true
                     adminCodeResolver.resolve(id: id) { course in
                         if let course = course{
-                            withAnimation(){
-                                self.course = course
-                            }
+                            self.course = course
                         }
+                        isLoading = false
                         print(id)
                     }
                 } label: {
@@ -244,30 +248,27 @@ struct LocationView: View {
                 }
                 .padding()
                 
-                Button {
-                    self.course = Course(id: id, name: adminCodeResolver.idToName(id) ?? "Error")
-                } label: {
-                    Text("Create template course")
-                }
+                //Button {
+                //   self.course = Course(id: id, name: adminCodeResolver.idToName(id) ?? "Error")
+                //} label: {
+                //    Text("Create template course")
+                //}
             }
         }
         .padding()
         .onAppear {
-            adminCodeResolver.resolve(id: id) { course in
-                if let course = course{
-                    withAnimation(){
-                        self.course = course
-                    }
+            isLoading = true
+            adminCodeResolver.resolve(id: id) { resolvedCourse in
+                if let resolvedCourse = resolvedCourse {
+                    course = resolvedCourse
                 }
+                isLoading = false   // <-- Immediately update UI
             }
+            
             courseLeaderBoardRepo.fetchCourseLeaderboard(id: id) { courseLeaderboard in
-                if let courseLeaderboard = courseLeaderboard {
+                self.courseLeaderboard = courseLeaderboard
+                courseLeaderBoardRepo.listenForCourseUpdates(id: id, listenerHandle: &listenerHandle) { courseLeaderboard in
                     self.courseLeaderboard = courseLeaderboard
-                    courseLeaderBoardRepo.listenForCourseUpdates(id: id, listenerHandle: &listenerHandle) { courseLeaderboard in
-                        if let courseLeaderboard = courseLeaderboard {
-                            self.courseLeaderboard = courseLeaderboard
-                        }
-                    }
                 }
             }
         }
@@ -282,7 +283,7 @@ struct LeaderBoardList: View {
     @State var selectedPlayer: PlayerDTO? = nil
     
     @Binding var editOn: Bool
-
+    
     var courseLeaderboard: CourseLeaderboard
     var course: Course
     
@@ -295,7 +296,7 @@ struct LeaderBoardList: View {
         self.courseLeaderboard = courseLeaderboard
         self._localPlayers = State(initialValue: players)
     }
-
+    
     var body: some View {
         ForEach(Array($localPlayers.enumerated()), id: \.element.id) { index, $player in
             if index != 0 {
@@ -307,7 +308,7 @@ struct LeaderBoardList: View {
                 } label: {
                     if index == 0 {
                         Text("🥇")
-                            
+                        
                     } else if index == 1 {
                         Text("🥈")
                     } else if index == 2 {

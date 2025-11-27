@@ -98,7 +98,16 @@ struct CourseView: View {
                     Spacer()
                     VStack(alignment: .center){
                         Spacer()
-                        Text("Please allow location services to use this area of the app.")
+                        Text("Please enable Location Services for this app.\n\nTap 'Open Settings' → Location → Allow While Using the App.")
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                        Button("Open Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .padding(.top, 8)
                         Spacer()
                     }
                     Spacer()

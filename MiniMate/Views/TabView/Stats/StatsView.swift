@@ -36,6 +36,7 @@ struct StatsView: View {
     
     @State private var shareContent: String = ""
     @State private var isSharePresented: Bool = false
+    @State private var isCooldown = false
     
     private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
     @State private var analyzer: UserStatsAnalyzer? = nil
@@ -184,8 +185,16 @@ struct StatsView: View {
                     .padding(.vertical)
                     
                     Button {
-                        withAnimation(){
+                        guard !isCooldown else { return }
+                        
+                        withAnimation {
                             latest.toggle()
+                        }
+                        
+                        // Start cooldown
+                        isCooldown = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            isCooldown = false
                         }
                     } label: {
                         
