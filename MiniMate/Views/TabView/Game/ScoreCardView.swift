@@ -26,6 +26,8 @@ struct ScoreCardView: View {
     
     @State var showEndGame: Bool = false
     
+    @State var passGame: Game? = nil
+    
     var body: some View {
         ZStack{
             VStack {
@@ -38,18 +40,18 @@ struct ScoreCardView: View {
                 GameInfoView(game: gameModel.bindingForGame(), isSheetPresent: $showInfoView)
             }
             .onChange(of: gameModel.gameValue.completed) { old, new in
-                endGame()
-                withAnimation {
-                    showRecap = true
+                if new {
+                    let finishedDTO = gameModel.gameValue.toDTO()
+                    passGame = Game.fromDTO(finishedDTO)   // ⬅️ capture BEFORE resetting model
+                    endGame()
+                    withAnimation { showRecap = true }
                 }
             }
-            if showRecap {
-                RecapView(authModel: authModel, viewManager: viewManager, course: course, gameID: gameModel.gameValue.id){
+            if showRecap, let pg = passGame {
+                RecapView(authModel: authModel, viewManager: viewManager, course: course, game: pg){
                     Button {
                         if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
-                    
                                 viewManager.navigateToAd()
-                            
                         } else {
                             viewManager.navigateToMain(1)
                         }
@@ -240,10 +242,6 @@ struct ScoreCardView: View {
                 .alert("Complete Game?", isPresented: $showEndGame) {
                     Button("Complete") {
                         gameModel.setCompletedGame(true)
-                        endGame()
-                        withAnimation {
-                            showRecap = true
-                        }
                         let generator = UINotificationFeedbackGenerator()
                         generator.notificationOccurred(.success)
                     }
@@ -325,11 +323,9 @@ struct ScoreCardView: View {
     
     private func endGame() {
         guard !hasUploaded else { return }
-        hasUploaded = true
         // 1️⃣ finish-and-persist before we pop the view
         gameModel.finishAndPersistGame(in: context)
-        // 2️⃣ now it’s safe to navigate
-        
+        hasUploaded = true
     }
 }
 

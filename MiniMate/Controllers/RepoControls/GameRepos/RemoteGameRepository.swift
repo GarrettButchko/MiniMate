@@ -29,7 +29,7 @@ class FirestoreGameRepository {
     }
     
     // Fetch a single game by ID
-    func fetch(id: String, completion: @escaping (Game?) -> Void) {
+    func fetch(id: String, completion: @escaping (GameDTO?) -> Void) {
         let ref = db.collection("games").document(id)
         ref.getDocument { snapshot, error in
             if let error = error {
@@ -45,7 +45,7 @@ class FirestoreGameRepository {
             
             do {
                 let game = try snapshot.data(as: GameDTO.self)
-                completion(Game.fromDTO(game))
+                completion(game)
             } catch {
                 print("❌ Firestore decoding error: \(error)")
                 completion(nil)
@@ -53,67 +53,59 @@ class FirestoreGameRepository {
         }
     }
     
-    // Fetch all games for the current user
-    func fetchAll(completion: @escaping ([Game]) -> Void) {
-        db.collection("games").getDocuments { snapshot, error in
-            if let error = error {
-                print("❌ Firestore fetchAll error: \(error.localizedDescription)")
-                completion([])
-                return
-            }
-            
-            guard let documents = snapshot?.documents else {
-                completion([])
-                return
-            }
-            
-            let games: [Game] = documents.compactMap { doc in
-                try? Game.fromDTO(doc.data(as: GameDTO.self))
-                
-            }
-            completion(games)
-        }
-    }
-    
-    func fetchAll(withIDs ids: [String], completion: @escaping ([Game]) -> Void) {
+    func fetchAll(withIDs ids: [String], completion: @escaping ([GameDTO]) -> Void) {
         guard !ids.isEmpty else {
             completion([])
             return
         }
-        
-        // Break IDs into Firestore-compatible chunks (max 10 per batch)
+
+        // Firestore 'in' queries max 10 items → chunk them
         let chunks = stride(from: 0, to: ids.count, by: 10).map {
             Array(ids[$0..<min($0 + 10, ids.count)])
         }
-        
-        var allGames: [Game] = []
-        var remainingChunks = chunks.count
-        
+
+        var allGames: [String: GameDTO] = [:]
+        var remaining = chunks.count
+
         for chunk in chunks {
             db.collection("games")
                 .whereField(FieldPath.documentID(), in: chunk)
                 .getDocuments { snapshot, error in
                     
                     if let error = error {
-                        print("❌ Firestore chunk fetch error: \(error.localizedDescription)")
+                        print("❌ Firestore fetchAll chunk error: \(error.localizedDescription)")
                     }
-                    
-                    if let documents = snapshot?.documents {
-                        let games: [Game] = documents.compactMap { doc in
-                            try? Game.fromDTO(doc.data(as: GameDTO.self))
+
+                    guard let docs = snapshot?.documents else {
+                        finishIfDone()
+                        return
+                    }
+
+                    for doc in docs {
+                        do {
+                            let dto = try doc.data(as: GameDTO.self)
+                            allGames[dto.id] = dto
+                        } catch {
+                            print("❌ Firestore decoding error for id \(doc.documentID): \(error)")
                         }
-                        allGames.append(contentsOf: games)
                     }
-                    
-                    remainingChunks -= 1
-                    
-                    // Once ALL chunks finish, return results
-                    if remainingChunks == 0 {
-                        completion(allGames)
-                    }
+
+                    finishIfDone()
                 }
         }
+
+        // Helper to track when all chunks are done
+        func finishIfDone() {
+            remaining -= 1
+            if remaining == 0 {
+                // Reorder results in the same order as ids
+                let ordered = ids.compactMap { allGames[$0] }
+                completion(ordered)
+            }
+        }
     }
+
+
 
     
     // Delete a game by ID

@@ -62,6 +62,4 @@ final class LiveGameRepository {
             }
         }
     }
-    
-    
 }

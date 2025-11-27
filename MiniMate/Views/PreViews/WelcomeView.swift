@@ -12,8 +12,6 @@ struct WelcomeView: View {
     @ObservedObject var viewManager: ViewManager
     @State private var displayedText = ""
     
-    let locFuncs = LocFuncs()
-    
     private let fullText = "Welcome to MiniMate"
     private let typingSpeed = 0.05 // Time interval between each character
     

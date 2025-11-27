@@ -1,8 +1,15 @@
 import SwiftUI
+import _SwiftData_SwiftUI
 import StoreKit
 import MapKit
 
 struct MainView: View {
+    @Query var allGames: [Game]
+    
+    var games: [Game] {
+        allGames.filter { authModel.userModel?.gameIDs.contains($0.id) == true }
+    }
+    
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var context
     
@@ -10,10 +17,7 @@ struct MainView: View {
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var locationHandler: LocationHandler
     @ObservedObject var gameModel: GameViewModel
-    
     //let ad: Ad?
-    
-    @State var games: [Game] = []
 
     @State private var userName = "Guest" + String(Int.random(in: 10000...99999))
     @State private var nameIsPresented = false
@@ -31,6 +35,8 @@ struct MainView: View {
     
     private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
     
+    @State private var analyzer: UserStatsAnalyzer? = nil
+    
     @State var idGuestGames: [Game] = []
     
     var body: some View {
@@ -43,14 +49,14 @@ struct MainView: View {
                         Text("Welcome back,")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-
+                        
                         Text(authModel.userModel?.name ?? "User")
                             .font(.title2)
                             .fontWeight(.semibold)
                     }
-
+                    
                     Spacer()
-
+                    
                     Button(action: {
                         isSheetPresented = true
                     }) {
@@ -83,12 +89,11 @@ struct MainView: View {
                         
                     }
                 }
-
+                
                 // MARK: - Game Action Buttons
                 
                 ZStack{
-                    if let user = authModel.userModel{
-                        let analyzer = UserStatsAnalyzer(user: user)
+                    if authModel.userModel != nil{
                         
                         VStack{
                             Rectangle()
@@ -110,66 +115,66 @@ struct MainView: View {
                                         .background(.ultraThinMaterial)
                                         .clipShape(RoundedRectangle(cornerRadius: 25))
                                     }
-                                        
+                                    
                                     //if let ad = ad, ad.title != ""{
-                                      //  Button {
-                                        //    if ad.link != "" {
-                                          //      if let url = URL(string: ad.link) {
-                                            //        UIApplication.shared.open(url)
-                                              //  }
-                                            //}
-                                        //} label: {
-                                        //    HStack{
-                                        //        VStack(alignment: .leading, spacing: 8) {
-                                        //            Text(ad.title)
-                                        //                .foregroundStyle(.mainOpp)
-                                        //                .font(.headline)
-                                        //                .fontWeight(.semibold)
-                                        //
-                                        //            Text(ad.text)
-                                        //                .foregroundStyle(.mainOpp)
-                                        //               .font(.caption)
-                                        //                .foregroundStyle(.secondary)
-                                        //                .multilineTextAlignment(.leading)
-                                        //                .padding(.trailing)
-                                        //        }
-                                        //        Spacer()
-                                        //        if ad.image != "" {
-                                        //            AsyncImage(url: URL(string: ad.image)) { phase in
-                                        //                switch phase {
-                                        //                case .empty:
-                                        //                    ProgressView()
-                                        //                        .frame(height: 60)
-                                        //                case .success(let image):
-                                        //                    image
-                                        //                        .resizable()
-                                        //                        .scaledToFill()
-                                        //                        .frame(height: 60)
-                                        //                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        //                        .clipped()
-                                        //                case .failure:
-                                        //                    Image(systemName: "photo")
-                                        //                        .resizable()
-                                        //                        .scaledToFit()
-                                        //                        .frame(height: 60)
-                                        //                        .foregroundColor(.gray)
-                                        //                        .background(Color.gray.opacity(0.2))
-                                        //                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        //                @unknown default:
-                                        //                    EmptyView()
-                                        //                }
-                                        //            }
-                                        //        }
-                                        //        Spacer()
-                                        //    }
-                                        //    .padding()
-                                        //}
-                                        //.transition(.opacity)
-                                        //.background(.ultraThinMaterial)
-                                        //.clipShape(RoundedRectangle(cornerRadius: 25))
+                                    //  Button {
+                                    //    if ad.link != "" {
+                                    //      if let url = URL(string: ad.link) {
+                                    //        UIApplication.shared.open(url)
+                                    //  }
+                                    //}
+                                    //} label: {
+                                    //    HStack{
+                                    //        VStack(alignment: .leading, spacing: 8) {
+                                    //            Text(ad.title)
+                                    //                .foregroundStyle(.mainOpp)
+                                    //                .font(.headline)
+                                    //                .fontWeight(.semibold)
+                                    //
+                                    //            Text(ad.text)
+                                    //                .foregroundStyle(.mainOpp)
+                                    //               .font(.caption)
+                                    //                .foregroundStyle(.secondary)
+                                    //                .multilineTextAlignment(.leading)
+                                    //                .padding(.trailing)
+                                    //        }
+                                    //        Spacer()
+                                    //        if ad.image != "" {
+                                    //            AsyncImage(url: URL(string: ad.image)) { phase in
+                                    //                switch phase {
+                                    //                case .empty:
+                                    //                    ProgressView()
+                                    //                        .frame(height: 60)
+                                    //                case .success(let image):
+                                    //                    image
+                                    //                        .resizable()
+                                    //                        .scaledToFill()
+                                    //                        .frame(height: 60)
+                                    //                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    //                        .clipped()
+                                    //                case .failure:
+                                    //                    Image(systemName: "photo")
+                                    //                        .resizable()
+                                    //                        .scaledToFit()
+                                    //                        .frame(height: 60)
+                                    //                        .foregroundColor(.gray)
+                                    //                        .background(Color.gray.opacity(0.2))
+                                    //                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    //                @unknown default:
+                                    //                    EmptyView()
+                                    //                }
+                                    //            }
+                                    //        }
+                                    //        Spacer()
+                                    //    }
+                                    //    .padding()
+                                    //}
+                                    //.transition(.opacity)
+                                    //.background(.ultraThinMaterial)
+                                    //.clipShape(RoundedRectangle(cornerRadius: 25))
                                     //}
                                     
-                                    if analyzer.hasGames{
+                                    if games.count != 0{
                                         Button {
                                             viewManager.navigateToGameReview(games.sorted(by: { $0.date > $1.date }).first!)
                                         } label: {
@@ -181,7 +186,7 @@ struct MainView: View {
                                                                 .font(.caption)
                                                                 .foregroundStyle(.secondary)
                                                                 .foregroundStyle(.mainOpp)
-                                                            PhotoIconView(photoURL: analyzer.winnerOfLatestGame?.photoURL, name: (analyzer.winnerOfLatestGame?.name ?? "N/A") + "🥇", imageSize: 30, background: Color.yellow)
+                                                            PhotoIconView(photoURL: analyzer?.winnerOfLatestGame?.photoURL, name: (analyzer?.winnerOfLatestGame?.name ?? "N/A") + "🥇", imageSize: 30, background: Color.yellow)
                                                             Spacer()
                                                         }
                                                         Spacer()
@@ -192,10 +197,10 @@ struct MainView: View {
                                                                 ? AnyShapeStyle(Color.white)
                                                                 : AnyShapeStyle(.ultraThinMaterial))
                                                     .clipShape(RoundedRectangle(cornerRadius: 25))
-                                                    StatCard(title: "Your Strokes", value: "\(analyzer.usersScoreOfLatestGame)", color: .green)
+                                                    StatCard(title: "Your Strokes", value: "\(analyzer?.usersScoreOfLatestGame ?? 0)", color: .green)
                                                 }
                                                 
-                                                BarChartView(data: analyzer.usersHolesOfLatestGame, title: "Recap of Game")
+                                                BarChartView(data: analyzer?.usersHolesOfLatestGame ?? [], title: "Recap of Game")
                                                 
                                             }
                                         }
@@ -338,9 +343,9 @@ struct MainView: View {
                         .padding()
                         .background(content: {
                             RoundedRectangle(cornerRadius: 25)
-                                    .ifAvailableGlassEffect()
+                                .ifAvailableGlassEffect()
                         })
-                    
+                        
                         
                         Spacer()
                         
@@ -385,20 +390,23 @@ struct MainView: View {
                                 .padding()
                             }
                         }
-
+                        
                     }
                 }
                 
             }
             .padding([.top, .horizontal])
             .onAppear(){
-                
-                if let idGuest: UserModel = LocFuncs().fetchUser(by: "IDGuest", context: context) {
-                    uniGameRepo.fetchAll(ids: idGuest.gameIDs) { games in
-                        idGuestGames = games
+                if let Guest: UserModel = LocFuncs().fetchUser(by: "IDGuest", context: context) {
+                    for id in Guest.gameIDs {
+                        if authModel.userModel?.gameIDs.contains(id) == false {
+                            authModel.userModel?.gameIDs.append(id)
+                        }
+                    }
+                    uniGameRepo.fetchAll(ids: Guest.gameIDs) { games in
+                        idGuestGames = games.map({ Game.fromDTO($0) })
                     }
                 }
-                
                 
                 if games.count == 0 && LocFuncs().fetchUser(by: "IDGuest", context: context) != nil && authModel.userModel?.id != "IDGuest" && idGuestGames.count != 0 {
                     
@@ -470,13 +478,13 @@ struct MainView: View {
             }
         }
         .ignoresSafeArea(.keyboard)
-        .onAppear{
-            uniGameRepo.fetchAll(ids: authModel.userModel?.gameIDs ?? []) { games in
-                self.games = games
+        .onChange(of: games) { old, newGames in
+            if let user = authModel.userModel {
+                self.analyzer = UserStatsAnalyzer(user: user, games: newGames, context: context)
             }
         }
     }
-
+    
     func gameModeButton(title: String, icon: String? = nil, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack {

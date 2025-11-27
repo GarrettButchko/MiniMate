@@ -8,15 +8,20 @@
 import SwiftUI
 import Charts
 import MarqueeText
+import _SwiftData_SwiftUI
 
 struct StatsView: View {
     
     @Environment(\.modelContext) private var context
     
+    @Query var allGames: [Game]
+    
+    var usersGames: [Game] {
+        allGames.filter { authModel.userModel?.gameIDs.contains($0.id) == true }
+    }
+    
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
-    
-    @State var userGames: [Game] = []
     
     var pickerSections = ["Games", "Overview"]
     
@@ -33,6 +38,7 @@ struct StatsView: View {
     @State private var isSharePresented: Bool = false
     
     private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
+    @State private var analyzer: UserStatsAnalyzer? = nil
     
     /// Presents the share sheet with the given text content.
     /// This method sets the content to be shared and triggers the presentation of the share sheet.
@@ -42,8 +48,7 @@ struct StatsView: View {
     }
     
     var body: some View {
-        if let userModel = authModel.userModel {
-            let analyzer = UserStatsAnalyzer(user: userModel)
+        if (authModel.userModel != nil) {
             VStack{
                 HStack {
                     ZStack {
@@ -79,7 +84,7 @@ struct StatsView: View {
                             ))
                     } else {
                         
-                        if analyzer.hasGames {
+                        if analyzer?.hasGames == true {
                             overViewSection
                                 .transition(.asymmetric(
                                     insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -109,8 +114,9 @@ struct StatsView: View {
                 ActivityView(activityItems: [shareContent])
             }
             .onAppear{
-                uniGameRepo.fetchAll(ids: userModel.gameIDs) { games in
-                    userGames = games
+                if let user = authModel.userModel {
+                    let newAnalyzer = UserStatsAnalyzer(user: user, games: games, context: context)
+                    self.analyzer = newAnalyzer
                 }
             }
         }
@@ -119,9 +125,9 @@ struct StatsView: View {
     var games: [Game] {
         let filteredGames: [Game]
         if searchText.isEmpty {
-            filteredGames = userGames
+            filteredGames = usersGames
         } else {
-            filteredGames = userGames.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
+            filteredGames = usersGames.filter { $0.date.formatted(date: .abbreviated, time: .shortened).lowercased().contains(searchText.lowercased()) }
         }
         
         let sortedGames: [Game]
@@ -137,15 +143,14 @@ struct StatsView: View {
     private var gamesSection: some View {
         ZStack{
             ScrollView {
-                let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
                 
                 Rectangle()
                     .frame(height: 80)
                     .foregroundStyle(Color.clear)
                 
-                if analyzer.hasGames {
+                if analyzer?.hasGames == true {
                     ForEach(games) { game in
-                        GameRow(context: _context, games: $userGames, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, game: game, viewManager: viewManager, presentShareSheet: presentShareSheet)
+                        GameRow(context: _context, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, game: game, viewManager: viewManager, presentShareSheet: presentShareSheet)
                             .transition(.opacity)
                     }
                 } else {
@@ -214,42 +219,42 @@ struct StatsView: View {
     
     private var overViewSection: some View {
         ScrollView {
-            let analyzer = UserStatsAnalyzer(user: authModel.userModel!)
-            
-            SectionStatsView(title: "Basic Stats") {
-                HStack{
-                    StatCard(title: "Games Played", value: "\(analyzer.totalGamesPlayed)", color: .blue)
-                    StatCard(title: "Players Faced", value: "\(analyzer.totalPlayersFaced)", color: .green)
-                    StatCard(title: "Holes Played", value: "\(analyzer.totalHolesPlayed)", color: .blue)
+            if let analyzer {
+                SectionStatsView(title: "Basic Stats") {
+                    HStack{
+                        StatCard(title: "Games Played", value: "\(analyzer.totalGamesPlayed)", color: .blue)
+                        StatCard(title: "Players Faced", value: "\(analyzer.totalPlayersFaced)", color: .green)
+                        StatCard(title: "Holes Played", value: "\(analyzer.totalHolesPlayed)", color: .blue)
+                    }
+                    HStack{
+                        StatCard(title: "Average Strokes per Game", value: String(format: "%.1f", analyzer.averageStrokesPerGame), color: .blue)
+                        StatCard(title: "Average Strokes per Hole", value: String(format: "%.1f", analyzer.averageStrokesPerHole), color: .green)
+                    }
                 }
-                
-                HStack{
-                    StatCard(title: "Average Strokes per Game", value: String(format: "%.1f", analyzer.averageStrokesPerGame), color: .blue)
-                    StatCard(title: "Average Strokes per Hole", value: String(format: "%.1f", analyzer.averageStrokesPerHole), color: .green)
+                .padding(.top)
+                SectionStatsView(title: "Average 18 Hole Game"){
+                    BarChartView(data: analyzer.averageHoles18, title: "Average Strokes")
                 }
-            }
-            .padding(.top)
-            
-            SectionStatsView(title: "Average 18 Hole Game"){
-                BarChartView(data: analyzer.averageHoles18, title: "Average Strokes")
-            }
-            .padding(.top)
-            
-            
-            SectionStatsView(title: "Misc Stats") {
-                HStack{
-                    StatCard(title: "Best Game", value: "\(analyzer.bestGameStrokes ?? 0)", color: .blue)
-                    StatCard(title: "Worst Game", value: "\(analyzer.worstGameStrokes ?? 0)", color: .green)
-                    StatCard(title: "Hole in One's", value: "\(analyzer.holeInOneCount)", color: .blue)
+                .padding(.top)
+                SectionStatsView(title: "Misc Stats") {
+                    HStack{
+                        StatCard(title: "Best Game", value: "\(analyzer.bestGameStrokes ?? 0)", color: .blue)
+                        StatCard(title: "Worst Game", value: "\(analyzer.worstGameStrokes ?? 0)", color: .green)
+                        StatCard(title: "Hole in One's", value: "\(analyzer.holeInOneCount)", color: .blue)
+                    }
                 }
+                .padding(.top)
+                SectionStatsView(title: "Average 9 Hole Game"){
+                    BarChartView(data: analyzer.averageHoles9, title: "Average Strokes")
+                }
+                .padding(.top)
+            } else {
+                // Placeholder while analyzer initializes
+                Image("logoOpp")
+                    .resizable()
+                    .frame(width: 50, height: 50)
+                    .padding()
             }
-            .padding(.top)
-            
-            SectionStatsView(title: "Average 9 Hole Game"){
-                BarChartView(data: analyzer.averageHoles9, title: "Average Strokes")
-            }
-            .padding(.top)
-            
         }
     }
     
@@ -393,9 +398,6 @@ struct GameGridView: View {
 struct GameRow: View {
     @Environment(\.modelContext) var context
     
-    
-    
-    @Binding var games: [Game]
     @Binding var editOn: Bool
     @Binding var editingGameID: String?
     @StateObject var authModel: AuthViewModel
@@ -425,20 +427,17 @@ struct GameRow: View {
                                               string: makeShareableSummary(for: game))
                     ) {
                         withAnimation {
-                            // 1. Remove from userModel.gameIDs
-                            if var user = authModel.userModel {
+                            // 1. Remove from user model
+                            if let user = authModel.userModel {
+                                // 1) Update the user first, which causes @Query results to change
                                 user.gameIDs.removeAll(where: { $0 == game.id })
-                                authModel.userModel = user
-                                
-                                // Save updated userModel
                                 authModel.saveUserModel(user) { _ in }
-                            }
-                            
-                            // 2. Delete from SwiftData via local repo
-                            localGameRepo.delete(id: game.id) { _ in }
 
-                            // 3. Update UI
-                            games.removeAll(where: { $0.id == game.id })
+                                // 2️⃣ Delete the SwiftData object *after* a delay
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    localGameRepo.delete(id: game.id) { _ in }
+                                }
+                            }
                         }
                     }
             }
@@ -478,3 +477,4 @@ struct ActivityView: UIViewControllerRepresentable {
     }
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+

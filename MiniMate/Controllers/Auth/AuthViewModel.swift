@@ -13,7 +13,6 @@ import FirebaseStorage
 import SwiftData
 import AuthenticationServices
 import CryptoKit
-
 /// ViewModel that manages Firebase Authentication and app-specific user data
 class AuthViewModel: ObservableObject {
     /// The currently authenticated Firebase user
@@ -66,71 +65,100 @@ class AuthViewModel: ObservableObject {
         in context: ModelContext,
         completion: @escaping () -> Void
     ) {
-        // 1️⃣ Make sure we have a signed-in Firebase user
         let firebaseUser = Auth.auth().currentUser
-        // If caller passed in the freshly-signed-in user, update our published state
+        let gameRepo = UnifiedGameRepository(context: context)
+        
+        print("🔹 loadOrCreateUserIfNeeded called")
+        
+        // Update stored firebase user if provided
         if let u = user {
             self.firebaseUser = u
+            print("🔹 Firebase user provided: \(u.uid)")
+        } else {
+            print("🔹 No Firebase user provided, using currentUser: \(firebaseUser?.uid ?? "nil")")
         }
-            // 3️⃣ Try local first
-            if let local = loc.fetchUser(by: currentUserIdentifier, context: context) {
-                print("✅ Loaded local user: \(local.name)")
-                self.userModel = local
-                completion()    // ← DONE
-            } else {
-                if currentUserIdentifier != "IDGuest" {
-                    // 4️⃣ Fall back to Realtime DB
-                    fetchUserModel(id: currentUserIdentifier) { [weak self] remote in
-                        guard let self = self else { return }
-                        if let remote = remote{
-                            // Found it remotely → save locally
-                            context.insert(remote)
-                            try? context.save()
-                            print("✅ Loaded from Firebase and saved locally: \(remote.name)")
-                            self.userModel = remote
-                            completion()  // ← DONE
-                        } else {
-                            // 🚀 Doesn’t exist anywhere → create new
-                            let finalName  = name ?? firebaseUser?.displayName ?? "Guest" + String(Int.random(in: 10000...99999))
-                            let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
-                            let newUser = UserModel(
-                                id:       currentUserIdentifier,
-                                name:     finalName,
-                                photoURL: firebaseUser?.photoURL,
-                                email:    finalEmail,
-                                gameIDs:    []
-                            )
-                            // Insert locally
-                            context.insert(newUser)
-                            try? context.save()
-                            
-                            // Persist remotely
-                            self.saveUserModel(newUser) { _ in
-                                print("🆕 Created and saved new user: \(newUser.name)")
-                                self.userModel = newUser
-                                completion()  // ← DONE
-                            }
-                        }
-                    }
+        
+        // ---- 1️⃣ Try LOCAL FIRST ----
+        if let local = loc.fetchUser(by: currentUserIdentifier, context: context) {
+            print("✅ Loaded local user: \(local.name) (id: \(local.id))")
+            self.userModel = local
+            
+            gameRepo.saveAllLocally(userModel?.gameIDs ?? [], context: context) { completed in
+                if completed {
+                    print("🔹 Calling completion after local load")
+                    completion()
                 } else {
-                    // 🚀 Doesn’t exist anywhere → create new
-                    let finalName  = "Guest" + String(Int.random(in: 10000...99999))
-                    let finalEmail = "guest@guest.mail"
-                    let newUser = UserModel(
-                        id:       currentUserIdentifier,
-                        name:     finalName,
-                        photoURL: nil,
-                        email:    finalEmail,
-                        gameIDs:    []
-                    )
-                    // Insert locally
-                    context.insert(newUser)
-                    try? context.save()
+                    completion()
                 }
             }
+            print("🔹 Calling completion after local load")
+            
+            return
+        } else {
+            print("⚠️ No local user found for id: \(currentUserIdentifier)")
+        }
+        
+        // ---- 3️⃣ No local → load from Firestore ----
+        print("🔹 No local user, fetching from Firestore for id: \(currentUserIdentifier)")
+        fetchUserModel(id: currentUserIdentifier) { [weak self] remote in
+            guard let self else {
+                print("❌ Self is nil in Firestore callback")
+                return
+            }
+            
+            if let remote = remote {
+                print("🔹 Found Firebase Firestore user \(remote.name)...")
+                self.userModel = remote
+                
+                // ---- 4️⃣ THEN load games, THEN call completion ----
+                print("🔹 Loading games for remote user...")
+                print(remote.gameIDs)
+                gameRepo.saveAllLocally(remote.gameIDs, context: context) { completed in
+                    if completed {
+                        print("🔹 Calling completion after local load")
+                        completion()
+                    } else {
+                        print("🔹 Error Calling completion after local load")
+                        completion()
+                    }
+                }
+                
+            } else {
+                // ---- 5️⃣ Create brand new remote + local user ----
+                let finalName  = name ?? firebaseUser?.displayName ?? "Guest" + String(Int.random(in: 10_000...99_999))
+                let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
+                
+                let newUser = UserModel(
+                    id: currentUserIdentifier,
+                    name: finalName,
+                    photoURL: firebaseUser?.photoURL,
+                    email: finalEmail,
+                    gameIDs: []
+                )
+                
+                context.insert(newUser)
+                do {
+                    try context.save()
+                    print("🔹 Saved new local user: \(newUser.name)")
+                } catch {
+                    print("❌ Failed to save new user locally: \(error)")
+                }
+                
+                print("🔹 Saving new user to Firestore...")
+                self.saveUserModel(newUser) { success in
+                    if success {
+                        print("✅ Created new remote user: \(newUser.name)")
+                    } else {
+                        print("❌ Failed to save new user to Firestore: \(newUser.name)")
+                    }
+                    self.userModel = newUser
+                    print("🔹 Calling completion after creating new user")
+                    completion()
+                }
+            }
+        }
     }
 
-    
     /// Generates a random alphanumeric nonce of the given length.
     func randomNonceString(length: Int = 32) -> String {
         precondition(length > 0)
@@ -505,24 +533,24 @@ class AuthViewModel: ObservableObject {
     
     
     func updateDisplayName(to newName: String, completion: @escaping (Error?) -> Void) {
-      guard let user = Auth.auth().currentUser else {
-        completion(NSError(domain: "Auth", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "No signed-in user"]))
-        return
-      }
-
-      let changeRequest = user.createProfileChangeRequest()
-      changeRequest.displayName = newName
-      changeRequest.commitChanges { error in
-        if let error = error {
-          print("❌ Failed to update displayName:", error)
-        } else {
-          print("✅ displayName updated to:", newName)
+        guard let user = Auth.auth().currentUser else {
+            completion(NSError(domain: "Auth", code: -1,
+                               userInfo: [NSLocalizedDescriptionKey: "No signed-in user"]))
+            return
         }
-        completion(error)
-      }
+        
+        let changeRequest = user.createProfileChangeRequest()
+        changeRequest.displayName = newName
+        changeRequest.commitChanges { error in
+            if let error = error {
+                print("❌ Failed to update displayName:", error)
+            } else {
+                print("✅ displayName updated to:", newName)
+            }
+            completion(error)
+        }
     }
-
+    
     
     // MARK: UserModel
     /// Saves or updates the UserModel in Firestore
@@ -546,7 +574,7 @@ class AuthViewModel: ObservableObject {
             completion(false)
         }
     }
-
+    
     /// Fetchs the UserModel in Firestore
     func fetchUserModel(id: String, completion: @escaping (UserModel?) -> Void) {
         let db = Firestore.firestore()

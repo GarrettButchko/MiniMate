@@ -5,8 +5,8 @@
 
 import SwiftUI
 
-struct GameReviewView<ViewManagerType: NavigatableViewManager>: View {
-    @StateObject var viewManager: ViewManagerType
+struct GameReviewView: View {
+    @StateObject var viewManager: ViewManager
     var game: Game
     let course: Course?
     
@@ -17,7 +17,7 @@ struct GameReviewView<ViewManagerType: NavigatableViewManager>: View {
     @State private var showInfoView: Bool
     
     // Custom init to assign @StateObject and normal vars
-    init(viewManager: ViewManagerType, game: Game, course: Course? = nil, isAppClip: Bool = false, scrollOffset: CGFloat = 0, uuid: UUID? = nil, showInfoView: Bool = false) {
+    init(viewManager: ViewManager, game: Game, course: Course? = nil, isAppClip: Bool = false, scrollOffset: CGFloat = 0, uuid: UUID? = nil, showInfoView: Bool = false) {
         _viewManager = StateObject(wrappedValue: viewManager)
         self.game = game
         print(game.courseID as Any)

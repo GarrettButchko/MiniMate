@@ -29,9 +29,6 @@ class Game: Equatable {
         }
         return temp
     }
-    
-    @Relationship(deleteRule: .nullify)
-    var user: UserModel?
 
     @Relationship(deleteRule: .cascade, inverse: \Player.game)
     var players: [Player] = []
@@ -90,14 +87,14 @@ class Game: Equatable {
         return GameDTO(
             id: id,
             location: location,
-            date: date,
+            date: date.timeIntervalSince1970,
             completed: completed,
             numberOfHoles: numberOfHoles,
             started: started,
             dismissed: dismissed,
             totalTime: totalTime,
             live: live,
-            lastUpdated: lastUpdated,
+            lastUpdated: lastUpdated.timeIntervalSince1970,
             courseID: courseID,  // <-- include courseID
             players: players.map { $0.toDTO() }
         )
@@ -107,14 +104,14 @@ class Game: Equatable {
         return Game(
             id: dto.id,
             location: dto.location,
-            date: dto.date,
+            date: Date(timeIntervalSince1970: dto.date),
             completed: dto.completed,
             numberOfHoles: dto.numberOfHoles,
             started: dto.started,
             dismissed: dto.dismissed,
             totalTime: dto.totalTime,
             live: dto.live,
-            lastUpdated: dto.lastUpdated,
+            lastUpdated: Date(timeIntervalSince1970: dto.lastUpdated),
             courseID: dto.courseID,  // <-- include courseID
             players: dto.players.map { Player.fromDTO($0) }
         )
@@ -125,14 +122,14 @@ class Game: Equatable {
 struct GameDTO: Codable {
     var id: String
     var location: MapItemDTO?
-    var date: Date
+    var date: Double
     var completed: Bool
     var numberOfHoles: Int
     var started: Bool
     var dismissed: Bool
     var totalTime: Int
     var live: Bool
-    var lastUpdated: Date
+    var lastUpdated: Double
     var courseID: String? // <-- Added here
     var players: [PlayerDTO]
 
@@ -149,14 +146,14 @@ struct GameDTO: Codable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id             = try c.decode(String.self,                 forKey: .id)
         location       = try c.decodeIfPresent(MapItemDTO.self,   forKey: .location)
-        date           = try c.decodeIfPresent(Date.self,         forKey: .date)          ?? Date()
+        date           = try c.decodeIfPresent(Double.self,         forKey: .date)          ?? 0
         completed      = try c.decodeIfPresent(Bool.self,         forKey: .completed)     ?? false
         numberOfHoles  = try c.decodeIfPresent(Int.self,          forKey: .numberOfHoles) ?? 0
         started        = try c.decodeIfPresent(Bool.self,         forKey: .started)       ?? false
         dismissed      = try c.decodeIfPresent(Bool.self,         forKey: .dismissed)     ?? false
         totalTime      = try c.decodeIfPresent(Int.self,          forKey: .totalTime)     ?? 0
         live           = try c.decodeIfPresent(Bool.self,         forKey: .live)          ?? false
-        lastUpdated    = try c.decodeIfPresent(Date.self,         forKey: .lastUpdated)   ?? Date()
+        lastUpdated    = try c.decodeIfPresent(Double.self,         forKey: .lastUpdated)   ?? 0
         courseID       = try c.decodeIfPresent(String.self,       forKey: .courseID)      ?? nil // <-- Added here
         players        = try c.decodeIfPresent([PlayerDTO].self,  forKey: .players)       ?? []
     }
@@ -165,14 +162,14 @@ struct GameDTO: Codable {
     init(
         id: String,
         location: MapItemDTO? = nil,
-        date: Date,
+        date: Double,
         completed: Bool,
         numberOfHoles: Int,
         started: Bool,
         dismissed: Bool,
         totalTime: Int,
         live: Bool,
-        lastUpdated: Date,
+        lastUpdated: Double,
         courseID: String?, // <-- Added here
         players: [PlayerDTO]
     ) {

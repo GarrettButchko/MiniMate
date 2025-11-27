@@ -30,8 +30,6 @@ struct CourseSettingsView: View {
     let adminCodeResolver = AdminCodeResolver()
     let courseRepo = CourseRepository()
     
-    
-    
     init(authModel: AuthViewModel, course: Course) {
         self.authModel = authModel
         self.course = course

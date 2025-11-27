@@ -181,7 +181,7 @@ struct LocationView: View {
                                         editOn.toggle()
                                     }
                                 } label: {
-                                    if let leaderboard = courseLeaderboard?.leaderBoard{
+                                    if (courseLeaderboard?.leaderBoard) != nil{
                                         Text(editOn ? "Done" : "Edit")
                                             .transition(.move(edge: .trailing).combined(with: .opacity))
                                     }

@@ -18,7 +18,7 @@ final class GameViewModel: ObservableObject {
     
     // Published Game State
     @Published private var game: Game
-
+    
     // Dependencies & Config
     private var onlineGame: Bool
     private var lastUpdated: Date = Date()
@@ -43,16 +43,16 @@ final class GameViewModel: ObservableObject {
         game[keyPath: keyPath]
     }
     
-      /// A two‐way `Binding<Game>` for the entire model.
-      func bindingForGame() -> Binding<Game> {
+    /// A two‐way `Binding<Game>` for the entire model.
+    func bindingForGame() -> Binding<Game> {
         Binding<Game>(
-          get: { self.game },            // read the current game
-          set: { newGame in              // when it’s written…
-            self.setGame(newGame)        // swap in & re-attach listeners
-          }
+            get: { self.game },            // read the current game
+            set: { newGame in              // when it’s written…
+                self.setGame(newGame)        // swap in & re-attach listeners
+            }
         )
-      }
-
+    }
+    
     /// Two-way binding: DatePicker(..., selection: vm.binding(for: \ .date))
     func binding<T>(for keyPath: ReferenceWritableKeyPath<Game, T>) -> Binding<T> {
         Binding(
@@ -64,7 +64,7 @@ final class GameViewModel: ObservableObject {
             }
         )
     }
-
+    
     /// Expose full model if needed
     var gameValue: Game { game }
     
@@ -76,37 +76,37 @@ final class GameViewModel: ObservableObject {
     }
     
     func setGame(_ newGame: Game) {
-            objectWillChange.send()
-            // Tear down any existing listener
-            stopListening()
-            // Always start fresh: remove local players and holes
-            game.players.removeAll()
-
-            // 1) Merge top-level fields
-            game.id            = newGame.id
-            game.location      = newGame.location
-            game.date          = newGame.date
-            game.completed     = newGame.completed
-            game.numberOfHoles = newGame.numberOfHoles
-            game.started       = newGame.started
-            game.dismissed     = newGame.dismissed
-            game.live          = newGame.live
-            game.lastUpdated   = newGame.lastUpdated
-            lastUpdated        = newGame.lastUpdated
-
-            // 2) Rebuild players and their holes from remote data
-            for remotePlayer in newGame.players {
-                initializeHoles(for: remotePlayer)
-                // remotePlayer.holes already contains correct strokes
-                // Append the fully initialized player
-                game.players.append(remotePlayer)
-            }
-
-            // Restart updates if needed
-            if onlineGame {
-                listenForUpdates()
-            }
+        objectWillChange.send()
+        // Tear down any existing listener
+        stopListening()
+        // Always start fresh: remove local players and holes
+        game.players.removeAll()
+        
+        // 1) Merge top-level fields
+        game.id            = newGame.id
+        game.location      = newGame.location
+        game.date          = newGame.date
+        game.completed     = newGame.completed
+        game.numberOfHoles = newGame.numberOfHoles
+        game.started       = newGame.started
+        game.dismissed     = newGame.dismissed
+        game.live          = newGame.live
+        game.lastUpdated   = newGame.lastUpdated
+        lastUpdated        = newGame.lastUpdated
+        
+        // 2) Rebuild players and their holes from remote data
+        for remotePlayer in newGame.players {
+            initializeHoles(for: remotePlayer)
+            // remotePlayer.holes already contains correct strokes
+            // Append the fully initialized player
+            game.players.append(remotePlayer)
         }
+        
+        // Restart updates if needed
+        if onlineGame {
+            listenForUpdates()
+        }
+    }
     
     func setCompletedGame(_ completedGame: Bool) {
         objectWillChange.send() // notify before mutating
@@ -133,13 +133,13 @@ final class GameViewModel: ObservableObject {
         self.game.numberOfHoles = holes
         pushUpdate()
     }
-
+    
     func stopListening() {
-      guard let ref = gameRef(), let handle = listenerHandle else { return }
-      ref.removeObserver(withHandle: handle)
-      listenerHandle = nil
+        guard let ref = gameRef(), let handle = listenerHandle else { return }
+        ref.removeObserver(withHandle: handle)
+        listenerHandle = nil
     }
-
+    
     // MARK: - Updating DataBase
     func pushUpdate() {
         guard gameRef() != nil else { return }
@@ -150,41 +150,41 @@ final class GameViewModel: ObservableObject {
             liveGameRepo.addOrUpdateGame(game) { _ in }
         }
     }
-
+    
     
     private func gameRef() -> DatabaseReference? {
-      guard onlineGame,
-            !game.id.isEmpty,
-            game.id.rangeOfCharacter(from: CharacterSet(charactersIn: ".#\\$\\[\\]]")) == nil
-      else {
-        return nil
-      }
-      return Database.database()
-             .reference()
-             .child("games")
-             .child(game.id)
+        guard onlineGame,
+              !game.id.isEmpty,
+              game.id.rangeOfCharacter(from: CharacterSet(charactersIn: ".#\\$\\[\\]]")) == nil
+        else {
+            return nil
+        }
+        return Database.database()
+            .reference()
+            .child("games")
+            .child(game.id)
     }
     
     func listenForUpdates() {
         guard onlineGame else { return }
         guard let ref = gameRef() else {
-          print("⚠️ Invalid game.id “\(game.id)” — skipping Firebase call")
-          return
+            print("⚠️ Invalid game.id “\(game.id)” — skipping Firebase call")
+            return
         }
-
+        
         listenerHandle = ref.observe(.value) { [weak self] snap in
             guard let self = self,
                   snap.exists(),
                   let dto: GameDTO = try? snap.data(as: GameDTO.self)
             else { return }
             let incoming = Game.fromDTO(dto)
-
+            
             // ignore echoes
             guard incoming.lastUpdated > self.game.lastUpdated else { return }
-
+            
             self.objectWillChange.send()
             self.game.lastUpdated = incoming.lastUpdated
-
+            
             // 1) merge top‐level fields…
             self.game.id          = incoming.id
             self.game.location          = incoming.location
@@ -194,12 +194,12 @@ final class GameViewModel: ObservableObject {
             self.game.started       = incoming.started
             self.game.dismissed     = incoming.dismissed
             self.game.live    = incoming.live
-
+            
             // 2) build a lookup of remote players by ID
             let remoteByID = Dictionary(uniqueKeysWithValues:
-                incoming.players.map { ($0.id, $0) }
+                                            incoming.players.map { ($0.id, $0) }
             )
-
+            
             // 3) update or remove existing local players
             self.game.players.removeAll { local in
                 guard let remote = remoteByID[local.id] else {
@@ -208,25 +208,23 @@ final class GameViewModel: ObservableObject {
                 }
                 // still present → update their fields
                 local.inGame       = remote.inGame
-
+                
                 // merge holes
                 for (hIdx, holeDTO) in remote.holes.enumerated() where hIdx < local.holes.count {
                     local.holes[hIdx].strokes = holeDTO.strokes
                 }
-
+                
                 return false
             }
-
+            
             // 4) append any brand‐new players
             for remote in incoming.players where !self.game.players.contains(where: { $0.id == remote.id }) {
-    
+                
                 initializeHoles(for: remote)
                 self.game.players.append(remote)
             }
         }
     }
-
-    
     
     func deleteFromFirebaseGamesArr(){
         guard onlineGame else { return }
@@ -236,7 +234,7 @@ final class GameViewModel: ObservableObject {
             }
         }
     }
-
+    
     // MARK: - Helpers
     private func initializeHoles(for player: Player) {
         guard player.holes.count != game.numberOfHoles else { return }
@@ -247,7 +245,7 @@ final class GameViewModel: ObservableObject {
             return hole
         }
     }
-
+    
     private func generateGameCode(length: Int = 6) -> String {
         let chars = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
         return String((0..<length).compactMap { _ in chars.randomElement() })
@@ -268,27 +266,27 @@ final class GameViewModel: ObservableObject {
         }
         pushUpdate()
     }
-
+    
     func addUser() {
-      guard let user = authModel.userModel else { return }
-      // don’t add the same user twice
-      guard !game.players.contains(where: { $0.userId == user.id }) else { return }
-
-      objectWillChange.send()
-      let newPlayer = Player(
-        userId: user.id,
-        name: user.name,
-        photoURL: user.photoURL,
-        inGame: true
-      )
-      initializeHoles(for: newPlayer)
+        guard let user = authModel.userModel else { return }
+        // don’t add the same user twice
+        guard !game.players.contains(where: { $0.userId == user.id }) else { return }
+        
+        objectWillChange.send()
+        let newPlayer = Player(
+            userId: user.id,
+            name: user.name,
+            photoURL: user.photoURL,
+            inGame: true
+        )
+        initializeHoles(for: newPlayer)
         withAnimation(){
             game.players.append(newPlayer)
         }
-      pushUpdate()
+        pushUpdate()
     }
-
-
+    
+    
     func removePlayer(userId: String) {
         objectWillChange.send()
         withAnimation(){
@@ -339,18 +337,18 @@ final class GameViewModel: ObservableObject {
     
     func startGame(showHost: Binding<Bool>) {
         guard !game.started else { return }
-
+        
         objectWillChange.send()
         for player in game.players {
             initializeHoles(for: player)
         }
         game.started = true
         pushUpdate()
-
+        
         // Flip the binding to false
         showHost.wrappedValue = false
     }
-
+    
     func dismissGame() {
         guard !game.dismissed else { return }
         objectWillChange.send()
@@ -363,9 +361,9 @@ final class GameViewModel: ObservableObject {
     
     /// Deep-clone the game you just finished, persist it locally & remotely, then reset.
     func finishAndPersistGame(in context: ModelContext) {
-      stopListening()
-
-      // Clone all fields into a fresh Game instance
+        stopListening()
+        
+        // Clone all fields into a fresh Game instance
         // Clone all fields into a fresh Game instance
         let finished = Game(
             id:           game.id,
@@ -391,10 +389,13 @@ final class GameViewModel: ObservableObject {
                 )
             },
         )
-
+        
         UnifiedGameRepository(context: context).save(finished) { saved in
             if saved {
+                print("Saved Game Everywhere")
                 self.authModel.userModel?.gameIDs.append(finished.id)
+            } else {
+                print("Error Saving Game")
             }
         }
         

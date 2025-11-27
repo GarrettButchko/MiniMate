@@ -8,7 +8,7 @@
 import SwiftData
 import Foundation
 
-class LocalGameRepository: GameRepository {
+class LocalGameRepository {
     let context: ModelContext
     
     init(context: ModelContext) {
@@ -37,32 +37,13 @@ class LocalGameRepository: GameRepository {
         }
     }
     
-    func fetchAll(completion: @escaping ([Game]) -> Void) {
-        do {
-            let descriptor = FetchDescriptor<Game>()
-            let all = try context.fetch(descriptor)
-            completion(all)
-        } catch {
-            print("❌ Failed to fetch all locally:", error)
-            completion([])
-        }
-    }
-    
     func fetchAll(ids: [String], completion: @escaping ([Game]) -> Void) {
         do {
-            // Create a predicate matching IDs in the array
-            let predicate = #Predicate<Game> { game in
-                ids.contains(game.id)
-            }
-
-            // Attach the predicate to the FetchDescriptor
-            var descriptor = FetchDescriptor<Game>(predicate: predicate)
-
-            let results = try context.fetch(descriptor)
-            completion(results)
-
+            let allGames = try context.fetch(FetchDescriptor<Game>())
+            let filtered = allGames.filter { ids.contains($0.id) }
+            completion(filtered)
         } catch {
-            print("❌ Failed to fetch with IDs:", error)
+            print("❌ Failed to fetch games:", error)
             completion([])
         }
     }
