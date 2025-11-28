@@ -8,6 +8,10 @@
 import SwiftUI
 import FirebaseDatabase
 
+struct AdminIdWrapper: Identifiable {
+    var id: String
+}
+
 struct AdminView: View {
     @Environment(\.modelContext) private var context
     
@@ -31,11 +35,9 @@ struct CreatorView: View {
     
     @State var showSheet: Bool = false
     
-    @State private var selectedAdminId: String? = nil
+    @State private var selectedAdminId: AdminIdWrapper?
     
     @State var searchText: String = ""
-    
-    
     
     var body: some View {
         VStack {
@@ -46,19 +48,10 @@ struct CreatorView: View {
                     Spacer()
                 }
                 ZStack {
-                    // Background with light fill
-                    if #available(iOS 26.0, *) {
-                        RoundedRectangle(cornerRadius: 25)
-                            .fill(.ultraThinMaterial.opacity(0.5))
-                            //.glassEffect()
-                            .frame(height: 50)
-                            .shadow(color: Color.black.opacity(0.1), radius: 10)
-                    } else {
-                        // Fallback on earlier versions
-                        RoundedRectangle(cornerRadius: 25)
-                            .fill(.ultraThinMaterial) // Light background
-                            .frame(height: 50)
-                    }
+                    
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(.sub) // Light background
+                        .frame(height: 50)
                     
                     HStack {
                         Image(systemName: "magnifyingglass")
@@ -87,7 +80,7 @@ struct CreatorView: View {
                 ForEach(Array(filteredAdminAndId), id: \.0) { code, adminType in
                     if adminType.id != "CREATOR"{
                         Button {
-                            selectedAdminId = adminType.id
+                            selectedAdminId = AdminIdWrapper(id: adminType.id)
                             showSheet = true
                         } label: {
                             HStack{
@@ -100,33 +93,9 @@ struct CreatorView: View {
                                     .foregroundStyle(.mainOpp)
                             }
                         }
-                        .sheet(isPresented: $showSheet) {
-                            if let adminId = selectedAdminId{
-                                LocationView(authModel: authModel, id: adminId)
-                            } else {
-                                Text("Couldn't load")
-                            }
+                        .sheet(item: $selectedAdminId) { item in
+                            LocationView(authModel: authModel, id: item.id)
                         }
-                    }
-                }
-                Button {
-                    selectedAdminId = "TEST"
-                    showSheet = true
-                } label: {
-                    HStack{
-                        Text("RE" + ":")
-                            .foregroundStyle(.mainOpp)
-                        Text("RESET")
-                            .foregroundStyle(.mainOpp)
-                        Spacer()
-                        Image(systemName: "arrow.forward")
-                            .foregroundStyle(.mainOpp)
-                    }
-                }.sheet(isPresented: $showSheet) {
-                    if let adminId = selectedAdminId{
-                        LocationView(authModel: authModel, id: adminId)
-                    } else {
-                        Text("Couldn't load")
                     }
                 }
             }
@@ -180,18 +149,20 @@ struct LocationView: View {
                                     .font(.title3).fontWeight(.bold)
                                     .foregroundStyle(.mainOpp)
                                 Spacer()
-                                Button {
-                                    withAnimation(){
-                                        editOn.toggle()
-                                    }
-                                } label: {
-                                    if (courseLeaderboard?.leaderBoard) != nil{
-                                        Text(editOn ? "Done" : "Edit")
-                                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                                if let leaderboard = courseLeaderboard?.leaderBoard, leaderboard.count > 0{
+                                    Button {
+                                        withAnimation(){
+                                            editOn.toggle()
+                                        }
+                                    } label: {
+                                        if (courseLeaderboard?.leaderBoard) != nil{
+                                            Text(editOn ? "Done" : "Edit")
+                                                .transition(.move(edge: .trailing).combined(with: .opacity))
+                                        }
                                     }
                                 }
                             }
-                            if let leaderboard = courseLeaderboard?.leaderBoard, let courseLeaderboard = courseLeaderboard{
+                            if let leaderboard = courseLeaderboard?.leaderBoard, let courseLeaderboard = courseLeaderboard, leaderboard.count > 0{
                                 ScrollView{
                                     LeaderBoardList(players: leaderboard, course: course, courseLeaderboard: courseLeaderboard, courseLeaderboardRepo: courseLeaderBoardRepo, editOn: $editOn)
                                 }
@@ -203,6 +174,7 @@ struct LocationView: View {
                         .padding()
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 25))
+                        .padding(.bottom)
                     } else {
                         VStack{
                             Spacer()
@@ -232,7 +204,9 @@ struct LocationView: View {
                 }
                 
             } else {
-                Text("Your course could not load please wait a moment and try again.")
+                ProgressView {
+                    Text("Your course could not load please wait a moment and try again.")
+                }
                 
                 Button {
                     isLoading = true

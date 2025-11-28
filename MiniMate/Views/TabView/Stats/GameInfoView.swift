@@ -1,15 +1,16 @@
-// ProfileView.swift
-// MiniMate
 //
-// Updated to use UserModel and AuthViewModel
+//  GameInfoReviewView.swift
+//  MiniMate
+//
+//  Created by Garrett Butchko on 4/28/25.
+//
+
 
 import SwiftUI
-import FirebaseAuth
 
 /// Displays and allows editing of the current user's profile
 struct GameInfoView: View {
-    
-    @Binding var game: Game
+    var game: Game
     @Binding var isSheetPresent: Bool
 
     var body: some View {
@@ -32,12 +33,13 @@ struct GameInfoView: View {
 
                 List {
                     Section ("Info") {
-                        UserInfoRow(label: "Game Code", value: game.id)
+                        UserInfoRow(label: "Game ID/Code", value: game.id)
                         UserInfoRow(label: "Number of players", value: "\(game.players.count)")
                         UserInfoRow(label: "Number of holes", value: "\(game.numberOfHoles)")
-                        if let location = game.location, location.latitude != 0 {
+                        if let location = game.location {
                             UserInfoRow(label: "Location", value: "\(location.name ?? "No Name")")
                         }
+                        UserInfoRow(label: "Date Started", value: game.date.formatted(date: .abbreviated, time: .omitted))
                     }
                 }
             }

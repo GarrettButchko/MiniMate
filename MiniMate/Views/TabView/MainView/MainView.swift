@@ -104,7 +104,7 @@ struct MainView: View {
                                 VStack(spacing: 20){
                                     Rectangle()
                                         .fill(Color.clear)
-                                        .frame(height: 100)
+                                        .frame(height: 110)
                                     
                                     if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
                                         VStack{
@@ -203,7 +203,9 @@ struct MainView: View {
                                                 BarChartView(data: analyzer?.usersHolesOfLatestGame ?? [], title: "Recap of Game")
                                                 
                                             }
+                                            .padding(.bottom)
                                         }
+                                        
                                     } else {
                                         Image("logoOpp")
                                             .resizable()
@@ -511,15 +513,18 @@ extension Shape {
     @ViewBuilder
     func ifAvailableGlassEffect() -> some View {
         if #available(iOS 26.0, *) {
-            self.fill(.ultraThinMaterial.opacity(0.1))
-                .glassEffect(in: self)
-                .clipShape(self)
-                .shadow(color: Color.black.opacity(0.1), radius: 10)
-        } else {
-            self.fill(.ultraThinMaterial)
-                .clipShape(self)
-                .shadow(radius: 10)
-        }
+                    self
+                .fill(Color(.subTwo).opacity(0.3))
+                        .glassEffect(in: self)
+                        .clipShape(self) // clip BEFORE adding border
+                        .overlay(self.stroke(Color(.subTwo), lineWidth: 1)) // ← correct border
+                } else {
+                    self
+                        .fill(.ultraThinMaterial)
+                        .clipShape(self)
+                        .overlay(self.stroke(Color(.subTwo), lineWidth: 1))
+                        .shadow(radius: 10)
+                }
     }
 }
 

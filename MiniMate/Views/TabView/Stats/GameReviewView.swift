@@ -36,7 +36,7 @@ struct GameReviewView: View {
         }
         .padding()
         .sheet(isPresented: $showInfoView) {
-            GameInfoReviewView(game: game, isSheetPresent: $showInfoView)
+            GameInfoView(game: game, isSheetPresent: $showInfoView)
         }
     }
     
@@ -49,8 +49,14 @@ struct GameReviewView: View {
                     .foregroundColor(.gray)
             }
             HStack {
-                Text("Scorecard")
-                    .font(.title).fontWeight(.bold)
+                VStack(alignment: .leading){
+                    Text("Scorecard")
+                        .font(.title).fontWeight(.bold)
+                    if let location = game.location?.name {
+                        Text(location)
+                            .font(.subheadline)
+                    }
+                }
                 Spacer()
                 Button {
                     showInfoView = true

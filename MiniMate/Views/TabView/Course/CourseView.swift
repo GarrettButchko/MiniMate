@@ -467,6 +467,7 @@ struct LocationButton: View {
     
 }
 
+import MarqueeText
 // MARK: - SearchResultRow
 
 struct SearchResultRow: View {
@@ -479,17 +480,27 @@ struct SearchResultRow: View {
         HStack{
             VStack(alignment: .leading) {
                 
-                Text(item.name ?? "Unknown Place")
-                    .font(.headline)
-                
+                MarqueeText(
+                    text: "\(item.name ?? "Unknown Place")",
+                    font: UIFont.preferredFont(forTextStyle: .headline),
+                    leftFade: 16,
+                    rightFade: 16,
+                    startDelay: 3 // recommend 1–2 seconds for a subtle Apple-like pause
+                )
                 
                 let offsetLat = userLocation.latitude - 0.015
                 let distanceInMiles = CLLocation(latitude: offsetLat, longitude: userLocation.longitude)
                     .distance(from: CLLocation(latitude: item.placemark.coordinate.latitude,
                                                longitude: item.placemark.coordinate.longitude)) / 1609.34
                 
-                Text("\(String(format: "%.1f", distanceInMiles)) mi - \(getPostalAddress(from: item))")
-                    .font(.subheadline)
+                
+                MarqueeText(
+                    text: "\(String(format: "%.1f", distanceInMiles)) mi - \(getPostalAddress(from: item))",
+                    font: UIFont.preferredFont(forTextStyle: .subheadline),
+                    leftFade: 16,
+                    rightFade: 16,
+                    startDelay: 4 // recommend 1–2 seconds for a subtle Apple-like pause
+                )
             }
             .frame(height: 50)
             Spacer()

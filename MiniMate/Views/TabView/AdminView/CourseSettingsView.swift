@@ -41,63 +41,71 @@ struct CourseSettingsView: View {
                 .padding()
             ZStack{
                 formView
-                if showColor {
-                    Group{
-                        Rectangle()
-                            .foregroundStyle(.ultraThinMaterial)
-                            .ignoresSafeArea()
-                            .opacity(0.8)
-                        
-                        ZStack {
-                            VStack(spacing: 20) {
-                                Text("Pick a Color")
-                                    .font(.headline)
-                                LazyVGrid(columns: Array(repeating: .init(.flexible()), count: 4), spacing: 20) {
-                                    ForEach(colors, id: \.self) { color in
-                                        Button {
-                                            withAnimation(){
-                                                course.colorsS.append(colorToString(color))
-                                                courseRepo.addOrUpdateCourse(course) { _ in }
-                                                showColor = false
-                                            }
-                                        } label: {
-                                            Circle()
-                                                .fill(.ultraThinMaterial)
-                                                .frame(width: 40, height: 40)
-                                                .overlay {
-                                                    Circle()
-                                                        .fill(color)
-                                                        .frame(width: 30, height: 30)
-                                                }
-                                        }
-                                    }
-                                }
-                                
-                                Button {
-                                    withAnimation(){
-                                        showColor = false
-                                    }
-                                } label: {
-                                    Text("Cancel")
-                                        .foregroundStyle(.white)
-                                        .padding()
-                                        .background(Color.blue)
-                                        .clipShape(RoundedRectangle(cornerRadius: 25))
-                                }
-                            }
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            
-                            .cornerRadius(20)
-                            .padding()
-                        }
-                    }
-                    .transition(.opacity)
-                }
+                
+                colorPicker
+                    .opacity(showColor ? 1 : 0)
+                    .animation(.spring(duration: 0.25, bounce: 0.4), value: showColor)
+                    .allowsHitTesting(showColor)
             }
         }
     }
     
+    private var colorPicker: some View {
+        ZStack {
+            // Background blur
+            Rectangle()
+                .foregroundStyle(.ultraThinMaterial)
+                .ignoresSafeArea()
+                
+            
+            // Popup card
+            VStack(spacing: 20) {
+                Text("Pick a Color")
+                    .font(.headline)
+                
+                LazyVGrid(columns: Array(repeating: .init(.flexible()), count: 4), spacing: 20) {
+                    ForEach(colors, id: \.self) { color in
+                        Button {
+                            withAnimation() {
+                                course.colorsS.append(colorToString(color))
+                                courseRepo.addOrUpdateCourse(course) { _ in }
+                                showColor = false
+                            }
+                        } label: {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 40, height: 40)
+                                .overlay {
+                                    Circle()
+                                        .fill(color)
+                                        .frame(width: 30, height: 30)
+                                }
+                        }
+                    }
+                }
+                
+                Button {
+                    withAnimation() {
+                        showColor = false
+                    }
+                } label: {
+                    Text("Cancel")
+                        .fontWeight(.semibold)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(.white)
+                        .background(.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .padding()
+            .transition(.scale.combined(with: .opacity))
+        }
+    }
+
     private var headerView: some View {
         VStack{
             Capsule()
@@ -256,7 +264,12 @@ struct CourseSettingsView: View {
                                 courseRepo.addOrUpdateCourse(course) { _ in }
                             }
                         ))
-                        .textFieldStyle(.roundedBorder)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                        )
                     }
                 }
             }
@@ -276,9 +289,11 @@ struct CourseSettingsView: View {
                         }
                     ))
                     .frame(minHeight: 40, maxHeight: 80)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15, style: .continuous)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
                     )
                 }
                 VStack {
@@ -293,9 +308,11 @@ struct CourseSettingsView: View {
                         }
                     ))
                     .frame(minHeight: 60, maxHeight: 120)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15, style: .continuous)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
                     )
                 }
                 
@@ -309,7 +326,12 @@ struct CourseSettingsView: View {
                             courseRepo.addOrUpdateCourse(course) { _ in }
                         }
                     ))
-                    .textFieldStyle(.roundedBorder)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15, style: .continuous)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                    )
                 }
                 HStack {
                     Text("Ad Image:")

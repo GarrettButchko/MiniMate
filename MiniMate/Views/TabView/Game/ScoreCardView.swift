@@ -37,7 +37,7 @@ struct ScoreCardView: View {
             }
             .padding()
             .sheet(isPresented: $showInfoView) {
-                GameInfoView(game: gameModel.bindingForGame(), isSheetPresent: $showInfoView)
+                GameInfoView(game: gameModel.gameValue, isSheetPresent: $showInfoView)
             }
             .onChange(of: gameModel.gameValue.completed) { old, new in
                 if new {
@@ -82,8 +82,14 @@ struct ScoreCardView: View {
     // MARK: Header
     private var headerView: some View {
         HStack {
-            Text("Scorecard")
-                .font(.title).fontWeight(.bold)
+            VStack(alignment: .leading){
+                Text("Scorecard")
+                    .font(.title).fontWeight(.bold)
+                if let location = gameModel.gameValue.location?.name {
+                    Text(location)
+                        .font(.subheadline)
+                }
+            }
             if let logo = course?.logo{
                 Divider()
                     .frame(height: 30)

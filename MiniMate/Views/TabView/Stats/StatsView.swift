@@ -149,6 +149,16 @@ struct StatsView: View {
                     .frame(height: 80)
                     .foregroundStyle(Color.clear)
                 
+                if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
+                    VStack{
+                        BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6344452429") // Replace with real one later
+                            .frame(height: 50)
+                            .padding()
+                    }
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                }
+                
                 if analyzer?.hasGames == true {
                     ForEach(games) { game in
                         GameRow(context: _context, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, game: game, viewManager: viewManager, presentShareSheet: presentShareSheet)
@@ -241,6 +251,18 @@ struct StatsView: View {
                     }
                 }
                 .padding(.top)
+                
+                if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
+                    VStack{
+                        BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6344452429") // Replace with real one later
+                            .frame(height: 50)
+                            .padding()
+                    }
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                    .padding(.top)
+                }
+                
                 SectionStatsView(title: "Average 18 Hole Game"){
                     BarChartView(data: analyzer.averageHoles18, title: "Average Strokes")
                 }
@@ -256,7 +278,7 @@ struct StatsView: View {
                 SectionStatsView(title: "Average 9 Hole Game"){
                     BarChartView(data: analyzer.averageHoles9, title: "Average Strokes")
                 }
-                .padding(.top)
+                .padding(.vertical)
             } else {
                 // Placeholder while analyzer initializes
                 Image("logoOpp")
@@ -307,7 +329,7 @@ struct GameGridView: View {
         VStack(alignment: .leading, spacing: 16) { // Adds vertical spacing
             // Game Info & Players Row
             HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     
                     
                     if let gameLocName = game.location?.name{
@@ -422,7 +444,6 @@ struct GameRow: View {
         GeometryReader { proxy in
             HStack{
                 GameGridView(editOn: $editOn, authModel: authModel, game: game)
-                    .padding(.vertical)
                     .frame(width: proxy.size.width)
                     .transition(.opacity)
                     .swipeMod(
@@ -452,6 +473,7 @@ struct GameRow: View {
             }
         }
         .frame(height: 210)
+        .padding(.vertical)
     }
     
     /// Build a plain-text summary (you could also return a URL to a generated PDF/image)

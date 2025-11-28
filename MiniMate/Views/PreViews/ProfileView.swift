@@ -123,8 +123,8 @@ struct ProfileView: View {
                             }
                             
                             HStack {
-                                Text("Is Pro User:")
-                                Text(String(user.isPro))
+                                Text("Pro:")
+                                Text((user.isPro ? "Yes" : "No"))
                             }
                             
                             // Only allow edit/reset for non-social accounts

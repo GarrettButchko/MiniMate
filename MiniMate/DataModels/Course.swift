@@ -185,16 +185,30 @@ struct RoundTimeAnalytics: Codable, Identifiable, Equatable {
 
 
 struct CourseLeaderboard: Codable, Identifiable {
-    var id: String           // course ID
-    var allPlayers: [PlayerDTO] = [] // current leaderboard
-    
+    var id: String
+    var allPlayers: [PlayerDTO]
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case allPlayers
+    }
+
     init(id: String = "", allPlayers: [PlayerDTO] = []) {
         self.id = id
         self.allPlayers = allPlayers
     }
-    
-    /// Returns a sorted leaderboard by total strokes (ascending)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(String.self, forKey: .id)
+
+        // ⭐ The important part:
+        allPlayers = (try? container.decode([PlayerDTO].self, forKey: .allPlayers)) ?? []
+    }
+
     var leaderBoard: [PlayerDTO] {
         allPlayers.sorted { $0.totalStrokes < $1.totalStrokes }
     }
 }
+
