@@ -64,43 +64,45 @@ class FirestoreGameRepository {
             Array(ids[$0..<min($0 + 10, ids.count)])
         }
 
+        let group = DispatchGroup()
+        let syncQueue = DispatchQueue(label: "FirestoreGameRepository.fetchAll.sync")
+
         var allGames: [String: GameDTO] = [:]
-        var remaining = chunks.count
 
         for chunk in chunks {
+            group.enter()
             db.collection("games")
                 .whereField(FieldPath.documentID(), in: chunk)
                 .getDocuments { snapshot, error in
-                    
                     if let error = error {
                         print("❌ Firestore fetchAll chunk error: \(error.localizedDescription)")
                     }
 
-                    guard let docs = snapshot?.documents else {
-                        finishIfDone()
-                        return
-                    }
-
-                    for doc in docs {
-                        do {
-                            let dto = try doc.data(as: GameDTO.self)
-                            allGames[dto.id] = dto
-                        } catch {
-                            print("❌ Firestore decoding error for id \(doc.documentID): \(error)")
+                    if let docs = snapshot?.documents {
+                        for doc in docs {
+                            do {
+                                let dto = try doc.data(as: GameDTO.self)
+                                // Protect shared dictionary with a serial queue
+                                syncQueue.async {
+                                    allGames[dto.id] = dto
+                                }
+                            } catch {
+                                print("❌ Firestore decoding error for id \(doc.documentID): \(error)")
+                            }
                         }
                     }
 
-                    finishIfDone()
+                    group.leave()
                 }
         }
 
-        // Helper to track when all chunks are done
-        func finishIfDone() {
-            remaining -= 1
-            if remaining == 0 {
-                // Reorder results in the same order as ids
+        group.notify(queue: .main) {
+            // Ensure we read the final dictionary on the serial queue to avoid races
+            syncQueue.async {
                 let ordered = ids.compactMap { allGames[$0] }
-                completion(ordered)
+                DispatchQueue.main.async {
+                    completion(ordered)
+                }
             }
         }
     }
@@ -120,3 +122,4 @@ class FirestoreGameRepository {
         }
     }
 }
+
