@@ -17,7 +17,6 @@
 		21583BC62DD2E48200EFB400 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 21583BC52DD2E48200EFB400 /* ConfettiSwiftUI */; };
 		2177134D2DDE6AC700AF367E /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 2177134C2DDE6AC700AF367E /* GoogleMobileAds */; };
 		21A0A6AA2ECFCEE60060A93D /* MarqueeText in Frameworks */ = {isa = PBXBuildFile; productRef = 21A0A6A92ECFCEE60060A93D /* MarqueeText */; };
-		21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A75C562DED16D100F32112 /* StoreKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -80,7 +79,6 @@
 				21583BC62DD2E48200EFB400 /* ConfettiSwiftUI in Frameworks */,
 				215679AA2D5175D9001BE574 /* FirebaseDatabase in Frameworks */,
 				215679A22D5175D9001BE574 /* FirebaseAuth in Frameworks */,
-				21A75C572DED16D100F32112 /* StoreKit.framework in Frameworks */,
 				215679AE2D5175D9001BE574 /* FirebaseFirestore in Frameworks */,
 				21A0A6AA2ECFCEE60060A93D /* MarqueeText in Frameworks */,
 				211D23372D556B3C00558873 /* GoogleSignIn in Frameworks */,
