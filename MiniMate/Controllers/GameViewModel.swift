@@ -161,7 +161,7 @@ final class GameViewModel: ObservableObject {
         }
         return Database.database()
             .reference()
-            .child("games")
+            .child("live_games")
             .child(game.id)
     }
     
