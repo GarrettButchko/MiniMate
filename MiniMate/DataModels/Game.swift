@@ -17,6 +17,8 @@ class Game: Equatable {
     var live: Bool
     var lastUpdated: Date
     var courseID: String?  // <-- Added courseID
+    var startTime: Date?
+    var endTime: Date?
     
     var holeInOneLastHole: Bool {
         var temp = false
@@ -45,14 +47,16 @@ class Game: Equatable {
         lhs.live           == rhs.live &&
         lhs.lastUpdated    == rhs.lastUpdated &&
         lhs.players        == rhs.players &&
-        lhs.courseID       == rhs.courseID  // <-- compare courseID
+        lhs.courseID       == rhs.courseID &&  // <-- compare courseID
+        lhs.startTime      == rhs.startTime &&
+        lhs.endTime      == rhs.endTime
     }
 
     enum CodingKeys: String, CodingKey {
         case id, location, date, completed,
              numberOfHoles, started, dismissed,
              totalTime, live, lastUpdated,
-             players, courseID, editOn  // <-- added courseID
+             players, courseID, editOn, startTime, endTime  // <-- added courseID
     }
 
     init(
@@ -67,7 +71,9 @@ class Game: Equatable {
         live: Bool = false,
         lastUpdated: Date = Date(),
         courseID: String? = nil,  // <-- added courseID to init
-        players: [Player] = []
+        players: [Player] = [],
+        startTime: Date? = nil,
+        endTime: Date? = nil
     ) {
         self.id             = id
         self.location       = location
@@ -81,6 +87,8 @@ class Game: Equatable {
         self.lastUpdated    = lastUpdated
         self.courseID       = courseID  // <-- assign courseID
         self.players        = players
+        self.startTime      = startTime
+        self.endTime        = endTime
     }
 
     func toDTO() -> GameDTO {
@@ -96,7 +104,9 @@ class Game: Equatable {
             live: live,
             lastUpdated: lastUpdated.timeIntervalSince1970,
             courseID: courseID,  // <-- include courseID
-            players: players.map { $0.toDTO() }
+            players: players.map { $0.toDTO() },
+            startTime: startTime?.timeIntervalSince1970,
+            endTime: endTime?.timeIntervalSince1970
         )
     }
 
@@ -113,7 +123,9 @@ class Game: Equatable {
             live: dto.live,
             lastUpdated: Date(timeIntervalSince1970: dto.lastUpdated),
             courseID: dto.courseID,  // <-- include courseID
-            players: dto.players.map { Player.fromDTO($0) }
+            players: dto.players.map { Player.fromDTO($0) },
+            startTime: Date(timeIntervalSince1970: dto.startTime ?? 0),
+            endTime: Date(timeIntervalSince1970: dto.endTime ?? 0)
         )
     }
 }
@@ -132,13 +144,15 @@ struct GameDTO: Codable {
     var lastUpdated: Double
     var courseID: String? // <-- Added here
     var players: [PlayerDTO]
+    var startTime: Double?
+    var endTime: Double?
 
     enum CodingKeys: String, CodingKey {
         case id, location, date, completed,
              numberOfHoles, started, dismissed,
              totalTime, live, lastUpdated,
              courseID, // <-- Added here
-             players
+             players, endTime, startTime
     }
 
     // Decode missing fields gracefully
@@ -156,6 +170,8 @@ struct GameDTO: Codable {
         lastUpdated    = try c.decodeIfPresent(Double.self,         forKey: .lastUpdated)   ?? 0
         courseID       = try c.decodeIfPresent(String.self,       forKey: .courseID)      ?? nil // <-- Added here
         players        = try c.decodeIfPresent([PlayerDTO].self,  forKey: .players)       ?? []
+        startTime    = try c.decodeIfPresent(Double.self,         forKey: .startTime)   ?? 0
+        endTime    = try c.decodeIfPresent(Double.self,         forKey: .endTime)   ?? 0
     }
 
     // Memberwise initializer
@@ -171,7 +187,9 @@ struct GameDTO: Codable {
         live: Bool,
         lastUpdated: Double,
         courseID: String?, // <-- Added here
-        players: [PlayerDTO]
+        players: [PlayerDTO],
+        startTime: Double?,
+        endTime: Double?
     ) {
         self.id             = id
         self.location       = location
@@ -185,6 +203,8 @@ struct GameDTO: Codable {
         self.lastUpdated    = lastUpdated
         self.courseID       = courseID // <-- Added here
         self.players        = players
+        self.startTime      = startTime
+        self.endTime        = endTime
     }
 }
 

@@ -18,6 +18,7 @@ class Player: Identifiable, Equatable {
     var inGame: Bool = false
     var name: String
     var photoURL: URL?
+    var email: String?
     
     // Computed property: sum of strokes across all holes
     var totalStrokes: Int {
@@ -45,11 +46,12 @@ class Player: Identifiable, Equatable {
         lhs.name == rhs.name &&
         lhs.photoURL == rhs.photoURL &&
         lhs.inGame == rhs.inGame &&
-        lhs.holes == rhs.holes
+        lhs.holes == rhs.holes &&
+        lhs.email == rhs.email
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, userId, name, photoURL, inGame, holes
+        case id, userId, name, photoURL, inGame, holes, email
     }
 
     init(
@@ -58,7 +60,8 @@ class Player: Identifiable, Equatable {
         name: String,
         photoURL: URL? = nil,
         inGame: Bool = false,
-        holes: [Hole] = []
+        holes: [Hole] = [],
+        email: String? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -66,6 +69,7 @@ class Player: Identifiable, Equatable {
         self.photoURL = photoURL
         self.inGame = inGame
         self.holes = holes
+        self.email = email
 
         for hole in self.holes {
             hole.player = self
@@ -80,7 +84,8 @@ class Player: Identifiable, Equatable {
             photoURL: photoURL,
             totalStrokes: totalStrokes,
             inGame: inGame,
-            holes: holes.map { $0.toDTO() }
+            holes: holes.map { $0.toDTO() },
+            email: email
         )
     }
 
@@ -91,7 +96,8 @@ class Player: Identifiable, Equatable {
             name: dto.name,
             photoURL: dto.photoURL,
             inGame: dto.inGame,
-            holes: dto.holes.map { Hole.fromDTO($0) }
+            holes: dto.holes.map { Hole.fromDTO($0) },
+            email: dto.email
         )
     }
 }
@@ -104,4 +110,5 @@ struct PlayerDTO: Codable, Identifiable, Equatable {
     var totalStrokes: Int
     var inGame: Bool
     var holes: [HoleDTO]
+    var email: String?
 }

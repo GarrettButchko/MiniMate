@@ -13,6 +13,8 @@ final class CourseRepository {
     private let db = Firestore.firestore()
     let collectionName: String = "courses"
     
+    
+    // MARK: General Course
     func addOrUpdateCourse(_ course: Course, completion: @escaping (Bool) -> Void) {
         let ref = db.collection(collectionName).document(course.id)
         
@@ -49,6 +51,251 @@ final class CourseRepository {
             } catch {
                 print("❌ Firestore decoding error: \(error)")
                 DispatchQueue.main.async { completion(nil) }
+            }
+        }
+    }
+    
+    func findOrCreateCourse(location: MapItemDTO, completion: @escaping (Bool) -> Void) {
+        let courseID = CourseIDGenerator.generateCourseID(from: location)
+        let ref = db.collection(collectionName).document(courseID)
+        
+        ref.getDocument { snapshot, error in
+            if let error = error {
+                print("❌ Firestore fetch error: \(error)")
+                completion(false)
+                return
+            }
+            
+            if let course = try? snapshot?.data(as: Course.self), snapshot?.exists == true {
+                // Course exists → success
+                completion(true)
+            } else {
+                // Create new course
+                let newCourse = Course(id: courseID, name: location.name ?? "N/A")
+                do {
+                    try ref.setData(from: newCourse)
+                    completion(true)
+                } catch {
+                    print("❌ Firestore write error: \(error)")
+                    completion(false)
+                }
+            }
+        }
+    }
+
+    
+    // MARK: Email
+    func addEmail(newEmail: String, courseID: String, completion: @escaping (Bool) -> Void) {
+        let ref = db.collection(collectionName).document(courseID)
+
+        ref.updateData([
+            "emails": FieldValue.arrayUnion([newEmail])
+        ]) { error in
+            if let error = error {
+                print("❌ Failed to add email: \(error)")
+                completion(false)
+            } else {
+                completion(true)
+            }
+        }
+    }
+
+    func removeEmail(email: String, courseID: String, completion: @escaping (Bool) -> Void) {
+        db.collection(collectionName)
+            .document(courseID)
+            .updateData([
+                "emails": FieldValue.arrayRemove([email])
+            ]) { error in
+                completion(error == nil)
+            }
+    }
+    
+    // MARK: - Check if email exists in course
+    func isEmailInCourse(email: String, courseID: String, completion: @escaping (Bool) -> Void) {
+        let ref = db.collection(collectionName).document(courseID)
+        
+        ref.getDocument { snapshot, error in
+            if let error = error {
+                print("❌ Fetch error: \(error)")
+                completion(false)
+                return
+            }
+            
+            guard let data = snapshot?.data() else {
+                // Document doesn't exist → email not present
+                completion(false)
+                return
+            }
+            
+            let emails = data["emails"] as? [String] ?? []
+            completion(emails.contains(email))
+        }
+    }
+
+    
+    // MARK: Daily Counts
+    enum DailyMetric: String {
+        case activeUsers
+        case gamesPlayed
+        case newPlayers
+        case returningPlayers
+    }
+    
+    // MARK: - Unified Daily Metric Updater
+    func updateDailyMetric(courseID: String, metric: DailyMetric, increment: Int = 1) {
+        let ref = db.collection(collectionName).document(courseID)
+        
+        // Format "MM-dd-YYYY"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd-YYYY"
+        let todayID = formatter.string(from: Date())
+        
+        ref.getDocument { snapshot, error in
+            guard error == nil else { return }
+            
+            var dailyCounts = (snapshot?.data()?["dailyCounts"] as? [[String: Any]]) ?? []
+            
+            // Find today's entry
+            if let index = dailyCounts.firstIndex(where: { $0["id"] as? String == todayID }) {
+                
+                // Get existing value for this metric
+                let currentValue = dailyCounts[index][metric.rawValue] as? Int ?? 0
+                dailyCounts[index][metric.rawValue] = currentValue + increment
+                
+            } else {
+                // Missing today's entry → create one
+                dailyCounts.append([
+                    "id": todayID,
+                    "activeUsers": metric == .activeUsers ? increment : 0,
+                    "gamesPlayed": metric == .gamesPlayed ? increment : 0,
+                    "newPlayers": metric == .newPlayers ? increment : 0,
+                    "returningPlayers": metric == .newPlayers ? increment : 0
+                ])
+            }
+            
+            ref.updateData(["dailyCounts": dailyCounts])
+        }
+    }
+    
+    func updateDailyCount(courseID: String, increment: Int = 1) {
+        updateDailyMetric(courseID: courseID, metric: .activeUsers, increment: increment)
+    }
+    
+    func updateGameCount(courseID: String, increment: Int = 1) {
+        updateDailyMetric(courseID: courseID, metric: .gamesPlayed, increment: increment)
+    }
+    
+    func updateNewPlayers(courseID: String, increment: Int = 1) {
+        updateDailyMetric(courseID: courseID, metric: .newPlayers, increment: increment)
+    }
+    
+    func updateReturningPlayers(courseID: String, increment: Int = 1) {
+        updateDailyMetric(courseID: courseID, metric: .returningPlayers, increment: increment)
+    }
+    
+    // MARK: Peak Analytics
+    func incPeakAnalytics(courseID: String, increment: Int = 1) {
+        let now = Date()
+        let hour = Calendar.current.component(.hour, from: now)
+        let weekday = Calendar.current.component(.weekday, from: now) - 1 // Sunday = 0
+
+        let docRef = db.collection(collectionName).document(courseID)
+
+        docRef.getDocument { snap, error in
+            guard error == nil else { return }
+
+            // 1. If the doc does NOT exist, initialize it and RECALL this function.
+            if snap?.exists == false {
+                let emptyHourly = Array(repeating: 0, count: 24)
+                let emptyDaily = Array(repeating: 0, count: 7)
+
+                docRef.setData([
+                    "id": "peakAnalytics",
+                    "hourlyCounts": emptyHourly,
+                    "dailyCounts": emptyDaily
+                ]) { _ in
+                    // Re-call once initialization is done
+                    self.incPeakAnalytics(courseID: courseID, increment: increment)
+                }
+
+                return
+            }
+
+            // 2. If it exists, safely increment hour + weekday
+            docRef.updateData([
+                "hourlyCounts.\(hour)": FieldValue.increment(Int64(increment)),
+                "dailyCounts.\(weekday)": FieldValue.increment(Int64(increment))
+            ])
+        }
+    }
+
+    // MARK: Hole Analytics
+    func addToHoleAnalytics(courseID: String, game: Game, increment: Int = 1) {
+        let docRef = db.collection(collectionName).document(courseID)
+
+        docRef.getDocument { snap, error in
+            guard error == nil else { return }
+
+            // 1. If doc does NOT exist, initialize it first
+            if snap?.exists == false {
+                docRef.setData([
+                    "id": "holeAnalytics",
+                    "totalStrokesPerHole": Array(repeating: 0, count: game.numberOfHoles),
+                    "playsPerHole": Array(repeating: 0, count: game.numberOfHoles)
+                ]) { _ in
+                    // AFTER initializing, call the function again to apply increments
+                    self.addToHoleAnalytics(courseID: courseID, game: game, increment: increment)
+                }
+                return
+            }
+
+            // 2. Apply increments
+            for player in game.players {
+                for hole in player.holes {
+                    guard hole.strokes != 0 else { continue }
+
+                    docRef.updateData([
+                        "totalStrokesPerHole.\(hole.number - 1)": FieldValue.increment(Int64(hole.strokes)),
+                        "playsPerHole.\(hole.number - 1)": FieldValue.increment(Int64(increment))
+                    ])
+                }
+            }
+        }
+    }
+    
+    func addRoundTime(courseID: String, startTime: Date, endTime: Date) {
+        let docRef = db.collection(collectionName).document(courseID)
+        
+        // Compute the duration in seconds
+        let roundLengthSeconds = Int(endTime.timeIntervalSince(startTime))
+        
+        docRef.getDocument { snap, error in
+            guard error == nil else {
+                print("❌ Firestore fetch error: \(error!.localizedDescription)")
+                return
+            }
+            
+            // 1. If doc does NOT exist, initialize it first
+            if snap?.exists == false {
+                let initialData: [String: Any] = [
+                    "id": "roundTimeAnalytics",
+                    "totalRoundSeconds": roundLengthSeconds,
+                ]
+                docRef.setData(initialData) { error in
+                    if let error = error {
+                        print("❌ Failed to create roundTimeAnalytics: \(error)")
+                    }
+                }
+                return
+            }
+            
+            // 2. Doc exists → increment values atomically
+            docRef.updateData([
+                "totalRoundSeconds": FieldValue.increment(Int64(roundLengthSeconds)),
+            ]) { error in
+                if let error = error {
+                    print("❌ Failed to update roundTimeAnalytics: \(error)")
+                }
             }
         }
     }

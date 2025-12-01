@@ -28,16 +28,16 @@ struct MapItemDTO: Codable, Equatable {
     static func == (lhs: MapItemDTO, rhs: MapItemDTO) -> Bool {
         lhs.latitude             == rhs.latitude &&
         lhs.longitude            == rhs.longitude &&
-        lhs.name           == rhs.name &&
-        lhs.phoneNumber      == rhs.phoneNumber &&
-        lhs.url  == rhs.url &&
-        lhs.poiCategory        == rhs.poiCategory &&
-        lhs.timeZone      == rhs.timeZone &&
-        lhs.street      == rhs.street &&
-        lhs.city           == rhs.city &&
-        lhs.state    == rhs.state &&
-        lhs.postalCode          == rhs.postalCode &&
-        lhs.country        == rhs.country
+        lhs.name                 == rhs.name &&
+        lhs.phoneNumber          == rhs.phoneNumber &&
+        lhs.url                  == rhs.url &&
+        lhs.poiCategory          == rhs.poiCategory &&
+        lhs.timeZone             == rhs.timeZone &&
+        lhs.street               == rhs.street &&
+        lhs.city                 == rhs.city &&
+        lhs.state                == rhs.state &&
+        lhs.postalCode           == rhs.postalCode &&
+        lhs.country              == rhs.country
     }
     
     func dtoToMapItem() -> MKMapItem {

@@ -107,8 +107,13 @@ struct JoinView: View {
                     Text("Enter Code:")
                     Spacer()
                     TextField("Game Code", text: $gameCode)
-                        .textFieldStyle(.roundedBorder)
                         .frame(width: 150)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                        )
                     if message != "" {
                         Text("Error: " + message)
                     }

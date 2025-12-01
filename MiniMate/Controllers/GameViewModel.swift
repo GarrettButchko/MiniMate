@@ -24,6 +24,7 @@ final class GameViewModel: ObservableObject {
     private var lastUpdated: Date = Date()
     
     private var liveGameRepo = LiveGameRepository()
+    private var CourseRepo = CourseRepository()
     private var adminCodeResolver = AdminCodeResolver()
     private var authModel: AuthViewModel
     private var listenerHandle: DatabaseHandle?
@@ -120,9 +121,7 @@ final class GameViewModel: ObservableObject {
         lastUpdated = Date()
         self.game.location = location
         if let location = location{
-            if adminCodeResolver.matchName(location.name!) {
-                game.courseID = adminCodeResolver.nameToId(location.name!)
-            }
+            game.courseID = CourseIDGenerator.generateCourseID(from: location)
         }
         pushUpdate()
     }
@@ -258,7 +257,8 @@ final class GameViewModel: ObservableObject {
             userId: generateGameCode(),
             name: name,
             photoURL: nil,
-            inGame: true
+            inGame: true,
+            email: nil
         )
         initializeHoles(for: newPlayer)
         withAnimation(){
@@ -277,7 +277,8 @@ final class GameViewModel: ObservableObject {
             userId: user.id,
             name: user.name,
             photoURL: user.photoURL,
-            inGame: true
+            inGame: true,
+            email: user.email
         )
         initializeHoles(for: newPlayer)
         withAnimation(){
@@ -342,8 +343,17 @@ final class GameViewModel: ObservableObject {
         for player in game.players {
             initializeHoles(for: player)
         }
+        game.startTime = Date()
         game.started = true
         pushUpdate()
+        
+        if let location = game.location, let courseID = game.courseID {
+            CourseRepo.findOrCreateCourse(location: location) { complete in
+                if complete {
+                    self.CourseRepo.incPeakAnalytics(courseID: courseID)
+                }
+            }
+        }
         
         // Flip the binding to false
         showHost.wrappedValue = false
@@ -362,6 +372,7 @@ final class GameViewModel: ObservableObject {
     /// Deep-clone the game you just finished, persist it locally & remotely, then reset.
     func finishAndPersistGame(in context: ModelContext) {
         stopListening()
+        game.endTime = Date()
         
         // Clone all fields into a fresh Game instance
         // Clone all fields into a fresh Game instance
@@ -385,10 +396,41 @@ final class GameViewModel: ObservableObject {
                     photoURL: player.photoURL,
                     holes:    player.holes.map {
                         Hole(number: $0.number, par: 2, strokes: $0.strokes)
-                    }
+                    },
+                    email: player.email
                 )
             },
         )
+        
+        
+        // Analytics for course
+        if let courseID = finished.courseID {
+            // Add 1 Game to Course Analytics
+            CourseRepo.updateGameCount(courseID: courseID)
+            for player in finished.players {
+                // Add 1 Player to Course Analytics
+                CourseRepo.updateDailyCount(courseID: courseID)
+                if let email = player.email {
+                    CourseRepo.isEmailInCourse(email: email, courseID: courseID) { isInCourse in
+                        if isInCourse {
+                            // if email already in courserepo then update new players
+                            self.CourseRepo.updateNewPlayers(courseID: courseID)
+                        } else {
+                            // if email not already in courserepo then update returning players
+                            self.CourseRepo.updateReturningPlayers(courseID: courseID)
+                        }
+                        // Add email once this is done
+                        self.CourseRepo.addEmail(newEmail: email, courseID: courseID) { complete in }
+                    }
+                }
+            }
+            CourseRepo.addToHoleAnalytics(courseID: courseID, game: finished)
+            if let startTime = finished.startTime, let endTime = finished.endTime {
+                CourseRepo.addRoundTime(courseID: courseID, startTime: startTime, endTime: endTime)
+            }
+        }
+        
+        
         
         UnifiedGameRepository(context: context).save(finished) { saved in
             if saved {
