@@ -347,7 +347,7 @@ final class GameViewModel: ObservableObject {
         pushUpdate()
         
         if let location = game.location, let courseID = game.courseID {
-            CourseRepo.findOrCreateCourse(location: location) { complete in
+            CourseRepo.findOrCreateCourseWithMapItem(location: location) { complete in
                 if complete {
                     self.CourseRepo.incPeakAnalytics(courseID: courseID)
                 }
