@@ -8,10 +8,6 @@
 import SwiftUI
 import FirebaseDatabase
 
-struct AdminIdWrapper: Identifiable {
-    var id: String
-}
-
 struct AdminView: View {
     @Environment(\.modelContext) private var context
     
@@ -34,10 +30,18 @@ struct CreatorView: View {
     @ObservedObject var authModel: AuthViewModel
     
     @State var showSheet: Bool = false
-    
-    @State private var selectedAdminId: AdminIdWrapper?
-    
     @State var searchText: String = ""
+    @State var selectedCourse: SmallCourse? = nil
+    @State var allCourses: [SmallCourse] = []
+    var filteredAdminAndId: [SmallCourse] {
+        if searchText.isEmpty {
+            return allCourses
+        } else {
+            return allCourses.filter { course in
+                course.name.lowercased().contains(searchText.lowercased())
+            }
+        }
+    }
     
     var body: some View {
         VStack {
@@ -65,38 +69,29 @@ struct CreatorView: View {
                 }
             }
             .padding([.top, .horizontal])
-            
-            var filteredAdminAndId: [String: SmallCourse] {
-                var adminAndIdTemp = AdminCodeResolver().adminAndId
-                if !searchText.isEmpty {
-                    withAnimation {
-                        adminAndIdTemp = adminAndIdTemp.filter { $0.value.name.lowercased().contains(searchText.lowercased()) }
-                    }
-                }
-                return adminAndIdTemp
+            .onAppear(){
+                
             }
             
             List{
-                ForEach(Array(filteredAdminAndId), id: \.0) { code, adminType in
-                    if adminType.id != "CREATOR"{
+                ForEach(filteredAdminAndId) { smallCourse in
+                    
                         Button {
-                            selectedAdminId = AdminIdWrapper(id: adminType.id)
+                            selectedCourse = smallCourse
                             showSheet = true
                         } label: {
                             HStack{
-                                Text(adminType.id + ":")
-                                    .foregroundStyle(.mainOpp)
-                                Text(adminType.name)
+                                Text(smallCourse.name)
                                     .foregroundStyle(.mainOpp)
                                 Spacer()
                                 Image(systemName: "arrow.forward")
                                     .foregroundStyle(.mainOpp)
                             }
                         }
-                        .sheet(item: $selectedAdminId) { item in
+                        .sheet(item: $selectedCourse) { item in
                             LocationView(authModel: authModel, id: item.id)
                         }
-                    }
+                    
                 }
             }
         }
@@ -117,9 +112,8 @@ struct LocationView: View {
     @State var editOn: Bool = false
     @State var showSettings: Bool = false
     
-    let adminCodeResolver = AdminCodeResolver()
-    
     let courseLeaderBoardRepo = CourseLeaderboardRepository()
+    let courseRepo = CourseRepository()
     
     @State private var isLoading = true
     
@@ -142,7 +136,7 @@ struct LocationView: View {
                     }
                     
                     
-                    if adminCodeResolver.idToTier(course.id)! >= 2{
+                    if let courseTier = course.tier, courseTier >= 2{
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("Leader Board")
@@ -210,7 +204,7 @@ struct LocationView: View {
                 
                 Button {
                     isLoading = true
-                    adminCodeResolver.resolve(id: id) { course in
+                    courseRepo.fetchCourse(id: id) { course in
                         if let course = course{
                             self.course = course
                         }
@@ -221,20 +215,14 @@ struct LocationView: View {
                     Text("Retry")
                 }
                 .padding()
-                
-                //Button {
-                //   self.course = Course(id: id, name: adminCodeResolver.idToName(id) ?? "Error")
-                //} label: {
-                //    Text("Create template course")
-                //}
             }
         }
         .padding()
         .onAppear {
             isLoading = true
-            adminCodeResolver.resolve(id: id) { resolvedCourse in
-                if let resolvedCourse = resolvedCourse {
-                    course = resolvedCourse
+            courseRepo.fetchCourse(id: id) { course in
+                if let resolvedCourse = course {
+                    self.course = resolvedCourse
                 }
                 isLoading = false   // <-- Immediately update UI
             }

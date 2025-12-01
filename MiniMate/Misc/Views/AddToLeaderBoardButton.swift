@@ -15,11 +15,10 @@ struct AddToLeaderBoardButton: View{
     
     let player: Player
     
-    let adminCodeResolver = AdminCodeResolver()
     let courseLeaderBoardRepo = CourseLeaderboardRepository()
     
     var body: some View {
-        if let course = course, adminCodeResolver.isAdminCodeThere(code: adminCodeResolver.getCode(id: course.id)) && !(ProfanityFilter.containsBlockedWord(player.name) && player.incomplete) && !added && adminCodeResolver.idToTier(course.id)! >= 2{
+        if let course = course, let courseTier = course.tier, !(ProfanityFilter.containsBlockedWord(player.name) && player.incomplete) && !added && courseTier >= 2{
             Button{
                 alert = true
             } label: {

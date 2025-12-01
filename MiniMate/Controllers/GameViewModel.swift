@@ -25,7 +25,6 @@ final class GameViewModel: ObservableObject {
     
     private var liveGameRepo = LiveGameRepository()
     private var CourseRepo = CourseRepository()
-    private var adminCodeResolver = AdminCodeResolver()
     private var authModel: AuthViewModel
     private var listenerHandle: DatabaseHandle?
     

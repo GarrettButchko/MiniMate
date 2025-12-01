@@ -8,6 +8,8 @@ import SwiftUI
 struct Course: Codable, Identifiable, Equatable {
     var id: String
     var name: String
+    var supported: Bool
+    var password: String
     var logo: String?
     var colorsS: [String]?
     var link: String?
@@ -29,6 +31,8 @@ struct Course: Codable, Identifiable, Equatable {
     init(
         id: String = "",
         name: String = "",
+        supported: Bool = false,
+        password: String = PasswordGenerator.generate(.strong()),
         logo: String? = nil,
         colorsS: [String] = ["red", "orange", "yellow", "green", "blue", "indigo", "purple"],
         link: String? = nil,
@@ -46,6 +50,7 @@ struct Course: Codable, Identifiable, Equatable {
     ) {
         self.id = id
         self.name = name
+        self.supported = supported
         self.logo = logo
         self.colorsS = colorsS
         self.link = link
@@ -60,6 +65,7 @@ struct Course: Codable, Identifiable, Equatable {
         self.holeAnalytics = holeAnalytics
         self.roundTimeAnalytics = roundTimeAnalytics
         self.tier = tier
+        self.password = password
     }
     
     static func == (lhs: Course, rhs: Course) -> Bool {
@@ -78,7 +84,9 @@ struct Course: Codable, Identifiable, Equatable {
         lhs.peakAnalytics == rhs.peakAnalytics &&
         lhs.holeAnalytics == rhs.holeAnalytics &&
         lhs.roundTimeAnalytics == rhs.roundTimeAnalytics &&
-        lhs.tier == rhs.tier
+        lhs.tier == rhs.tier &&
+        lhs.password == rhs.password &&
+        lhs.supported == rhs.supported
     }
     
     

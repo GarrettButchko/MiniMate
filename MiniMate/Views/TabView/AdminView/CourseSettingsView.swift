@@ -27,7 +27,6 @@ struct CourseSettingsView: View {
         .red, .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .pink, .brown, .gray, .black
     ]
     
-    let adminCodeResolver = AdminCodeResolver()
     let courseRepo = CourseRepository()
     
     init(authModel: AuthViewModel, course: Course) {
@@ -67,7 +66,7 @@ struct CourseSettingsView: View {
                     ForEach(colors, id: \.self) { color in
                         Button {
                             withAnimation() {
-                                course.colorsS.append(colorToString(color))
+                                course.colorsS?.append(colorToString(color))
                                 courseRepo.addOrUpdateCourse(course) { _ in }
                                 showColor = false
                             }
@@ -122,7 +121,7 @@ struct CourseSettingsView: View {
     private var formView: some View {
         
         Form{
-            if adminCodeResolver.idToTier(course.id)! >= 2 || authModel.userModel?.adminType == "CREATOR"{
+            if let courseTier = course.tier, courseTier >= 2 || authModel.userModel?.adminType == "CREATOR"{
                 Section("Course") {
                     HStack {
                         Text("Id:")
@@ -203,7 +202,7 @@ struct CourseSettingsView: View {
                                 ForEach(course.colors, id: \.self){ color in
                                     Button {
                                         if let colorIndex = course.colors.firstIndex(of: color) {
-                                            colorStringToDelete = course.colorsS[colorIndex]
+                                            colorStringToDelete = course.colorsS?[colorIndex]
                                         }
                                     } label: {
                                         Circle()
@@ -220,9 +219,9 @@ struct CourseSettingsView: View {
                                         set: { newValue in if !newValue { colorStringToDelete = nil } }
                                     )) {
                                         Button("Delete", role: .destructive, action: {
-                                            if let colorString = colorStringToDelete, let index = course.colorsS.firstIndex(of: colorString) {
+                                            if let colorString = colorStringToDelete, let index = course.colorsS?.firstIndex(of: colorString) {
                                                 withAnimation{
-                                                    _ = course.colorsS.remove(at: index)
+                                                    _ = course.colorsS?.remove(at: index)
                                                 }
                                                 courseRepo.addOrUpdateCourse(course) { _ in }
                                                 colorStringToDelete = nil
@@ -403,7 +402,7 @@ struct CourseSettingsView: View {
                         NumberPickerView(selectedNumber: Binding(
                             get: { hole.par},
                             set: {
-                                course.pars[hole.number] = $0
+                                course.pars?[hole.number] = $0
                                 courseRepo.addOrUpdateCourse(course) { _ in }
                             }
                         ), minNumber: 0, maxNumber: 10)
@@ -414,7 +413,7 @@ struct CourseSettingsView: View {
                     let filteredIndices = indices.filter { $0 != 0 }
                     for index in filteredIndices {
                         withAnimation(){
-                            _ = course.pars.remove(at: index)
+                            _ = course.pars?.remove(at: index)
                             courseRepo.addOrUpdateCourse(course) { _ in }
                         }
                     }
@@ -423,7 +422,7 @@ struct CourseSettingsView: View {
                 
                 Button {
                     withAnimation(){
-                        course.pars.append(0)
+                        course.pars?.append(0)
                         courseRepo.addOrUpdateCourse(course) { _ in }
                     }
                 } label: {

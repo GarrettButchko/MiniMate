@@ -18,13 +18,12 @@ struct CourseView: View {
     @ObservedObject var locationHandler: LocationHandler
     
     @StateObject private var viewModel = LookAroundViewModel()
+    let courseRepo = CourseRepository()
     
     @State var position: MapCameraPosition = .automatic
     @State var isUpperHalf: Bool = false
     @State private var hasAppeared = false
     
-    let adminCodeResolver = AdminCodeResolver()
-
     var body: some View {
         GeometryReader { geometry in
             if locationHandler.hasLocationAccess {
@@ -47,7 +46,7 @@ struct CourseView: View {
                                     RoundedRectangle(cornerRadius: 25)
                                         .ifAvailableGlassEffect()
                                 })
-                                
+                            
                             
                             
                             Spacer()
@@ -86,7 +85,7 @@ struct CourseView: View {
                             }
                             .frame(height: geometry.size.height * 0.4)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
-                        
+                            
                             
                         }
                     }
@@ -102,12 +101,12 @@ struct CourseView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                         Button("Open Settings") {
-                                if let url = URL(string: UIApplication.openSettingsURLString) {
-                                    UIApplication.shared.open(url)
-                                }
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .padding(.top, 8)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding(.top, 8)
                         Spacer()
                     }
                     Spacer()
@@ -125,18 +124,35 @@ struct CourseView: View {
         }
     }
     
+    @State private var nameExists: [String: Bool] = [:]
+    
+    
+    func preloadNameChecks() {
+        for item in locationHandler.mapItems {
+            let name = item.name ?? ""
+            
+            // Avoid re-checking names we already resolved
+            if nameExists[name] != nil { continue }
+            
+            courseRepo.courseNameExists(name) { exists in
+                DispatchQueue.main.async {
+                    nameExists[name] = exists
+                }
+            }
+        }
+    }
+    
     var mapView: some View {
         Map(position: $position, selection: locationHandler.bindingForSelectedItem()) {
             withAnimation(){
                 ForEach(locationHandler.mapItems, id: \.self) { item in
-                    if adminCodeResolver.matchName(item.name!) {
-                        Marker(item.name ?? "Unknown", coordinate: item.placemark.coordinate)
-                            .tint(.purple)
-                    } else {
-                        Marker(item.name ?? "Unknown", coordinate: item.placemark.coordinate)
-                            .tint(.green)
-                    }
+                    let name = item.name ?? "Unknown"
+                    let exists = nameExists[name] ?? false
+                    
+                    Marker(name, coordinate: item.placemark.coordinate)
+                        .tint(exists ? .purple : .green)
                 }
+
             }
             UserAnnotation()
         }
@@ -144,6 +160,12 @@ struct CourseView: View {
             withAnimation {
                 position = locationHandler.updateCameraPosition(newValue)
             }
+        }
+        .onAppear {
+            preloadNameChecks()
+        }
+        .onChange(of: locationHandler.mapItems) {
+            preloadNameChecks()
         }
         .mapControls {
             MapCompass()
@@ -250,6 +272,8 @@ struct CourseView: View {
         }
     }
     
+    @State private var isSupportedLocation: Bool? = nil
+    
     var resultView: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -295,8 +319,20 @@ struct CourseView: View {
                             .padding()
                         }
                     }
+                    .onChange(of: locationHandler.bindingForSelectedItem().wrappedValue) { _ , newItem in
+                        guard let name = newItem?.name else {
+                            isSupportedLocation = nil
+                            return
+                        }
+
+                        courseRepo.courseNameExists(name) { exists in
+                            DispatchQueue.main.async {
+                                isSupportedLocation = exists
+                            }
+                        }
+                    }
                     
-                    if adminCodeResolver.matchName(locationHandler.bindingForSelectedItem().wrappedValue?.name ?? "Unknown") {
+                    if let supported = isSupportedLocation, supported == true {
                         HStack{
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 8) {
@@ -308,9 +344,10 @@ struct CourseView: View {
                                         .font(.headline)
                                 }
                                 
-                                Text((locationHandler.bindingForSelectedItem().wrappedValue?.name ?? "Unknown") + " is a Mini Mate officially supported location, meaning par information and more are available here!")
+                                if let name = locationHandler.bindingForSelectedItem().wrappedValue?.name {
+                                    Text("\(name) is a Mini Mate officially supported location, meaning par information and more are available here!")
                                         .font(.callout)
-                                
+                                }
                             }
                             Spacer()
                         }
@@ -318,8 +355,8 @@ struct CourseView: View {
                         .background(Color.purple.opacity(0.2))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    
-                    
+
+                
                     
                     // MARK: - Contact Info
                     if let selected = locationHandler.bindingForSelectedItem().wrappedValue,
@@ -473,8 +510,8 @@ import MarqueeText
 struct SearchResultRow: View {
     let item: MKMapItem
     let userLocation: CLLocationCoordinate2D
-    
-    let adminCodeResolver = AdminCodeResolver()
+    @State private var nameExists: Bool = false
+    let courseRepo = CourseRepository()
     
     var body: some View {
         HStack{
@@ -505,10 +542,26 @@ struct SearchResultRow: View {
             .frame(height: 50)
             Spacer()
             
-            if adminCodeResolver.matchName(item.name ?? "Unknown Place"){
+            if nameExists{
                 Image(systemName: "star.fill")
                     .foregroundStyle(.purple)
             }
+        }
+        .onAppear(){
+            preloadNameChecks()
+        }
+        .onChange(of: item) { _, _ in
+            preloadNameChecks()
+        }
+    }
+    
+    func preloadNameChecks() {
+        if let name = item.name {
+            courseRepo.courseNameExists(name) { exists in
+                    DispatchQueue.main.async {
+                        nameExists = true
+                    }
+                }
         }
     }
     

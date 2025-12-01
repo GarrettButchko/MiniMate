@@ -28,13 +28,15 @@ struct ProfileView: View {
     @State private var name: String = ""
     @State private var email: String = ""
     @State private var botMessage: String = ""
+    @State private var adminSignInMessage: String = ""
     
     @State private var pickedImage: UIImage? = nil
     
     @State private var reauthCoordinator = AppleReauthCoordinator { _ in }
     
-    private let adminCodeResolver = AdminCodeResolver()
     private var localGameRepo: LocalGameRepository { LocalGameRepository(context: context) }
+    
+    let courseRepo = CourseRepository()
     
     var body: some View {
         ZStack {
@@ -167,9 +169,14 @@ struct ProfileView: View {
                             .alert("Use your admin code to login", isPresented: $showAdminLogin) {
                                 TextField("Admin Code", text: $adminCode)
                                 Button("Login") {
-                                    if adminCodeResolver.isAdminCodeThere(code: adminCode) {
-                                        authModel.userModel?.adminType = adminCodeResolver.adminAndId[adminCode]?.id
-                                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                                    courseRepo.findCourse(withPassword: adminCode) { id in
+                                        if let id = id {
+                                            authModel.userModel?.adminType = id
+                                            authModel.saveUserModel(authModel.userModel!) { _ in }
+                                            adminSignInMessage = ""
+                                        } else {
+                                            adminSignInMessage = "Wrong Password Please Try Again"
+                                        }
                                     }
                                 }
                                 Button("Cancel", role: .cancel) {}
@@ -184,6 +191,9 @@ struct ProfileView: View {
                                 authModel.userModel?.adminType = nil
                                 authModel.saveUserModel(authModel.userModel!) { _ in }
                             }
+                        }
+                        if adminSignInMessage != "" {
+                            Text(adminSignInMessage)
                         }
                     }
                     

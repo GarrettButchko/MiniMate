@@ -36,7 +36,7 @@ struct HostView: View {
     
     @State var showHolePicker: Bool = true
     
-    let adminCodeResolver = AdminCodeResolver()
+    let courseRepo = CourseRepository()
     
     var body: some View {
         VStack {
@@ -111,20 +111,27 @@ struct HostView: View {
                 
                 DatePicker("Date & Time", selection: gameModel.binding(for: \.date))
                     .onChange(of: locationHandler.selectedItem) { _, newValue in
-                        if adminCodeResolver.matchName(newValue?.name ?? "Unknown"){
-                            adminCodeResolver.resolve(name: newValue?.name ?? "Unknown") { course in
-                                if let course = course {
-                                    gameModel.setNumberOfHole(course.numOfHoles)
+                        
+                        
+                        
+                        if let name = newValue?.name {
+                            courseRepo.courseNameExists(name) { hasName in
+                                if hasName {
+                                    courseRepo.fetchCourseByName(name) { course in
+                                        if let course = course {
+                                            gameModel.setNumberOfHole(course.numOfHoles)
+                                        } else {
+                                            gameModel.setNumberOfHole(18)
+                                        }
+                                    }
+                                    withAnimation{
+                                        showHolePicker = false
+                                    }
                                 } else {
-                                    gameModel.setNumberOfHole(18)
+                                    withAnimation{
+                                        showHolePicker = true
+                                    }
                                 }
-                            }
-                            withAnimation{
-                                showHolePicker = false
-                            }
-                        } else {
-                            withAnimation{
-                                showHolePicker = true
                             }
                         }
                     }

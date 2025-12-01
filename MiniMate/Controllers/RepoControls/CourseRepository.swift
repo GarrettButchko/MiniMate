@@ -55,7 +55,52 @@ final class CourseRepository {
         }
     }
     
-    func findOrCreateCourse(location: MapItemDTO, completion: @escaping (Bool) -> Void) {
+    func fetchCourseByName(_ name: String, completion: @escaping (Course?) -> Void) {
+        db.collection(collectionName)
+            .whereField("name", isEqualTo: name)
+            .limit(to: 1)   // just in case multiple exist
+            .getDocuments { snapshot, error in
+                
+                if let error = error {
+                    print("❌ Firestore query error: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+                
+                guard let document = snapshot?.documents.first else {
+                    completion(nil)
+                    return
+                }
+                
+                do {
+                    let course = try document.data(as: Course.self)
+                    DispatchQueue.main.async { completion(course) }
+                } catch {
+                    print("❌ Firestore decoding error: \(error)")
+                    DispatchQueue.main.async { completion(nil) }
+                }
+            }
+    }
+    
+    func courseNameExists(_ name: String, completion: @escaping (Bool) -> Void) {
+        db.collection(collectionName)
+            .whereField("name", isEqualTo: name)
+            .limit(to: 1)
+            .getDocuments { snapshot, error in
+                
+                if let error = error {
+                    print("❌ Firestore query error: \(error.localizedDescription)")
+                    completion(false)
+                    return
+                }
+                
+                let exists = snapshot?.documents.isEmpty == false
+                completion(exists)
+            }
+    }
+
+    
+    func findOrCreateCourseWithMapItem(location: MapItemDTO, completion: @escaping (Bool) -> Void) {
         let courseID = CourseIDGenerator.generateCourseID(from: location)
         let ref = db.collection(collectionName).document(courseID)
         
@@ -71,7 +116,7 @@ final class CourseRepository {
                 completion(true)
             } else {
                 // Create new course
-                let newCourse = Course(id: courseID, name: location.name ?? "N/A")
+                let newCourse = Course(id: courseID, name: location.name ?? "N/A", supported: false, password: PasswordGenerator.generate(.strong()))
                 do {
                     try ref.setData(from: newCourse)
                     completion(true)
@@ -82,6 +127,57 @@ final class CourseRepository {
             }
         }
     }
+    
+    func findCourseIDWithPassword(withPassword password: String, completion: @escaping (String?) -> Void) {
+        db.collection(collectionName)
+            .whereField("password", isEqualTo: password)
+            .limit(to: 1)
+            .getDocuments { snapshot, error in
+                
+                if let error = error {
+                    print("❌ Firestore query error: \(error)")
+                    completion(nil)
+                    return
+                }
+                
+                guard let doc = snapshot?.documents.first else {
+                    completion(nil)   // No course has this password
+                    return
+                }
+                
+                completion(doc.documentID)
+            }
+    }
+    
+    
+    
+    func fetchCourseNamesAndIDs(completion: @escaping ([SmallCourse]) -> Void) {
+        db.collection(collectionName).getDocuments { snapshot, error in
+            if let error = error {
+                print("❌ Firestore fetch error: \(error)")
+                completion([])
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                completion([])
+                return
+            }
+            
+            let results: [SmallCourse] = documents.compactMap { doc in
+                // Read raw data and cast
+                let data = doc.data()
+                let id = doc.documentID
+                let name = data["name"] as? String ?? "Unnamed"
+                
+                return SmallCourse(id: id, name: name)
+            }
+            
+            completion(results)
+        }
+    }
+
+
 
     
     // MARK: Email
@@ -299,4 +395,9 @@ final class CourseRepository {
             }
         }
     }
+}
+
+struct SmallCourse: Identifiable {
+    let id: String
+    let name: String
 }
