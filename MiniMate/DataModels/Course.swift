@@ -17,13 +17,14 @@ struct Course: Codable, Identifiable, Equatable {
     var adLink: String?
     var adImage: String?
     var emails: [String]?
+    var tier: Int?
     
     // Analytics
     var dailyCounts: [DailyCount]?
     var peakAnalytics: PeakAnalytics?
     var holeAnalytics: HoleAnalytics?
     var roundTimeAnalytics: RoundTimeAnalytics?
-
+    
     // MARK: - Init
     init(
         id: String = "",
@@ -31,7 +32,7 @@ struct Course: Codable, Identifiable, Equatable {
         logo: String? = nil,
         colorsS: [String] = ["red", "orange", "yellow", "green", "blue", "indigo", "purple"],
         link: String? = nil,
-        pars: [Int] = [0],
+        pars: [Int] = [],
         adTitle: String? = nil,
         adDescription: String? = nil,
         adLink: String? = nil,
@@ -40,7 +41,8 @@ struct Course: Codable, Identifiable, Equatable {
         dailyCounts: [DailyCount] = [],
         peakAnalytics: PeakAnalytics = PeakAnalytics(),
         holeAnalytics: HoleAnalytics = HoleAnalytics(),
-        roundTimeAnalytics: RoundTimeAnalytics = RoundTimeAnalytics()
+        roundTimeAnalytics: RoundTimeAnalytics = RoundTimeAnalytics(),
+        tier: Int? = 1
     ) {
         self.id = id
         self.name = name
@@ -57,36 +59,38 @@ struct Course: Codable, Identifiable, Equatable {
         self.peakAnalytics = peakAnalytics
         self.holeAnalytics = holeAnalytics
         self.roundTimeAnalytics = roundTimeAnalytics
+        self.tier = tier
     }
-
+    
     static func == (lhs: Course, rhs: Course) -> Bool {
         return lhs.id == rhs.id &&
-               lhs.name == rhs.name &&
-               lhs.logo == rhs.logo &&
-               lhs.colorsS == rhs.colorsS &&
-               lhs.link == rhs.link &&
-               lhs.pars == rhs.pars &&
-               lhs.adTitle == rhs.adTitle &&
-               lhs.adDescription == rhs.adDescription &&
-               lhs.adLink == rhs.adLink &&
-               lhs.adImage == rhs.adImage &&
-               lhs.emails == rhs.emails &&
-               lhs.dailyCounts == rhs.dailyCounts &&
-               lhs.peakAnalytics == rhs.peakAnalytics &&
-               lhs.holeAnalytics == rhs.holeAnalytics &&
-               lhs.roundTimeAnalytics == rhs.roundTimeAnalytics
+        lhs.name == rhs.name &&
+        lhs.logo == rhs.logo &&
+        lhs.colorsS == rhs.colorsS &&
+        lhs.link == rhs.link &&
+        lhs.pars == rhs.pars &&
+        lhs.adTitle == rhs.adTitle &&
+        lhs.adDescription == rhs.adDescription &&
+        lhs.adLink == rhs.adLink &&
+        lhs.adImage == rhs.adImage &&
+        lhs.emails == rhs.emails &&
+        lhs.dailyCounts == rhs.dailyCounts &&
+        lhs.peakAnalytics == rhs.peakAnalytics &&
+        lhs.holeAnalytics == rhs.holeAnalytics &&
+        lhs.roundTimeAnalytics == rhs.roundTimeAnalytics &&
+        lhs.tier == rhs.tier
     }
-
-
+    
+    
     // MARK: - Computed Properties
     var numOfHoles: Int {
         if let pars = pars {
-           return pars.count
+            return pars.count
         } else {
             return 0
         }
     }
-
+    
     var hasPars: Bool {
         if let pars = pars {
             return pars.contains { $0 != 2 }
@@ -94,17 +98,17 @@ struct Course: Codable, Identifiable, Equatable {
             return false
         }
     }
-
+    
     var holes: [Hole] {
         if let pars = pars {
             return (1...numOfHoles).map { index in
-                 Hole(number: index, par: hasPars ? pars[index - 1] : 2)
+                Hole(number: index, par: hasPars ? pars[index - 1] : 2)
             }
         } else {
             return []
         }
     }
-
+    
     var colors: [Color] {
         if let colorsS = colorsS {
             return colorsS.compactMap { colorName in
@@ -176,26 +180,26 @@ struct RoundTimeAnalytics: Codable, Identifiable, Equatable {
 struct CourseLeaderboard: Codable, Identifiable {
     var id: String
     var allPlayers: [PlayerDTO]
-
+    
     enum CodingKeys: String, CodingKey {
         case id
         case allPlayers
     }
-
+    
     init(id: String = "", allPlayers: [PlayerDTO] = []) {
         self.id = id
         self.allPlayers = allPlayers
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-
+        
         id = try container.decode(String.self, forKey: .id)
-
+        
         // ⭐ The important part:
         allPlayers = (try? container.decode([PlayerDTO].self, forKey: .allPlayers)) ?? []
     }
-
+    
     var leaderBoard: [PlayerDTO] {
         allPlayers.sorted { $0.totalStrokes < $1.totalStrokes }
     }
