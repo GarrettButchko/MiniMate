@@ -406,6 +406,7 @@ final class GameViewModel: ObservableObject {
         if let courseID = finished.courseID {
             // Add 1 Game to Course Analytics
             CourseRepo.updateGameCount(courseID: courseID)
+            
             for player in finished.players {
                 // Add 1 Player to Course Analytics
                 CourseRepo.updateDailyCount(courseID: courseID)
@@ -413,26 +414,26 @@ final class GameViewModel: ObservableObject {
                     CourseRepo.isEmailInCourse(email: email, courseID: courseID) { isInCourse in
                         if isInCourse {
                             // if email already in courserepo then update new players
-                            self.CourseRepo.updateNewPlayers(courseID: courseID)
+                            self.CourseRepo.updateReturningPlayers(courseID: courseID)
                         } else {
                             // if email not already in courserepo then update returning players
-                            self.CourseRepo.updateReturningPlayers(courseID: courseID)
+                            self.CourseRepo.updateNewPlayers(courseID: courseID)
+                            self.CourseRepo.addEmail(newEmail: email, courseID: courseID) { complete in }
                         }
                         // Add email once this is done
-                        self.CourseRepo.addEmail(newEmail: email, courseID: courseID) { complete in }
                     }
                 }
             }
             CourseRepo.addToHoleAnalytics(courseID: courseID, game: finished)
             if let startTime = finished.startTime, let endTime = finished.endTime {
+                print("StartTime: \(startTime), EndTime: \(endTime)")
                 CourseRepo.addRoundTime(courseID: courseID, startTime: startTime, endTime: endTime)
             }
         }
         
         
-        
-        UnifiedGameRepository(context: context).save(finished) { saved in
-            if saved {
+        UnifiedGameRepository(context: context).save(finished) { local, remote in
+            if local || remote {
                 print("Saved Game Everywhere")
                 self.authModel.userModel?.gameIDs.append(finished.id)
                 self.authModel.saveUserModel { completed in

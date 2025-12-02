@@ -196,9 +196,8 @@ struct CourseSettingsView: View {
                     
                     
                     if showChangePasswordMenu {
-                        
+    
                         VStack{
-                            
                             TextField("New Password", text: $newPassword)
                                 .padding(12)
                                 .background(
@@ -221,7 +220,14 @@ struct CourseSettingsView: View {
                                 guard !newPassword.isEmpty, newPassword == confirmPassword else { return }
                                 
                                 course.password = newPassword
-                                courseRepo.addOrUpdateCourse(course) { _ in }
+                                
+                                courseRepo.addOrUpdateCourse(course) { complete in
+                                    if complete {
+                                        if let userID = authModel.userModel?.id {
+                                            courseRepo.keepOnlyAdminID(id: userID, courseID: course.id) { _ in }
+                                        }
+                                    }
+                                }
                                 
                                 newPassword = ""
                                 confirmPassword = ""

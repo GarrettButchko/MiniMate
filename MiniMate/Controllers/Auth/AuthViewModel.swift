@@ -65,102 +65,63 @@ class AuthViewModel: ObservableObject {
         in context: ModelContext,
         completion: @escaping () -> Void
     ) {
-        let firebaseUser = Auth.auth().currentUser
-        let gameRepo = UnifiedGameRepository(context: context)
-        
         print("🔹 loadOrCreateUserIfNeeded called")
-        
-        // Update stored firebase user if provided
-        if let u = user {
-            self.firebaseUser = u
-            print("🔹 Firebase user provided: \(u.uid)")
-        } else {
-            print("🔹 No Firebase user provided, using currentUser: \(firebaseUser?.uid ?? "nil")")
-        }
-        
-        // ---- 1️⃣ Try LOCAL FIRST ----
+
+        let firebaseUser = user ?? Auth.auth().currentUser
+        let gameRepo = UnifiedGameRepository(context: context)
+
+        // 1️⃣ Try local first
         if let local = loc.fetchUser(by: currentUserIdentifier, context: context) {
-            print("✅ Loaded local user: \(local.name) (id: \(local.id))")
+            print("✅ Loaded local user: \(local.name)")
             self.userModel = local
             
-            gameRepo.saveAllLocally(userModel?.gameIDs ?? [], context: context) { completed in
-                if completed {
-                    print("🔹 Calling completion after local load")
-                    completion()
-                } else {
+            gameRepo.saveAllLocally(local.gameIDs, context: context) { _ in
+                completion()
+            }
+            return
+        }
+
+        print("⚠️ No local user found → checking Firestore")
+
+        // 2️⃣ Try Firestore next
+        fetchUserModel(id: currentUserIdentifier) { [weak self] remote in
+            guard let self else { return }
+
+            if let remote = remote {
+                print("🔹 Found remote user: \(remote.name) — saving locally")
+
+                context.insert(remote)
+                try? context.save()
+
+                self.userModel = remote
+
+                gameRepo.saveAllLocally(remote.gameIDs, context: context) { _ in
                     completion()
                 }
-            }
-            print("🔹 Calling completion after local load")
-            
-            return
-        } else {
-            print("⚠️ No local user found for id: \(currentUserIdentifier)")
-        }
-        
-        // ---- 3️⃣ No local → load from Firestore ----
-        print("🔹 No local user, fetching from Firestore for id: \(currentUserIdentifier)")
-        fetchUserModel(id: currentUserIdentifier) { [weak self] remote in
-            guard let self else {
-                print("❌ Self is nil in Firestore callback")
                 return
             }
-            
-            if let remote = remote {
-                print("🔹 Found Firebase Firestore user \(remote.name)...")
-                
-                context.insert(remote)
-                try? context.save()
-                print("🔹 Added and saved user to context \(remote.name)...")
-                self.userModel = remote
-                
-                // ---- 4️⃣ THEN load games, THEN call completion ----
-                print("🔹 Loading games for remote user...")
-                print(remote.gameIDs)
-                gameRepo.saveAllLocally(remote.gameIDs, context: context) { completed in
-                    if completed {
-                        print("🔹 Calling completion after local load")
-                        completion()
-                    } else {
-                        print("🔹 Error Calling completion after local load")
-                        completion()
-                    }
-                }
-                context.insert(remote)
-                try? context.save()
-                
-            } else {
-                // ---- 5️⃣ Create brand new remote + local user ----
-                let finalName  = name ?? firebaseUser?.displayName ?? "Guest" + String(Int.random(in: 10_000...99_999))
-                let finalEmail = firebaseUser?.email ?? "guest@guest.mail"
-                
-                let newUser = UserModel(
-                    id: currentUserIdentifier,
-                    name: finalName,
-                    photoURL: firebaseUser?.photoURL,
-                    email: finalEmail,
-                    gameIDs: []
-                )
-                
-                context.insert(newUser)
-                do {
-                    try context.save()
-                    print("🔹 Saved new local user: \(newUser.name)")
-                } catch {
-                    print("❌ Failed to save new user locally: \(error)")
-                }
-                
-                print("🔹 Saving new user to Firestore...")
-                self.saveUserModel(newUser) { success in
-                    if success {
-                        print("✅ Created new remote user: \(newUser.name)")
-                    } else {
-                        print("❌ Failed to save new user to Firestore: \(newUser.name)")
-                    }
-                    self.userModel = newUser
-                    print("🔹 Calling completion after creating new user")
-                    completion()
-                }
+
+            // 3️⃣ No user anywhere → Create new user
+            print("🆕 Creating brand new user...")
+
+            let finalName  = name ?? firebaseUser?.displayName ?? "Error"
+            let finalEmail = firebaseUser?.email ?? "Error"
+
+            let newUser = UserModel(
+                id: currentUserIdentifier,
+                name: finalName,
+                photoURL: firebaseUser?.photoURL,
+                email: finalEmail,
+                gameIDs: []
+            )
+
+            context.insert(newUser)
+            try? context.save()
+
+            print("🔹 Saving new user to Firestore...")
+            self.saveUserModel(newUser) { _ in
+                self.userModel = newUser
+                completion()
             }
         }
     }

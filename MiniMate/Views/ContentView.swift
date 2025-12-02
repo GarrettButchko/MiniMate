@@ -99,7 +99,7 @@ struct ContentView: View {
         }
     }
     
-
+    
 }
 
 struct MainTabView: View {
@@ -123,36 +123,37 @@ struct MainTabView: View {
     
     var body: some View {
         
-            TabView(selection: $selectedTab) {
-                StatsView(viewManager: viewManager, authModel: authModel)
-                    .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
-                    .tag(0)
-                
-                MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
-                    .tabItem { Label("Home", systemImage: "house.fill") }
-                    .tag(1)
-                if NetworkChecker.shared.isConnected {
-                    CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
-                        .tabItem { Label("Courses", systemImage: "figure.golf") }
-                        .tag(2)
-                }
+        TabView(selection: $selectedTab) {
+            StatsView(viewManager: viewManager, authModel: authModel)
+                .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
+                .tag(0)
+            
+            MainView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler, gameModel: gameModel)
+                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tag(1)
+            if NetworkChecker.shared.isConnected {
+                CourseView(viewManager: viewManager, authModel: authModel, locationHandler: locationHandler)
+                    .tabItem { Label("Courses", systemImage: "figure.golf") }
+                    .tag(2)
+            }
+            if NetworkChecker.shared.isConnected {
                 if authModel.userModel?.adminType != nil{
                     AdminView(viewManager: viewManager, authModel: authModel)
                         .tabItem { Label("Admin", systemImage: "lock.shield") }
                         .tag(3)
                 }
-                    
             }
-            .onAppear {
-                authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
-                    if NetworkChecker.shared.isConnected {
-                        authModel.saveUserModel(authModel.userModel!) { _ in }
-                    }
-                    try? context.save()
-                    Task {
-                        await iapManager.isPurchasedPro(authModel: authModel)
-                    }
+        }
+        .onAppear {
+            authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
+                if NetworkChecker.shared.isConnected {
+                    authModel.saveUserModel(authModel.userModel!) { _ in }
+                }
+                try? context.save()
+                Task {
+                    await iapManager.isPurchasedPro(authModel: authModel)
                 }
             }
+        }
     }
 }

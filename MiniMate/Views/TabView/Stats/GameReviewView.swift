@@ -175,11 +175,13 @@ struct GameReviewView: View {
                 if !isAppClip {
                     Spacer()
                 }
-                  ShareLink(item: makeShareableSummary(for: game)) {
-                    Image(systemName: "square.and.arrow.up")
-                          .font(.title2)
-                  }
-                  .padding()
+                if NetworkChecker.shared.isConnected {
+                    ShareLink(item: makeShareableSummary(for: game)) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.title2)
+                    }
+                    .padding()
+                }
             }
             if !isAppClip {
                 HStack {

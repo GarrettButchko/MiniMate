@@ -203,7 +203,7 @@ struct StatsView: View {
                         
                         // Start cooldown
                         isCooldown = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                             isCooldown = false
                         }
                     } label: {
@@ -447,9 +447,10 @@ struct GameRow: View {
                         buttonPressFunction: {
                             viewManager.navigateToGameReview(game)
                         },
-                        buttonOne: ButtonSkim(color: Color.blue,
-                                              systemImage: "square.and.arrow.up",
-                                              string: makeShareableSummary(for: game))
+                        buttonOne:
+                        NetworkChecker.shared.isConnected ?
+                        ButtonSkim(color: Color.blue, systemImage: "square.and.arrow.up", string: makeShareableSummary(for: game)) :
+                        nil
                     ) {
                         withAnimation {
                             // 1. Remove from user model

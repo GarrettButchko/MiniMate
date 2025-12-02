@@ -255,7 +255,7 @@ struct HostView: View {
                             
                             showTextAndButtons = true
                         }
-                        gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
+                        gameModel.setLocation(closestPlace?.toDTO())
                     }
                 }
             }

@@ -29,7 +29,7 @@ struct Course: Codable, Identifiable, Equatable {
     
     // Analytics
     var emails: [String]?
-    var dailyCounts: [DailyCount]?
+    var dailyCount: [String : DailyCount]?
     var peakAnalytics: PeakAnalytics?
     var holeAnalytics: HoleAnalytics?
     var roundTimeAnalytics: RoundTimeAnalytics?
@@ -49,7 +49,7 @@ struct Course: Codable, Identifiable, Equatable {
         adLink: String? = nil,
         adImage: String? = nil,
         emails: [String]? = [],
-        dailyCounts: [DailyCount] = [],
+        dailyCount: [String : DailyCount] = [:],
         peakAnalytics: PeakAnalytics = PeakAnalytics(),
         holeAnalytics: HoleAnalytics = HoleAnalytics(),
         roundTimeAnalytics: RoundTimeAnalytics = RoundTimeAnalytics(),
@@ -68,7 +68,7 @@ struct Course: Codable, Identifiable, Equatable {
         self.adLink = adLink
         self.adImage = adImage
         self.emails = emails
-        self.dailyCounts = dailyCounts
+        self.dailyCount = dailyCount
         self.peakAnalytics = peakAnalytics
         self.holeAnalytics = holeAnalytics
         self.roundTimeAnalytics = roundTimeAnalytics
@@ -89,7 +89,7 @@ struct Course: Codable, Identifiable, Equatable {
         lhs.adLink == rhs.adLink &&
         lhs.adImage == rhs.adImage &&
         lhs.emails == rhs.emails &&
-        lhs.dailyCounts == rhs.dailyCounts &&
+        lhs.dailyCount == rhs.dailyCount &&
         lhs.peakAnalytics == rhs.peakAnalytics &&
         lhs.holeAnalytics == rhs.holeAnalytics &&
         lhs.roundTimeAnalytics == rhs.roundTimeAnalytics &&
@@ -155,8 +155,7 @@ struct Course: Codable, Identifiable, Equatable {
     }
 }
 
-struct DailyCount: Codable, Identifiable, Equatable {
-    var id: String = ""                // e.g., "2025-11-22"
+struct DailyCount: Codable, Equatable {
     var activeUsers: Int {
         newPlayers + returningPlayers
     }        // number of users active that day
@@ -165,18 +164,16 @@ struct DailyCount: Codable, Identifiable, Equatable {
     var returningPlayers: Int = 0         // optional metric
 }
 
-struct PeakAnalytics: Codable, Identifiable, Equatable {
-    var id: String = "peakAnalytics"
-    // single doc per course
-    var hourlyCounts: [Int] = []           // 24 integers, index 0 = 12AM-1AM, 23 = 11PM-12AM
-    var dailyCounts: [Int] = []             // 7 integers, index 0 = Sunday, 6 = Saturday
+struct PeakAnalytics: Codable, Equatable {
+    // 24 integers (index 0 = 12AM–1AM, ... index 23 = 11PM–12AM)
+    var hourlyCounts: [Int] = Array(repeating: 0, count: 24)
+    // 7 integers (index 0 = Sunday, 6 = Saturday)
+    var dailyCounts: [Int] = Array(repeating: 0, count: 7)
 }
 
-struct HoleAnalytics: Codable, Identifiable, Equatable {
-    var id: String = "holeAnalytics"   // single doc per course
-    var totalStrokesPerHole: [Int] = []    // e.g., [totalHole1, totalHole2, ...]
-    var playsPerHole: [Int] = []           // e.g., [numPlaysHole1, numPlaysHole2, ...]
-    
+struct HoleAnalytics: Codable, Equatable {
+    var totalStrokesPerHole: [Int] = Array(repeating: 0, count: 20)    // e.g., [totalHole1, totalHole2, ...]
+    var playsPerHole: [Int] = Array(repeating: 0, count: 20)          // e.g., [numPlaysHole1, numPlaysHole2, ...]
     
     /// Returns the average score per hole
     func averagePerHole() -> [Double] {
@@ -186,17 +183,16 @@ struct HoleAnalytics: Codable, Identifiable, Equatable {
     }
 }
 
-struct RoundTimeAnalytics: Codable, Identifiable, Equatable {
-    var id: String = "roundTimeAnalytics"   // single doc per course
+struct RoundTimeAnalytics: Codable, Equatable {
     var totalRoundSeconds: Int = 0          // cumulative total time of all rounds
     
     /// Returns the average round time in seconds
     func averageRoundTime(for course: Course) -> Double {
         var sumTotalGames: Int = 0
-        
-        if let dailyCount = course.dailyCounts {
-            for day in dailyCount {
-                sumTotalGames += day.gamesPlayed
+        if let dailyCount = course.dailyCount {
+            // Sum gamesPlayed across all DailyCount values in the dictionary
+            for value in dailyCount.values {
+                sumTotalGames += value.gamesPlayed
             }
         }
         if sumTotalGames > 0 {

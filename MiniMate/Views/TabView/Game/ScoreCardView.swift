@@ -43,7 +43,7 @@ struct ScoreCardView: View {
                 if new {
                     let finishedDTO = gameModel.gameValue.toDTO()
                     passGame = Game.fromDTO(finishedDTO)   // ⬅️ capture BEFORE resetting model
-                    endGame()
+                    endGame(persist: true)
                     withAnimation { showRecap = true }
                 }
             }
@@ -320,11 +320,13 @@ struct ScoreCardView: View {
         return String(format: "%d:%02d", minutes, secs)
     }
     
-    private func endGame() {
+    private func endGame(persist: Bool) {
         guard !hasUploaded else { return }
         // 1️⃣ finish-and-persist before we pop the view
-        gameModel.finishAndPersistGame(in: context)
-        hasUploaded = true
+        if persist{
+            gameModel.finishAndPersistGame(in: context)
+            hasUploaded = true
+        }
     }
 }
 

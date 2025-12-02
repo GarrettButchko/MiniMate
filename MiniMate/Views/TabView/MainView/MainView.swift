@@ -13,14 +13,14 @@ struct MainView: View {
     }
     
     @Environment(\.colorScheme) private var colorScheme
-   
+    
     
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var locationHandler: LocationHandler
     @ObservedObject var gameModel: GameViewModel
     //let ad: Ad?
-
+    
     @State private var userName = "Guest" + String(Int.random(in: 10000...99999))
     @State private var nameIsPresented = false
     @State private var isSheetPresented = false
@@ -325,8 +325,9 @@ struct MainView: View {
                                             }
                                             .padding(10)
                                             .frame(maxWidth: .infinity, minHeight: 50)
-                                            .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(.secondary))
-                                            .foregroundColor(.mainOpp)
+                                            .background(RoundedRectangle(cornerRadius: 15).fill().foregroundStyle(.green))
+                                            .foregroundColor(.white)
+                                            .opacity(0.4)
                                         } else {
                                             gameModeButton(title: "Connect", icon: "globe", color: .green) {
                                                 withAnimation {
@@ -516,18 +517,18 @@ extension Shape {
     @ViewBuilder
     func ifAvailableGlassEffect() -> some View {
         if #available(iOS 26.0, *) {
-                    self
+            self
                 .fill(Color(.subTwo).opacity(0.3))
-                        .glassEffect(in: self)
-                        .clipShape(self) // clip BEFORE adding border
-                        .overlay(self.stroke(Color(.subTwo), lineWidth: 1)) // ← correct border
-                } else {
-                    self
-                        .fill(.ultraThinMaterial)
-                        .clipShape(self)
-                        .overlay(self.stroke(Color(.subTwo), lineWidth: 1))
-                        .shadow(radius: 10)
-                }
+                .glassEffect(in: self)
+                .clipShape(self) // clip BEFORE adding border
+                .overlay(self.stroke(Color(.subTwo), lineWidth: 1)) // ← correct border
+        } else {
+            self
+                .fill(.ultraThinMaterial)
+                .clipShape(self)
+                .overlay(self.stroke(Color(.subTwo), lineWidth: 1))
+                .shadow(radius: 10)
+        }
     }
 }
 

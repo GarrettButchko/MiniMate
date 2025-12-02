@@ -34,20 +34,22 @@ class UnifiedGameRepository {
         }
     }
     
-    func save(_ game: Game, completion: @escaping (Bool) -> Void) {
+    func save(_ game: Game, completion: @escaping (Bool, Bool) -> Void) {
+        
+        var localComplete = false
+        var remoteComplete = false
+        
+        
         // 1️⃣ Save locally
         local.save(game) { success in
-            if !success {
-                print("Couldn't save game locally")
-                completion(false);
-                return
-            }
-            
-            // 2️⃣ Save remotely
-            self.remote.save(game) { remoteSuccess in
-                completion(remoteSuccess)
-            }
+            localComplete = success
         }
+        // 2️⃣ Save remotely
+        remote.save(game) { remoteSuccess in
+            remoteComplete = remoteSuccess
+        }
+        
+        completion(localComplete, remoteComplete)
     }
     
     func fetch(id: String, completion: @escaping (GameDTO?) -> Void) {

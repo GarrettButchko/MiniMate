@@ -112,22 +112,32 @@ final class CourseRepository {
                 return
             }
             
-            if let course = try? snapshot?.data(as: Course.self), snapshot?.exists == true {
-                // Course exists → success
+            // ⭐ CHECK SNAPSHOT EXISTS (not decoding)
+            if let snapshot = snapshot, snapshot.exists {
+                print("Found existing course: \(courseID)")
                 completion(true)
-            } else {
-                // Create new course
-                let newCourse = Course(id: courseID, name: location.name ?? "N/A", supported: false, password: PasswordGenerator.generate(.strong()))
-                do {
-                    try ref.setData(from: newCourse)
-                    completion(true)
-                } catch {
-                    print("❌ Firestore write error: \(error)")
-                    completion(false)
-                }
+                return
+            }
+            
+            // Create new course
+            let newCourse = Course(
+                id: courseID,
+                name: location.name ?? "N/A",
+                supported: false,
+                password: PasswordGenerator.generate(.strong())
+            )
+            
+            do {
+                try ref.setData(from: newCourse)
+                print("Created new course: \(courseID)")
+                completion(true)
+            } catch {
+                print("❌ Firestore write error: \(error)")
+                completion(false)
             }
         }
     }
+
     
     func findCourseIDWithPassword(withPassword password: String, completion: @escaping (String?) -> Void) {
         db.collection(collectionName)
@@ -289,33 +299,33 @@ final class CourseRepository {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM-dd-YYYY"
         let todayID = formatter.string(from: Date())
-        
+
         ref.getDocument { snapshot, error in
-            guard error == nil else { return }
-            
-            var dailyCounts = (snapshot?.data()?["dailyCounts"] as? [[String: Any]]) ?? []
-            
-            // Find today's entry
-            if let index = dailyCounts.firstIndex(where: { $0["id"] as? String == todayID }) {
-                
-                // Get existing value for this metric
-                let currentValue = dailyCounts[index][metric.rawValue] as? Int ?? 0
-                dailyCounts[index][metric.rawValue] = currentValue + increment
-                
-            } else {
-                // Missing today's entry → create one
-                dailyCounts.append([
-                    "id": todayID,
-                    "activeUsers": metric == .activeUsers ? increment : 0,
-                    "gamesPlayed": metric == .gamesPlayed ? increment : 0,
-                    "newPlayers": metric == .newPlayers ? increment : 0,
-                    "returningPlayers": metric == .newPlayers ? increment : 0
-                ])
-            }
-            
-            ref.updateData(["dailyCounts": dailyCounts])
+            guard let data = snapshot?.data(), error == nil else { return }
+
+            // 1. Load dictionary (or empty)
+            var dailyCounts = data["dailyCount"] as? [String: [String: Int]] ?? [:]
+
+            // 2. Get or create today's entry
+            var todayEntry: [String: Int] = dailyCounts[todayID] ?? [
+                "activeUsers": 0,
+                "gamesPlayed": 0,
+                "newPlayers": 0,
+                "returningPlayers": 0
+            ]
+
+            // 3. Increment the appropriate metric
+            todayEntry[metric.rawValue, default: 0] += increment
+
+            // 4. Save back into the dictionary
+            dailyCounts[todayID] = todayEntry
+
+            // 5. Upload the nested dictionary
+            ref.updateData(["dailyCount": dailyCounts])
         }
     }
+
+
     
     func updateDailyCount(courseID: String, increment: Int = 1) {
         updateDailyMetric(courseID: courseID, metric: .activeUsers, increment: increment)
@@ -342,99 +352,116 @@ final class CourseRepository {
         let docRef = db.collection(collectionName).document(courseID)
 
         docRef.getDocument { snap, error in
-            guard error == nil else { return }
+            guard let data = snap?.data(), error == nil else { return }
 
-            // 1. If the doc does NOT exist, initialize it and RECALL this function.
-            if snap?.exists == false {
-                let emptyHourly = Array(repeating: 0, count: 24)
-                let emptyDaily = Array(repeating: 0, count: 7)
+            // ===============================
+            // 1. Get nested object or create empty
+            // ===============================
+            let peak = data["peakAnalytics"] as? [String: Any] ?? [:]
 
-                docRef.setData([
-                    "id": "peakAnalytics",
-                    "hourlyCounts": emptyHourly,
-                    "dailyCounts": emptyDaily
-                ]) { _ in
-                    // Re-call once initialization is done
-                    self.incPeakAnalytics(courseID: courseID, increment: increment)
-                }
+            // Load arrays or initialize
+            var hourly = peak["hourlyCounts"] as? [Int] ?? Array(repeating: 0, count: 24)
+            var daily  = peak["dailyCounts"] as? [Int] ?? Array(repeating: 0, count: 7)
 
-                return
-            }
+            // Ensure lengths are correct
+            if hourly.count != 24 { hourly = Array(repeating: 0, count: 24) }
+            if daily.count  != 7  { daily  = Array(repeating: 0, count: 7) }
 
-            // 2. If it exists, safely increment hour + weekday
-            docRef.updateData([
-                "hourlyCounts.\(hour)": FieldValue.increment(Int64(increment)),
-                "dailyCounts.\(weekday)": FieldValue.increment(Int64(increment))
-            ])
+            // ===============================
+            // 2. Increment values
+            // ===============================
+            hourly[hour] += increment
+            daily[weekday] += increment
+
+            // ===============================
+            // 3. Rebuild nested object
+            // ===============================
+            let updatedPeak: [String: Any] = [
+                "id": "peakAnalytics",
+                "hourlyCounts": hourly,
+                "dailyCounts": daily
+            ]
+
+            // ===============================
+            // 4. Write back under nested key
+            // ===============================
+            docRef.setData(
+                ["peakAnalytics": updatedPeak],
+                merge: true
+            )
         }
     }
+
 
     // MARK: Hole Analytics
     func addToHoleAnalytics(courseID: String, game: Game, increment: Int = 1) {
         let docRef = db.collection(collectionName).document(courseID)
 
         docRef.getDocument { snap, error in
-            guard error == nil else { return }
-
-            // 1. If doc does NOT exist, initialize it first
-            if snap?.exists == false {
-                docRef.setData([
-                    "id": "holeAnalytics",
-                    "totalStrokesPerHole": Array(repeating: 0, count: game.numberOfHoles),
-                    "playsPerHole": Array(repeating: 0, count: game.numberOfHoles)
-                ]) { _ in
-                    // AFTER initializing, call the function again to apply increments
-                    self.addToHoleAnalytics(courseID: courseID, game: game, increment: increment)
-                }
-                return
-            }
-
-            // 2. Apply increments
+            guard let data = snap?.data(), error == nil else { return }
+            
+            let holeAnalytics = data["holeAnalytics"] as? [String: Any] ?? [:]
+            
+            var totalStrokes = holeAnalytics["totalStrokesPerHole"] as? [Int] ?? Array(repeating: 0, count: game.numberOfHoles)
+            var playsPerHole  = holeAnalytics["playsPerHole"] as? [Int] ?? Array(repeating: 0, count: game.numberOfHoles)
+            
             for player in game.players {
                 for hole in player.holes {
                     guard hole.strokes != 0 else { continue }
-
-                    docRef.updateData([
-                        "totalStrokesPerHole.\(hole.number - 1)": FieldValue.increment(Int64(hole.strokes)),
-                        "playsPerHole.\(hole.number - 1)": FieldValue.increment(Int64(increment))
-                    ])
+                    
+                    totalStrokes[hole.number - 1] += hole.strokes
+                    playsPerHole[hole.number - 1] += increment
                 }
             }
+            
+            let updatedHole: [String: Any] = [
+                "id": "holeAnalytics",
+                "totalStrokesPerHole": totalStrokes,
+                "playsPerHole": playsPerHole
+            ]
+
+            docRef.setData(
+                ["holeAnalytics": updatedHole],
+                merge: true
+            )
         }
     }
     
     func addRoundTime(courseID: String, startTime: Date, endTime: Date) {
         let docRef = db.collection(collectionName).document(courseID)
-        
-        // Compute the duration in seconds
+
         let roundLengthSeconds = Int(endTime.timeIntervalSince(startTime))
-        
+
         docRef.getDocument { snap, error in
-            guard error == nil else {
-                print("❌ Firestore fetch error: \(error!.localizedDescription)")
+            guard let data = snap?.data(), error == nil else {
+                print("❌ Firestore fetch error: \(error?.localizedDescription ?? "Unknown error")")
                 return
             }
-            
-            // 1. If doc does NOT exist, initialize it first
-            if snap?.exists == false {
-                let initialData: [String: Any] = [
-                    "id": "roundTimeAnalytics",
-                    "totalRoundSeconds": roundLengthSeconds,
-                ]
-                docRef.setData(initialData) { error in
-                    if let error = error {
-                        print("❌ Failed to create roundTimeAnalytics: \(error)")
-                    }
-                }
-                return
-            }
-            
-            // 2. Doc exists → increment values atomically
-            docRef.updateData([
-                "totalRoundSeconds": FieldValue.increment(Int64(roundLengthSeconds)),
-            ]) { error in
+
+            // ===============================
+            // 1. Load nested object if it exists
+            // ===============================
+            let roundTime = data["roundTimeAnalytics"] as? [String: Any] ?? [:]
+
+            let existingSeconds = roundTime["totalRoundSeconds"] as? Int ?? 0
+
+            // ===============================
+            // 2. Build updated nested structure
+            // ===============================
+            let updatedRoundTime: [String: Any] = [
+                "id": "roundTimeAnalytics",
+                "totalRoundSeconds": existingSeconds + roundLengthSeconds
+            ]
+
+            // ===============================
+            // 3. Write nested object back
+            // ===============================
+            docRef.setData(
+                ["roundTimeAnalytics": updatedRoundTime],
+                merge: true
+            ) { error in
                 if let error = error {
-                    print("❌ Failed to update roundTimeAnalytics: \(error)")
+                    print("❌ Failed to update roundTimeAnalytics: \(error.localizedDescription)")
                 }
             }
         }
