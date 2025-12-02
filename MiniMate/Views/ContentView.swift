@@ -47,9 +47,8 @@ struct ContentView: View {
                 case .welcome:
                     WelcomeView(viewManager: viewManager)
                     
-                case .scoreCard:
-                    ScoreCardView(viewManager: viewManager, authModel: authModel, gameModel: gameModel)
-                    
+                case .scoreCard(let course):
+                    ScoreCardView(course: course, viewManager: viewManager, authModel: authModel, gameModel: gameModel)
                     
                 case .gameReview(let gameModel):
                     GameReviewView(viewManager: viewManager, game: gameModel)

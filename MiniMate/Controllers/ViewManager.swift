@@ -11,7 +11,7 @@ import FirebaseAuth
 enum ViewType {
     case main(Int)
     case welcome
-    case scoreCard
+    case scoreCard(Course?)
     case gameReview(Game)
     case ad
     case signIn
@@ -44,8 +44,8 @@ class ViewManager: ObservableObject{
         currentView = .welcome
     }
     
-    func navigateToScoreCard() {
-        currentView = .scoreCard
+    func navigateToScoreCard(_ course: Course? = nil) {
+        currentView = .scoreCard(course)
     }
     
     func navigateToAd() {

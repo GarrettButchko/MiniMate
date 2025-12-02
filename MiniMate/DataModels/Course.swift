@@ -8,20 +8,27 @@ import SwiftUI
 struct Course: Codable, Identifiable, Equatable {
     var id: String
     var name: String
-    var supported: Bool
     var password: String
+    
+    var supported: Bool
+    
     var logo: String?
     var colorsS: [String]?
+    
     var link: String?
+    
     var pars: [Int]?
+    
+    var tier: Int?
+    var adminIDs: [String]?
+    
     var adTitle: String?
     var adDescription: String?
     var adLink: String?
     var adImage: String?
-    var emails: [String]?
-    var tier: Int?
     
     // Analytics
+    var emails: [String]?
     var dailyCounts: [DailyCount]?
     var peakAnalytics: PeakAnalytics?
     var holeAnalytics: HoleAnalytics?
@@ -41,12 +48,13 @@ struct Course: Codable, Identifiable, Equatable {
         adDescription: String? = nil,
         adLink: String? = nil,
         adImage: String? = nil,
-        emails: [String]? = nil,
+        emails: [String]? = [],
         dailyCounts: [DailyCount] = [],
         peakAnalytics: PeakAnalytics = PeakAnalytics(),
         holeAnalytics: HoleAnalytics = HoleAnalytics(),
         roundTimeAnalytics: RoundTimeAnalytics = RoundTimeAnalytics(),
-        tier: Int? = 1
+        tier: Int? = 0,
+        adminIDs: [String]? = []
     ) {
         self.id = id
         self.name = name
@@ -66,6 +74,7 @@ struct Course: Codable, Identifiable, Equatable {
         self.roundTimeAnalytics = roundTimeAnalytics
         self.tier = tier
         self.password = password
+        self.adminIDs = adminIDs
     }
     
     static func == (lhs: Course, rhs: Course) -> Bool {
@@ -86,7 +95,8 @@ struct Course: Codable, Identifiable, Equatable {
         lhs.roundTimeAnalytics == rhs.roundTimeAnalytics &&
         lhs.tier == rhs.tier &&
         lhs.password == rhs.password &&
-        lhs.supported == rhs.supported
+        lhs.supported == rhs.supported &&
+        lhs.adminIDs == rhs.adminIDs
     }
     
     
@@ -108,7 +118,7 @@ struct Course: Codable, Identifiable, Equatable {
     }
     
     var holes: [Hole] {
-        if let pars = pars {
+        if let pars = pars, !pars.isEmpty{
             return (1...numOfHoles).map { index in
                 Hole(number: index, par: hasPars ? pars[index - 1] : 2)
             }
@@ -147,7 +157,9 @@ struct Course: Codable, Identifiable, Equatable {
 
 struct DailyCount: Codable, Identifiable, Equatable {
     var id: String = ""                // e.g., "2025-11-22"
-    var activeUsers: Int = 0        // number of users active that day
+    var activeUsers: Int {
+        newPlayers + returningPlayers
+    }        // number of users active that day
     var gamesPlayed: Int = 0        // optional metric
     var newPlayers: Int = 0         // optional metric
     var returningPlayers: Int = 0         // optional metric
@@ -179,8 +191,19 @@ struct RoundTimeAnalytics: Codable, Identifiable, Equatable {
     var totalRoundSeconds: Int = 0          // cumulative total time of all rounds
     
     /// Returns the average round time in seconds
-    func averageRoundTime(for dailyCount: DailyCount) -> Double {
-        dailyCount.gamesPlayed > 0 ? Double(totalRoundSeconds) / Double(dailyCount.gamesPlayed) : 0
+    func averageRoundTime(for course: Course) -> Double {
+        var sumTotalGames: Int = 0
+        
+        if let dailyCount = course.dailyCounts {
+            for day in dailyCount {
+                sumTotalGames += day.gamesPlayed
+            }
+        }
+        if sumTotalGames > 0 {
+            return Double(totalRoundSeconds) / Double(sumTotalGames)
+        } else {
+            return 0
+        }
     }
 }
 

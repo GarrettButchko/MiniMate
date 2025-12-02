@@ -38,6 +38,8 @@ struct HostView: View {
     
     let courseRepo = CourseRepository()
     
+    @State var course: Course?
+    
     var body: some View {
         VStack {
             Capsule()
@@ -111,30 +113,28 @@ struct HostView: View {
                 
                 DatePicker("Date & Time", selection: gameModel.binding(for: \.date))
                     .onChange(of: locationHandler.selectedItem) { _, newValue in
-                        
-                        
-                        
-                        if let name = newValue?.name {
-                            courseRepo.courseNameExists(name) { hasName in
-                                if hasName {
-                                    courseRepo.fetchCourseByName(name) { course in
-                                        if let course = course {
-                                            gameModel.setNumberOfHole(course.numOfHoles)
-                                        } else {
-                                            gameModel.setNumberOfHole(18)
-                                        }
-                                    }
-                                    withAnimation{
-                                        showHolePicker = false
-                                    }
-                                } else {
-                                    withAnimation{
-                                        showHolePicker = true
-                                    }
-                                }
+                        guard
+                            let newValue = newValue,
+                            let name = newValue.name
+                        else { return }
+
+                        courseRepo.courseNameExistsAndSupported(name) { exists in
+                            if !exists {
+                                // Course does NOT exist — let user pick hole count
+                                withAnimation { showHolePicker = true }
+                                return
+                            }
+
+                            // Course exists — try to fetch it
+                            courseRepo.fetchCourseByName(name) { course in
+                                let holeCount = course?.numOfHoles ?? 18
+                                gameModel.setNumberOfHole(holeCount)
+
+                                withAnimation { showHolePicker = false }
                             }
                         }
                     }
+
                 
                 if locationHandler.hasLocationAccess{
                     locationSection
@@ -192,14 +192,7 @@ struct HostView: View {
                     if !showTextAndButtons {
                         
                         Button {
-                            locationHandler.findClosestMiniGolf { closestPlace in
-                                withAnimation {
-                                    locationHandler.selectedItem = closestPlace
-                                    
-                                    showTextAndButtons = true
-                                }
-                                gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
-                            }
+                            findClosestLocationAndLoadCourse()
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "magnifyingglass")
@@ -218,12 +211,7 @@ struct HostView: View {
                             withAnimation(){
                                 isRotating = true
                             }
-                            locationHandler.findClosestMiniGolf { closestPlace in
-                                withAnimation {
-                                    locationHandler.selectedItem = closestPlace
-                                }
-                                gameModel.setLocation((locationHandler.selectedItem?.toDTO())!)
-                            }
+                            findClosestLocationAndLoadCourse()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                 isRotating = false
                             }
@@ -274,6 +262,25 @@ struct HostView: View {
         }
     }
 
+    func findClosestLocationAndLoadCourse(){
+        locationHandler.findClosestMiniGolf { closestPlace in
+            if let closestPlace = closestPlace{
+                withAnimation {
+                    locationHandler.selectedItem = closestPlace
+                    
+                    showTextAndButtons = true
+                }
+                gameModel.setLocation(closestPlace.toDTO())
+                
+                let courseID = CourseIDGenerator.generateCourseID(from: closestPlace.toDTO())
+                courseRepo.fetchCourse(id: courseID) { course in
+                    if let course = course {
+                        self.course = course
+                    }
+                }
+            }
+        }
+    }
     
     private var playersSection: some View {
         Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {

@@ -88,11 +88,13 @@ struct SignInView: View {
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
                     }
+                    .clipped()
                     .frame(height: height)
                     .frame(maxWidth: 430)
                     .animation(.bouncy.speed(1.5), value: height)
                     .padding()
                     .padding(.bottom)
+                    
                     
                 }
             }
@@ -193,6 +195,7 @@ struct StartButtons: View {
             .frame(height: 50)
             .cornerRadius(25)
         }
+        
     }
 }
 

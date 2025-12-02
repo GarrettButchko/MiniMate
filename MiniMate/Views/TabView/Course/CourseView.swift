@@ -134,7 +134,7 @@ struct CourseView: View {
             // Avoid re-checking names we already resolved
             if nameExists[name] != nil { continue }
             
-            courseRepo.courseNameExists(name) { exists in
+            courseRepo.courseNameExistsAndSupported(name) { exists in
                 DispatchQueue.main.async {
                     nameExists[name] = exists
                 }
@@ -325,7 +325,7 @@ struct CourseView: View {
                             return
                         }
 
-                        courseRepo.courseNameExists(name) { exists in
+                        courseRepo.courseNameExistsAndSupported(name) { exists in
                             DispatchQueue.main.async {
                                 isSupportedLocation = exists
                             }
@@ -391,7 +391,6 @@ struct CourseView: View {
                                 if let phone = selected.phoneNumber,
                                    let phoneURL = URL(string: "tel://\(phone.filter { $0.isNumber })") {
                                     Link(destination: phoneURL) {
-                                        
                                         HStack{
                                             Spacer()
                                             Label("Call \(phone)", systemImage: "phone")
@@ -403,8 +402,6 @@ struct CourseView: View {
                                         .padding(.vertical, 6)
                                         .background(Color.green)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        
-                                            
                                     }
                                 }
 
@@ -421,7 +418,6 @@ struct CourseView: View {
                                         .padding(.vertical, 6)
                                         .background(Color.blue)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        
                                     }
                                 }
                             }
@@ -510,7 +506,7 @@ import MarqueeText
 struct SearchResultRow: View {
     let item: MKMapItem
     let userLocation: CLLocationCoordinate2D
-    @State private var nameExists: Bool = false
+    @State private var isSupported: Bool = false
     let courseRepo = CourseRepository()
     
     var body: some View {
@@ -542,7 +538,7 @@ struct SearchResultRow: View {
             .frame(height: 50)
             Spacer()
             
-            if nameExists{
+            if isSupported{
                 Image(systemName: "star.fill")
                     .foregroundStyle(.purple)
             }
@@ -557,11 +553,13 @@ struct SearchResultRow: View {
     
     func preloadNameChecks() {
         if let name = item.name {
-            courseRepo.courseNameExists(name) { exists in
+            courseRepo.courseNameExistsAndSupported(name) { exists in
+                if exists {
                     DispatchQueue.main.async {
-                        nameExists = true
+                        isSupported = true
                     }
                 }
+            }
         }
     }
     

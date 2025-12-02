@@ -82,9 +82,10 @@ final class CourseRepository {
             }
     }
     
-    func courseNameExists(_ name: String, completion: @escaping (Bool) -> Void) {
+    func courseNameExistsAndSupported(_ name: String, completion: @escaping (Bool) -> Void) {
         db.collection(collectionName)
             .whereField("name", isEqualTo: name)
+            .whereField("supported", isEqualTo: true)
             .limit(to: 1)
             .getDocuments { snapshot, error in
                 
@@ -149,36 +150,27 @@ final class CourseRepository {
             }
     }
     
-    
-    
-    func fetchCourseNamesAndIDs(completion: @escaping ([SmallCourse]) -> Void) {
-        db.collection(collectionName).getDocuments { snapshot, error in
-            if let error = error {
-                print("❌ Firestore fetch error: \(error)")
-                completion([])
-                return
-            }
-            
-            guard let documents = snapshot?.documents else {
-                completion([])
-                return
-            }
-            
-            let results: [SmallCourse] = documents.compactMap { doc in
-                // Read raw data and cast
-                let data = doc.data()
-                let id = doc.documentID
-                let name = data["name"] as? String ?? "Unnamed"
+    func fetchCourseIDs(prefix: String, completion: @escaping ([SmallCourse]) -> Void) {
+        let end = prefix + "\u{f8ff}"
+        db.collection(collectionName)
+            .whereField(FieldPath.documentID(), isGreaterThanOrEqualTo: prefix)
+            .whereField(FieldPath.documentID(), isLessThanOrEqualTo: end)
+            .limit(to: 50)
+            .getDocuments { snapshot, error in
                 
-                return SmallCourse(id: id, name: name)
+                guard let docs = snapshot?.documents else {
+                    completion([])
+                    return
+                }
+                
+                let courses: [SmallCourse] = docs.map { doc in
+                    let name = doc["name"] as? String ?? "Unnamed"
+                    return SmallCourse(id: doc.documentID, name: name)
+                }
+                
+                completion(courses)
             }
-            
-            completion(results)
-        }
     }
-
-
-
     
     // MARK: Email
     func addEmail(newEmail: String, courseID: String, completion: @escaping (Bool) -> Void) {
@@ -195,7 +187,7 @@ final class CourseRepository {
             }
         }
     }
-
+    
     func removeEmail(email: String, courseID: String, completion: @escaping (Bool) -> Void) {
         db.collection(collectionName)
             .document(courseID)
@@ -205,6 +197,58 @@ final class CourseRepository {
                 completion(error == nil)
             }
     }
+    
+    // MARK: Admin Id
+    func addAdminIDtoCourse(adminID: String, courseID: String, completion: @escaping (Bool) -> Void) {
+        let ref = db.collection(collectionName).document(courseID)
+
+        ref.updateData([
+            "adminIDs": FieldValue.arrayUnion([adminID])
+        ]) { error in
+            if let error = error {
+                print("❌ Failed to add email: \(error)")
+                completion(false)
+            } else {
+                completion(true)
+            }
+        }
+    }
+
+    func removAdminIDfromCourse(email: String, courseID: String, completion: @escaping (Bool) -> Void) {
+        db.collection(collectionName)
+            .document(courseID)
+            .updateData([
+                "adminIDs": FieldValue.arrayRemove([email])
+            ]) { error in
+                completion(error == nil)
+            }
+    }
+    
+    
+    func keepOnlyAdminID(id: String, courseID: String, completion: @escaping (Bool) -> Void) {
+        let docRef = db.collection(collectionName).document(courseID)
+        
+        docRef.getDocument { snapshot, error in
+            guard let data = snapshot?.data(), error == nil else {
+                completion(false)
+                return
+            }
+            
+            // Get current adminIDs array
+            let adminIDs = data["adminIDs"] as? [String] ?? []
+            
+            // Keep only the one you want
+            let updatedAdminIDs = adminIDs.contains(id) ? [id] : []
+            
+            // Update the document
+            docRef.updateData([
+                "adminIDs": updatedAdminIDs
+            ]) { error in
+                completion(error == nil)
+            }
+        }
+    }
+
     
     // MARK: - Check if email exists in course
     func isEmailInCourse(email: String, courseID: String, completion: @escaping (Bool) -> Void) {

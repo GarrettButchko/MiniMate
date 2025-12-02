@@ -4,6 +4,8 @@ import StoreKit
 import MapKit
 
 struct MainView: View {
+    @Environment(\.modelContext) private var context
+    
     @Query var allGames: [Game]
     
     var games: [Game] {
@@ -11,7 +13,7 @@ struct MainView: View {
     }
     
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.modelContext) private var context
+   
     
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
@@ -101,7 +103,7 @@ struct MainView: View {
                                 .frame(height: 175)
                             
                             ScrollView{
-                                VStack(spacing: 20){
+                                VStack(spacing: 15){
                                     Rectangle()
                                         .fill(Color.clear)
                                         .frame(height: 110)
@@ -300,6 +302,7 @@ struct MainView: View {
                                         insertion: .move(edge: .trailing).combined(with: .opacity),
                                         removal: .move(edge: .trailing).combined(with: .opacity)
                                     ))
+                                    .clipped()
                                 } else {
                                     HStack(spacing: 16) {
                                         gameModeButton(title: "Quick", icon: "person.fill", color: .blue) {

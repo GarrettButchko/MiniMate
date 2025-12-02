@@ -70,13 +70,6 @@ struct ScoreCardView: View {
                 .transition(.opacity)
             }
         }
-        .onAppear {
-            if let courseID = gameModel.gameValue.courseID {
-                AdminCodeResolver().resolve(id: courseID) { course in
-                    self.course = course
-                }
-            }
-        }
     }
     
     // MARK: Header
@@ -184,8 +177,8 @@ struct ScoreCardView: View {
                 VStack{
                     Text("Hole \(i)")
                         .font(.body).fontWeight(.medium)
-                    if let course = course, course.hasPars {
-                        Text("Par: \(course.pars[i - 1])")
+                    if let coursePars = course?.pars, let course = course, course.hasPars {
+                        Text("Par: \(coursePars[i - 1])")
                             .font(.caption)
                     }
                 }
@@ -201,8 +194,8 @@ struct ScoreCardView: View {
             VStack{
                 Text("Total")
                     .font(.title3).fontWeight(.semibold)
-                if let course = course, course.hasPars {
-                    Text("Par: \(course.pars.reduce(0, +))")
+                if let coursePars = course?.pars, let course = course, course.hasPars {
+                    Text("Par: \(coursePars.reduce(0, +))")
                         .font(.caption)
                 }
             }

@@ -146,29 +146,31 @@ struct StatsView: View {
             ScrollView {
                 
                 Rectangle()
-                    .frame(height: 80)
+                    .frame(height: 75)
                     .foregroundStyle(Color.clear)
                 
-                if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
-                    VStack{
-                        BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6344452429") // Replace with real one later
-                            .frame(height: 50)
+                VStack (spacing: 15){
+                    if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
+                        VStack{
+                            BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6344452429") // Replace with real one later
+                                .frame(height: 50)
+                                .padding()
+                        }
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                    }
+                    
+                    if analyzer?.hasGames == true {
+                        ForEach(games) { game in
+                            GameRow(context: _context, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, game: game, viewManager: viewManager, presentShareSheet: presentShareSheet)
+                                .transition(.opacity)
+                        }
+                    } else {
+                        Image("logoOpp")
+                            .resizable()
+                            .frame(width: 50, height: 50)
                             .padding()
                     }
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 25))
-                }
-                
-                if analyzer?.hasGames == true {
-                    ForEach(games) { game in
-                        GameRow(context: _context, editOn: $editOn, editingGameID: $editingGameID, authModel: authModel, game: game, viewManager: viewManager, presentShareSheet: presentShareSheet)
-                            .transition(.opacity)
-                    }
-                } else {
-                    Image("logoOpp")
-                        .resizable()
-                        .frame(width: 50, height: 50)
-                        .padding()
                 }
             }
             
@@ -176,11 +178,9 @@ struct StatsView: View {
             VStack{
                 HStack{
                     ZStack {
-                        
                         RoundedRectangle(cornerRadius: 25)
                             .ifAvailableGlassEffect()
                             .frame(height: 50)
-                        
                         
                         HStack {
                             Image(systemName: "magnifyingglass")
@@ -225,11 +225,7 @@ struct StatsView: View {
                                     .frame(width: 60, height: 60)
                             }
                         }
-                        
-                        
-                        
                     }
-                    
                 }
                 Spacer()
             }
@@ -330,7 +326,6 @@ struct GameGridView: View {
             // Game Info & Players Row
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    
                     
                     if let gameLocName = game.location?.name{
                         MarqueeText(
@@ -462,7 +457,7 @@ struct GameRow: View {
                                 // 1) Update the user first, which causes @Query results to change
                                 user.gameIDs.removeAll(where: { $0 == game.id })
                                 authModel.saveUserModel(user) { _ in }
-
+                                
                                 // 2️⃣ Delete the SwiftData object *after* a delay
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                                     localGameRepo.delete(id: game.id) { _ in }
@@ -472,8 +467,7 @@ struct GameRow: View {
                     }
             }
         }
-        .frame(height: 210)
-        .padding(.vertical)
+        .frame(height: 198)
     }
     
     /// Build a plain-text summary (you could also return a URL to a generated PDF/image)

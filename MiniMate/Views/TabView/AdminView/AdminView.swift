@@ -29,19 +29,11 @@ struct CreatorView: View {
     
     @ObservedObject var authModel: AuthViewModel
     
-    @State var showSheet: Bool = false
     @State var searchText: String = ""
     @State var selectedCourse: SmallCourse? = nil
     @State var allCourses: [SmallCourse] = []
-    var filteredAdminAndId: [SmallCourse] {
-        if searchText.isEmpty {
-            return allCourses
-        } else {
-            return allCourses.filter { course in
-                course.name.lowercased().contains(searchText.lowercased())
-            }
-        }
-    }
+    
+    let courseRepo = CourseRepository()
     
     var body: some View {
         VStack {
@@ -69,16 +61,13 @@ struct CreatorView: View {
                 }
             }
             .padding([.top, .horizontal])
-            .onAppear(){
-                
-            }
             
-            List{
-                ForEach(filteredAdminAndId) { smallCourse in
-                    
+            
+            if !allCourses.isEmpty{
+                List{
+                    ForEach(allCourses) { smallCourse in
                         Button {
                             selectedCourse = smallCourse
-                            showSheet = true
                         } label: {
                             HStack{
                                 Text(smallCourse.name)
@@ -91,8 +80,22 @@ struct CreatorView: View {
                         .sheet(item: $selectedCourse) { item in
                             LocationView(authModel: authModel, id: item.id)
                         }
-                    
+                    }
                 }
+            } else {
+                Spacer()
+                Text("Type a location to get started.")
+                Spacer()
+            }
+            
+        }
+        .onChange(of: searchText) { _, newValue in
+            if newValue != ""{
+                courseRepo.fetchCourseIDs(prefix: newValue.lowercased()) { results in
+                    self.allCourses = results
+                }
+            } else {
+                allCourses = []
             }
         }
     }
@@ -270,7 +273,6 @@ struct LeaderBoardList: View {
                 } label: {
                     if index == 0 {
                         Text("🥇")
-                        
                     } else if index == 1 {
                         Text("🥈")
                     } else if index == 2 {

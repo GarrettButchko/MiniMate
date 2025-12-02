@@ -169,10 +169,13 @@ struct ProfileView: View {
                             .alert("Use your admin code to login", isPresented: $showAdminLogin) {
                                 TextField("Admin Code", text: $adminCode)
                                 Button("Login") {
-                                    courseRepo.findCourse(withPassword: adminCode) { id in
-                                        if let id = id {
-                                            authModel.userModel?.adminType = id
+                                    courseRepo.findCourseIDWithPassword(withPassword: adminCode) { courseId in
+                                        if let courseId = courseId {
+                                            authModel.userModel?.adminType = courseId
                                             authModel.saveUserModel(authModel.userModel!) { _ in }
+                                            if let userId = authModel.userModel?.id {
+                                                courseRepo.addAdminIDtoCourse(adminID: userId, courseID: courseId) { _ in }
+                                            }
                                             adminSignInMessage = ""
                                         } else {
                                             adminSignInMessage = "Wrong Password Please Try Again"
@@ -187,9 +190,21 @@ struct ProfileView: View {
                         } else {
                             Text("Admin of: \(authModel.userModel?.adminType ?? "Unknown")")
                             
-                            Button("Logout of Admin Account") {
-                                authModel.userModel?.adminType = nil
-                                authModel.saveUserModel(authModel.userModel!) { _ in }
+                            if authModel.userModel?.adminType != "CREATOR" {
+                                Button("Logout of Admin Account") {
+                                    
+                                    if let courseID = authModel.userModel?.adminType, let userId = authModel.userModel?.id{
+                                        courseRepo.addAdminIDtoCourse(adminID: userId, courseID: courseID) { complete in
+                                            if complete {
+                                                adminSignInMessage = ""
+                                                authModel.userModel?.adminType = nil
+                                                authModel.saveUserModel(authModel.userModel!) { _ in }
+                                            } else {
+                                                adminSignInMessage = "Could not log you out"
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         if adminSignInMessage != "" {

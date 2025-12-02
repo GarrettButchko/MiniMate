@@ -95,8 +95,10 @@ struct PlayerScoreReview: View {
                 VStack{
                     Text("Hole \(i)")
                         .font(.body).fontWeight(.medium)
-                    Text("Par: \(course.pars[i - 1])")
-                        .font(.caption)
+                    if let coursePars = course.pars {
+                        Text("Par: \(coursePars[i - 1])")
+                            .font(.caption)
+                    }
                 }
                 .frame(height: 60)
             }
@@ -111,8 +113,10 @@ struct PlayerScoreReview: View {
                 Text("Total")
                     .font(.title3).fontWeight(.semibold)
                 
-                Text("Par: \(course.pars.reduce(0, +))")
-                    .font(.caption)
+                if let coursePars = course.pars {
+                    Text("Par: \(coursePars.reduce(0, +))")
+                        .font(.caption)
+                }
             }
             .frame(width: 100, height: 60)
             Divider()

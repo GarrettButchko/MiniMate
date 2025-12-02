@@ -34,13 +34,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct YourApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
-    private var sharedContainer: ModelContainer = {
-        let appGroupID = "group.com.circuit-leaf.mini-mate"
-        let sharedURL = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)!
-            .appendingPathComponent("SharedSwiftData")
+    // Local (non-shared) SwiftData container
+    private var modelContainer: ModelContainer = {
+        // Use a local file URL inside the app's Documents directory
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let storeURL = documentsURL.appendingPathComponent("MiniMate.sqlite")
 
-        let config = ModelConfiguration(url: sharedURL)
+        let config = ModelConfiguration(url: storeURL)
         return try! ModelContainer(
             for: UserModel.self, Player.self, Game.self, Hole.self,
             configurations: config
@@ -51,7 +51,7 @@ struct YourApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(sharedContainer)
-        
+        .modelContainer(modelContainer) // inject the ModelContext into the environment
     }
 }
+

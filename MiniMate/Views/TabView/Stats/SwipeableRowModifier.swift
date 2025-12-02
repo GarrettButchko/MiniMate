@@ -33,6 +33,7 @@ struct SkimButtonView: View {
                         
                 }
             }
+            .clipped()
         }
     }
 }
@@ -53,6 +54,7 @@ struct SkimShareLinkView: View {
                         .opacity(offsetX < -50 ? 1 : 0)
                 }
             }
+            .clipped()
         }
     }
 }
