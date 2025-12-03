@@ -20,6 +20,7 @@ struct HostView: View {
     @State private var showAddPlayerAlert = false
     @State private var showDeleteAlert = false
     @State private var newPlayerName = ""
+    @State private var newPlayerEmail = ""
     @State private var playerToDelete: String?
     
     // how long (in seconds) a game stays live without activity
@@ -39,6 +40,8 @@ struct HostView: View {
     let courseRepo = CourseRepository()
     
     @State var course: Course?
+    
+    @State private var hasLoadedCourse = false
     
     var body: some View {
         VStack {
@@ -67,9 +70,27 @@ struct HostView: View {
             }
         }
         .alert("Add Local Player?", isPresented: $showAddPlayerAlert) {
+            
             TextField("Name", text: $newPlayerName)
                 .characterLimit($newPlayerName, maxLength: 18)
-            Button("Add") { gameModel.addLocalPlayer(named: newPlayerName)}
+            
+            if course != nil {
+                TextField("Email", text: $newPlayerEmail)
+                    .autocapitalization(.none)   // starts lowercase / no auto-cap
+                    .keyboardType(.emailAddress)
+            }
+                
+            Button("Add") {
+                gameModel.addLocalPlayer(named: newPlayerName, email: newPlayerEmail)
+                newPlayerName = "";
+                newPlayerEmail = "";
+            }
+            .disabled(
+                newPlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                !newPlayerEmail.isEmpty
+            )
+            .tint(.blue)
+            
             Button("Cancel", role: .cancel) {}
         }
         .alert("Delete Player?", isPresented: $showDeleteAlert) {
@@ -234,6 +255,7 @@ struct HostView: View {
                             withAnimation {
                                 locationHandler.selectedItem = nil
                                 gameModel.setLocation(nil)
+                                course = nil
                                 showTextAndButtons = false
                             }
                         }) {
@@ -249,38 +271,59 @@ struct HostView: View {
                     }
                 }
                 .onAppear {
-                    locationHandler.findClosestMiniGolf { closestPlace in
-                        withAnimation {
-                            locationHandler.selectedItem = closestPlace
-                            
-                            showTextAndButtons = true
-                        }
-                        gameModel.setLocation(closestPlace?.toDTO())
+                    if !hasLoadedCourse {
+                        findClosestLocationAndLoadCourse()
+                        hasLoadedCourse = true
                     }
                 }
             }
         }
     }
 
-    func findClosestLocationAndLoadCourse(){
+    func findClosestLocationAndLoadCourse() {
+        // Guard to prevent multiple calls
+        guard !hasLoadedCourse else {
+            print("⚠️ Already loaded course — skipping")
+            return
+        }
+        
+        hasLoadedCourse = true // mark as loaded
+        print("🚀 Starting findClosestLocationAndLoadCourse()")
+        
         locationHandler.findClosestMiniGolf { closestPlace in
-            if let closestPlace = closestPlace{
+            guard let closestPlace = closestPlace else {
+                print("⚠️ No closest mini golf location found")
+                return
+            }
+            
+            print("📍 Closest mini golf found: \(closestPlace.name ?? "Unknown")")
+            
+            DispatchQueue.main.async {
                 withAnimation {
                     locationHandler.selectedItem = closestPlace
-                    
                     showTextAndButtons = true
+                    print("✨ Animation: selectedItem set and buttons shown")
                 }
+                
                 gameModel.setLocation(closestPlace.toDTO())
+                print("🎯 Game model location set: \(closestPlace.toDTO())")
                 
                 let courseID = CourseIDGenerator.generateCourseID(from: closestPlace.toDTO())
+                print("🆔 Generated course ID: \(courseID)")
+                
                 courseRepo.fetchCourse(id: courseID) { course in
                     if let course = course {
                         self.course = course
+                        print("✅ Course loaded: \(course.name ?? "Unnamed Course")")
+                    } else {
+                        print("⚠️ Course not found for ID: \(courseID)")
                     }
                 }
             }
         }
     }
+
+
     
     private var playersSection: some View {
         Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {
@@ -292,7 +335,7 @@ struct HostView: View {
                             showDeleteAlert = true
                         }
                     }
-                    Button(action: { newPlayerName = ""; showAddPlayerAlert = true }) {
+                    Button(action: { showAddPlayerAlert = true }) {
                         VStack {
                             ZStack {
                                 Circle()

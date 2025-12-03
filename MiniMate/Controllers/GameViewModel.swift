@@ -24,7 +24,7 @@ final class GameViewModel: ObservableObject {
     private var lastUpdated: Date = Date()
     
     private var liveGameRepo = LiveGameRepository()
-    private var CourseRepo = CourseRepository()
+    private var courseRepo = CourseRepository()
     private var authModel: AuthViewModel
     private var listenerHandle: DatabaseHandle?
     
@@ -250,14 +250,14 @@ final class GameViewModel: ObservableObject {
     }
     
     // MARK: Players
-    func addLocalPlayer(named name: String) {
+    func addLocalPlayer(named name: String, email: String) {
         objectWillChange.send()
         let newPlayer = Player(
             userId: generateGameCode(),
             name: name,
             photoURL: nil,
             inGame: true,
-            email: nil
+            email: email != "" ? email : nil
         )
         initializeHoles(for: newPlayer)
         withAnimation(){
@@ -347,9 +347,9 @@ final class GameViewModel: ObservableObject {
         pushUpdate()
         
         if let location = game.location, let courseID = game.courseID {
-            CourseRepo.findOrCreateCourseWithMapItem(location: location) { complete in
+            courseRepo.findOrCreateCourseWithMapItem(location: location) { complete in
                 if complete {
-                    self.CourseRepo.incPeakAnalytics(courseID: courseID)
+                    self.courseRepo.incPeakAnalytics(courseID: courseID)
                 }
             }
         }
@@ -405,29 +405,29 @@ final class GameViewModel: ObservableObject {
         // Analytics for course
         if let courseID = finished.courseID {
             // Add 1 Game to Course Analytics
-            CourseRepo.updateGameCount(courseID: courseID)
+            courseRepo.updateGameCount(courseID: courseID)
             
             for player in finished.players {
                 // Add 1 Player to Course Analytics
-                CourseRepo.updateDailyCount(courseID: courseID)
+                courseRepo.updateDailyCount(courseID: courseID)
                 if let email = player.email {
-                    CourseRepo.isEmailInCourse(email: email, courseID: courseID) { isInCourse in
+                    courseRepo.isEmailInCourse(email: email, courseID: courseID) { isInCourse in
                         if isInCourse {
                             // if email already in courserepo then update new players
-                            self.CourseRepo.updateReturningPlayers(courseID: courseID)
+                            self.courseRepo.updateReturningPlayers(courseID: courseID)
                         } else {
                             // if email not already in courserepo then update returning players
-                            self.CourseRepo.updateNewPlayers(courseID: courseID)
-                            self.CourseRepo.addEmail(newEmail: email, courseID: courseID) { complete in }
+                            self.courseRepo.updateNewPlayers(courseID: courseID)
+                            self.courseRepo.addEmail(newEmail: email, courseID: courseID) { complete in }
                         }
                         // Add email once this is done
                     }
                 }
             }
-            CourseRepo.addToHoleAnalytics(courseID: courseID, game: finished)
+            courseRepo.addToHoleAnalytics(courseID: courseID, game: finished)
             if let startTime = finished.startTime, let endTime = finished.endTime {
                 print("StartTime: \(startTime), EndTime: \(endTime)")
-                CourseRepo.addRoundTime(courseID: courseID, startTime: startTime, endTime: endTime)
+                courseRepo.addRoundTime(courseID: courseID, startTime: startTime, endTime: endTime)
             }
         }
         

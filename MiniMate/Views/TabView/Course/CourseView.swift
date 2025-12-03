@@ -47,8 +47,6 @@ struct CourseView: View {
                                         .ifAvailableGlassEffect()
                                 })
                             
-                            
-                            
                             Spacer()
                             
                             LocationButton(cameraPosition: $position, isUpperHalf: $isUpperHalf, selectedResult: locationHandler.bindingForSelectedItem(), locationHandler: locationHandler)

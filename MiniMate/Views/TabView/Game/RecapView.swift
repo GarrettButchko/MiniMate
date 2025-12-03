@@ -143,7 +143,7 @@ struct RecapView<VM: ViewManager & ObservableObject, AM: ObservableObject, Conte
                         
                     }
                     
-                    if sortedPlayers.count < 3 {
+                    if sortedPlayers.count <= 3 {
                         Spacer()
                         Spacer()
                     }
