@@ -16,6 +16,7 @@ struct CourseSettingsView: View {
     
     @State var showingPickerLogo: Bool = false
     @State var showingPickerAd: Bool = false
+    @State var showReviewSheet: Bool = false
     
     @State var image: UIImage? = nil
     
@@ -66,7 +67,7 @@ struct CourseSettingsView: View {
                     ForEach(colors, id: \.self) { color in
                         Button {
                             withAnimation() {
-                                course.colorsS?.append(colorToString(color))
+                                course.scoreCardColorDT = colorToString(color)
                                 courseRepo.addOrUpdateCourse(course) { _ in }
                                 showColor = false
                             }
@@ -114,11 +115,40 @@ struct CourseSettingsView: View {
                 Text("Settings")
                     .font(.title).fontWeight(.bold)
                 Spacer()
+                Button("User View"){
+                    showReviewSheet = true
+                }
+                .sheet(isPresented: $showReviewSheet){
+                    
+                    let holes1 = (1...course.numOfHoles).map { number in
+                        Hole(number: number, par: 2, strokes: Int.random(in: 1...6))
+                    }
+                    let holes2 = (1...course.numOfHoles).map { number in
+                        Hole(number: number, par: 2, strokes: Int.random(in: 1...6))
+                    }
+
+                    GameReviewView(viewManager: ViewManager(), game:
+                                    Game(
+                                        id: "EXAMPLE",
+                                        date: Date(),
+                                        completed: true,
+                                        numberOfHoles: 18,
+                                        started: true,
+                                        dismissed: true,
+                                        live: false,
+                                        lastUpdated: Date(),
+                                        courseID: course.id,
+                                        players: [
+                                            Player(id: "1", userId: "Example 1", name: "Garrett", inGame: false, holes: holes1),
+                                            Player(id: "2", userId: "Example 2", name: "Joey", inGame: false, holes: holes2)
+                                        ]
+                                    ), showBackToStatsButton: true, isInCourseSettings: true
+                    )
+        
+                }
             }
         }
     }
-    
-    
     
     @State private var newPassword = ""
     @State private var confirmPassword = ""
@@ -318,47 +348,30 @@ struct CourseSettingsView: View {
                     
                     VStack {
                         HStack{
-                            Text("Colors for course:")
+                            Text("ScoreCard Color:")
                             Spacer()
-                        }
-                        ScrollView(Axis.Set.horizontal) {
-                            HStack{
-                                ForEach(course.colors, id: \.self){ color in
-                                    Button {
-                                        if let colorIndex = course.colors.firstIndex(of: color) {
-                                            colorStringToDelete = course.colorsS?[colorIndex]
-                                        }
-                                    } label: {
-                                        Circle()
-                                            .fill(.ultraThinMaterial)
-                                            .frame(width: 40, height: 40)
-                                            .overlay(content: {
-                                                Circle()
-                                                    .fill(color)
-                                                    .frame(width: 30, height: 30)
-                                            })
-                                    }
-                                    .alert("Delete color?", isPresented: Binding<Bool>(
-                                        get: { colorStringToDelete != nil },
-                                        set: { newValue in if !newValue { colorStringToDelete = nil } }
-                                    )) {
-                                        Button("Delete", role: .destructive, action: {
-                                            if let colorString = colorStringToDelete, let index = course.colorsS?.firstIndex(of: colorString) {
-                                                withAnimation{
-                                                    _ = course.colorsS?.remove(at: index)
-                                                }
-                                                courseRepo.addOrUpdateCourse(course) { _ in }
-                                                colorStringToDelete = nil
-                                            }
+                            if let scoreCC = course.scoreCardColor {
+                                Button {
+                                    showDeleteColor = true
+                                } label: {
+                                    Circle()
+                                        .fill(.ultraThinMaterial)
+                                        .frame(width: 40, height: 40)
+                                        .overlay(content: {
+                                            Circle()
+                                                .fill(scoreCC)
+                                                .frame(width: 30, height: 30)
                                         })
-                                        Button("Cancel", role: .cancel, action: { colorStringToDelete = nil })
-                                    } message: {
-                                        Text("Are you sure you want to delete this color?")
-                                    }
-                                    
-                                    
-                                    
                                 }
+                                .alert("Delete color?", isPresented: $showDeleteColor){
+                                    Button("Delete", role: .destructive, action: {
+                                        course.scoreCardColorDT = nil
+                                    })
+                                    Button("Cancel", role: .cancel, action: {showDeleteColor = false})
+                                } message: {
+                                    Text("Are you sure you want to delete this color?")
+                                }
+                            } else {
                                 Button {
                                     withAnimation(){
                                         showColor = true
@@ -373,7 +386,6 @@ struct CourseSettingsView: View {
                                                 .frame(width: 20, height: 20)
                                         }
                                 }
-                                
                             }
                         }
                     }
@@ -400,133 +412,141 @@ struct CourseSettingsView: View {
             
             if let courseTier = course.tier, courseTier >= 2 {
                 Section("Ad") {
-                    VStack {
-                        HStack{
-                            Text(" ")
+                    
+                        
+                        Toggle("Ad Active:", isOn: Binding(
+                            get: { course.adActive },
+                            set: { newValue in
+                                course.adActive = newValue
+                                courseRepo.addOrUpdateCourse(course) { _ in }
+                            }
+                        ))
+                        .toggleStyle(SwitchToggleStyle())
+                    
+                    
+                    if course.adActive {
+                        VStack {
+                            HStack{
+                                Text("Ad Title:")
+                                Spacer()
+                            }
+                            
                             Spacer()
-                            Text("Ad Title:")
+                            TextEditor(text: Binding(
+                                get: { course.adTitle ?? "" },
+                                set: {
+                                    // Limit to 10 characters manually
+                                    let newValue = String($0.prefix(40))
+                                    course.adTitle = newValue.isEmpty ? nil : newValue
+                                    courseRepo.addOrUpdateCourse(course) { _ in }
+                                }
+                            ))
+                            .frame(minHeight: 40, maxHeight: 80)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                                    .fill(Color(.systemBackground))
+                                    .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                            )
+                        }
+                        VStack {
+                            HStack{
+                                Text("Ad Description:")
+                                Spacer()
+                            }
                             Spacer()
-                            Text(" ")
+                            TextEditor(text: Binding(
+                                get: { course.adDescription ?? "" },
+                                set: {
+                                    let newValue = String($0.prefix(80))
+                                    course.adDescription = newValue.isEmpty ? nil : newValue
+                                    courseRepo.addOrUpdateCourse(course) { _ in }
+                                }
+                            ))
+                            .frame(minHeight: 60, maxHeight: 120)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                                    .fill(Color(.systemBackground))
+                                    .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                            )
                         }
                         
-                        Spacer()
-                        TextEditor(text: Binding(
-                            get: { course.adTitle ?? "" },
-                            set: {
-                                // Limit to 10 characters manually
-                                let newValue = String($0.prefix(40))
-                                course.adTitle = newValue.isEmpty ? nil : newValue
-                                courseRepo.addOrUpdateCourse(course) { _ in }
-                            }
-                        ))
-                        .frame(minHeight: 40, maxHeight: 80)
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                .fill(Color(.systemBackground))
-                                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
-                        )
-                    }
-                    VStack {
-                        HStack{
-                            Text(" ")
+                        HStack {
+                            Text("Ad Link:")
                             Spacer()
-                            Text("Ad Description:")
-                            Spacer()
-                            Text(" ")
-                        }
-                        Spacer()
-                        TextEditor(text: Binding(
-                            get: { course.adDescription ?? "" },
-                            set: {
-                                let newValue = String($0.prefix(80))
-                                course.adDescription = newValue.isEmpty ? nil : newValue
-                                courseRepo.addOrUpdateCourse(course) { _ in }
-                            }
-                        ))
-                        .frame(minHeight: 60, maxHeight: 120)
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                .fill(Color(.systemBackground))
-                                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
-                        )
-                    }
-                    
-                    HStack {
-                        Text("Ad Link:")
-                        Spacer()
-                        TextField("Ad Link", text: Binding(
-                            get: { course.adLink ?? "" },
-                            set: {
-                                course.adLink = $0.isEmpty ? nil : $0
-                                courseRepo.addOrUpdateCourse(course) { _ in }
-                            }
-                        ))
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                .fill(Color(.systemBackground))
-                                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
-                        )
-                    }
-                    HStack {
-                        Text("Ad Image:")
-                        Spacer()
-                        Button {
-                            withAnimation{
-                                showingPickerAd = true
-                            }
-                        } label: {
-                            if let courseImage = course.adImage{
-                                AsyncImage(url: URL(string: courseImage)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                            .frame(width: 60)
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 60)
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                            .clipped()
-                                    case .failure:
-                                        Image(systemName: "photo")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 60)
-                                            .foregroundColor(.gray)
-                                            .background(Color.gray.opacity(0.2))
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    @unknown default:
-                                        EmptyView()
-                                    }
+                            TextField("Ad Link", text: Binding(
+                                get: { course.adLink ?? "" },
+                                set: {
+                                    course.adLink = $0.isEmpty ? nil : $0
+                                    courseRepo.addOrUpdateCourse(course) { _ in }
                                 }
-                            } else {
-                                Image(systemName: "photo")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 60)
-                                    .foregroundColor(.gray)
-                                    .background(Color.gray.opacity(0.2))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
+                            ))
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                                    .fill(Color(.systemBackground))
+                                    .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                            )
                         }
-                        .sheet(isPresented: $showingPickerAd) {
-                            PhotoPicker(image: $image)
-                                .onChange(of: image) { old ,newImage in
-                                    guard let img = newImage else { return }
-                                    authModel.uploadCompanyImages(img, id: course.id, key: "adImage"){ result in
-                                        switch result {
-                                        case .success(let url):
-                                            course.adImage = url.absoluteString
-                                            courseRepo.addOrUpdateCourse(course) { _ in }
-                                        case .failure(let error):
-                                            print("❌ Photo upload failed:", error)
+                        HStack {
+                            Text("Ad Image:")
+                            Spacer()
+                            Button {
+                                withAnimation{
+                                    showingPickerAd = true
+                                }
+                            } label: {
+                                if let courseImage = course.adImage{
+                                    AsyncImage(url: URL(string: courseImage)) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            ProgressView()
+                                                .frame(width: 60)
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 60)
+                                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                                .clipped()
+                                        case .failure:
+                                            Image(systemName: "photo")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 60)
+                                                .foregroundColor(.gray)
+                                                .background(Color.gray.opacity(0.2))
+                                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        @unknown default:
+                                            EmptyView()
                                         }
                                     }
+                                } else {
+                                    Image(systemName: "photo")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 60)
+                                        .foregroundColor(.gray)
+                                        .background(Color.gray.opacity(0.2))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
+                            }
+                            .sheet(isPresented: $showingPickerAd) {
+                                PhotoPicker(image: $image)
+                                    .onChange(of: image) { old ,newImage in
+                                        guard let img = newImage else { return }
+                                        authModel.uploadCompanyImages(img, id: course.id, key: "adImage"){ result in
+                                            switch result {
+                                            case .success(let url):
+                                                course.adImage = url.absoluteString
+                                                courseRepo.addOrUpdateCourse(course) { _ in }
+                                            case .failure(let error):
+                                                print("❌ Photo upload failed:", error)
+                                            }
+                                        }
+                                    }
+                            }
                         }
                     }
                 }
@@ -540,9 +560,9 @@ struct CourseSettingsView: View {
                         Spacer()
                         
                         NumberPickerView(selectedNumber: Binding(
-                            get: { hole.par},
+                            get: { hole.par },
                             set: {
-                                course.pars?[hole.number] = $0
+                                course.pars?[hole.number - 1] = $0
                                 courseRepo.addOrUpdateCourse(course) { _ in }
                             }
                         ), minNumber: 0, maxNumber: 10)

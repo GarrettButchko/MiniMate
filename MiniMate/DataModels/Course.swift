@@ -13,7 +13,7 @@ struct Course: Codable, Identifiable, Equatable {
     var supported: Bool
     
     var logo: String?
-    var colorsS: [String]?
+    var scoreCardColorDT: String?
     
     var link: String?
     
@@ -22,6 +22,7 @@ struct Course: Codable, Identifiable, Equatable {
     var tier: Int?
     var adminIDs: [String]?
     
+    var adActive: Bool
     var adTitle: String?
     var adDescription: String?
     var adLink: String?
@@ -41,9 +42,10 @@ struct Course: Codable, Identifiable, Equatable {
         supported: Bool = false,
         password: String = PasswordGenerator.generate(.strong()),
         logo: String? = nil,
-        colorsS: [String] = ["red", "orange", "yellow", "green", "blue", "indigo", "purple"],
+        scoreCardColorDT: String? = nil,
         link: String? = nil,
         pars: [Int] = [],
+        adActive: Bool = false,
         adTitle: String? = nil,
         adDescription: String? = nil,
         adLink: String? = nil,
@@ -60,9 +62,10 @@ struct Course: Codable, Identifiable, Equatable {
         self.name = name
         self.supported = supported
         self.logo = logo
-        self.colorsS = colorsS
+        self.scoreCardColorDT = scoreCardColorDT
         self.link = link
         self.pars = pars
+        self.adActive = adActive
         self.adTitle = adTitle
         self.adDescription = adDescription
         self.adLink = adLink
@@ -81,7 +84,7 @@ struct Course: Codable, Identifiable, Equatable {
         return lhs.id == rhs.id &&
         lhs.name == rhs.name &&
         lhs.logo == rhs.logo &&
-        lhs.colorsS == rhs.colorsS &&
+        lhs.scoreCardColorDT == rhs.scoreCardColorDT &&
         lhs.link == rhs.link &&
         lhs.pars == rhs.pars &&
         lhs.adTitle == rhs.adTitle &&
@@ -96,7 +99,8 @@ struct Course: Codable, Identifiable, Equatable {
         lhs.tier == rhs.tier &&
         lhs.password == rhs.password &&
         lhs.supported == rhs.supported &&
-        lhs.adminIDs == rhs.adminIDs
+        lhs.adminIDs == rhs.adminIDs &&
+        lhs.adActive == rhs.adActive
     }
     
     
@@ -127,31 +131,25 @@ struct Course: Codable, Identifiable, Equatable {
         }
     }
     
-    var colors: [Color] {
-        if let colorsS = colorsS {
-            return colorsS.compactMap { colorName in
-                switch colorName.lowercased() {
-                case "red": return .red
-                case "orange": return .orange
-                case "yellow": return .yellow
-                case "green": return .green
-                case "blue": return .blue
-                case "indigo": return .indigo
-                case "purple": return .purple
-                case "pink": return .pink
-                case "gray", "grey": return .gray
-                case "black": return .black
-                case "white": return .white
-                case "cyan": return .cyan
-                case "mint": return .mint
-                case "teal": return .teal
-                case "brown": return .brown
-                default: return nil
-                }
-            }
-        } else {
-            return []
-        }
+    var scoreCardColor: Color? {
+        guard let value = scoreCardColorDT?.lowercased() else { return nil }
+
+        let map: [String: Color] = [
+            "red": .red,
+            "orange": .orange,
+            "yellow": .yellow,
+            "green": .green,
+            "blue": .blue,
+            "indigo": .indigo,
+            "purple": .purple,
+            "pink": .pink,
+            "cyan": .cyan,
+            "mint": .mint,
+            "teal": .teal,
+            "brown": .brown
+        ]
+
+        return map[value]?.opacity(0.4)
     }
 }
 

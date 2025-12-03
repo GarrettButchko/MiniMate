@@ -8,21 +8,23 @@ import SwiftUI
 struct GameReviewView: View {
     @StateObject var viewManager: ViewManager
     var game: Game
-    let course: Course?
     
-    let isAppClip: Bool
+    @State var course: Course? = nil
+    
+    var showBackToStatsButton: Bool = false
+    var isInCourseSettings: Bool = false
     
     @State private var scrollOffset: CGFloat
     @State private var uuid: UUID?
     @State private var showInfoView: Bool
     
     // Custom init to assign @StateObject and normal vars
-    init(viewManager: ViewManager, game: Game, course: Course? = nil, isAppClip: Bool = false, scrollOffset: CGFloat = 0, uuid: UUID? = nil, showInfoView: Bool = false) {
-        _viewManager = StateObject(wrappedValue: viewManager)
+    init(viewManager: ViewManager, game: Game, showBackToStatsButton: Bool = false, isInCourseSettings: Bool = false, scrollOffset: CGFloat = 0, uuid: UUID? = nil, showInfoView: Bool = false) {
         self.game = game
-        print(game.courseID as Any)
-        self.course = course
-        self.isAppClip = isAppClip
+        self.showBackToStatsButton = showBackToStatsButton
+        self.isInCourseSettings = isInCourseSettings
+        
+        _viewManager = StateObject(wrappedValue: viewManager)
         _scrollOffset = State(initialValue: scrollOffset)
         _uuid = State(initialValue: uuid)
         _showInfoView = State(initialValue: showInfoView)
@@ -43,7 +45,7 @@ struct GameReviewView: View {
     // MARK: Header
     private var headerView: some View {
         VStack{
-            if isAppClip{
+            if !showBackToStatsButton{
                 Capsule()
                     .frame(width: 38, height: 6)
                     .foregroundColor(.gray)
@@ -52,8 +54,8 @@ struct GameReviewView: View {
                 VStack(alignment: .leading){
                     Text("Scorecard")
                         .font(.title).fontWeight(.bold)
-                    if let location = game.location?.name {
-                        Text(location)
+                    if let locationName = course?.name {
+                        Text(locationName)
                             .font(.subheadline)
                     }
                 }
@@ -72,15 +74,23 @@ struct GameReviewView: View {
     // MARK: Score Grid
     private var scoreGridView: some View {
         VStack {
-            
             playerHeaderRow
             Divider()
             scoreRows
             Divider()
             totalRow
         }
+        .onAppear {
+            if let courseID = game.courseID {
+                CourseRepository().fetchCourse(id: courseID) { course in
+                    if let course = course {
+                        self.course = course
+                    }
+                }
+            }
+        }
         .background(
-            course?.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
+            course?.scoreCardColor
         )
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
@@ -169,35 +179,105 @@ struct GameReviewView: View {
     // MARK: Footer complete game button and timer
     private var footerView: some View {
         
-        
-        ZStack{
-            HStack{
-                if !isAppClip {
-                    Spacer()
-                }
-                if NetworkChecker.shared.isConnected {
-                    ShareLink(item: makeShareableSummary(for: game)) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.title2)
+        VStack{
+            ZStack{
+                HStack{
+                    if showBackToStatsButton {
+                        Spacer()
                     }
-                    .padding()
+                    if NetworkChecker.shared.isConnected {
+                        ShareLink(item: makeShareableSummary(for: game)) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.title2)
+                        }
+                        .padding()
+                    }
                 }
-            }
-            if !isAppClip {
-                HStack {
-                    Button {
-                        viewManager.navigateToMain(0)
-                    } label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 25)
-                                .fill(Color.blue)
-                                .frame(width: 200, height: 60)
-                            Text("Back to Stats")
-                                .foregroundColor(.white).fontWeight(.bold)
+                if showBackToStatsButton {
+                    HStack {
+                        Button {
+                            if !isInCourseSettings {
+                                viewManager.navigateToMain(0)
+                            }
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 25)
+                                    .fill(Color.blue)
+                                    .frame(width: 200, height: 60)
+                                Text("Back to Stats")
+                                    .foregroundColor(.white).fontWeight(.bold)
+                            }
                         }
                     }
                 }
             }
+            
+            if isInCourseSettings {
+                if let course = course, course.adActive {
+                    Button {
+                        if let link = course.adLink, link != "" {
+                            if let url = URL(string: link) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                    } label: {
+                        HStack{
+                            VStack(alignment: .leading, spacing: 8) {
+                                
+                                if let adTitle = course.adTitle {
+                                    Text(adTitle)
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                }
+                                
+                                if let adDescription = course.adDescription {
+                                    Text(adDescription)
+                                        .foregroundStyle(.mainOpp)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                        .padding(.trailing)
+                                }
+                            }
+                            Spacer()
+                            if let adImage = course.adImage, adImage != ""  {
+                                AsyncImage(url: URL(string: adImage)) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(height: 60)
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(height: 60)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .clipped()
+                                    case .failure:
+                                        Image(systemName: "photo")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(height: 60)
+                                            .foregroundColor(.gray)
+                                            .background(Color.gray.opacity(0.2))
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                            }
+                            Spacer()
+                        }
+                        .padding()
+                    }
+                } else if let course = course, !course.adActive{
+                    BannerAdView(adUnitID: "ca-app-pub-8261962597301587/6716977198") // Replace with real one later
+                        .frame(height: 50)
+                        .padding(.top, 5)
+                }
+            }
+            
         }
         .padding(.bottom)
     }
@@ -210,24 +290,24 @@ struct GameReviewView: View {
     
     /// Build a plain-text summary (you could also return a URL to a generated PDF/image)
     func makeShareableSummary(for game: Game) -> String {
-      var lines = ["MiniMate Scorecard",
-                   "Date: \(game.date.formatted(.dateTime))",
-                   ""]
-      
-      for player in game.players {
-          var holeLine = ""
-          
-          for hole in player.holes {
+        var lines = ["MiniMate Scorecard",
+                     "Date: \(game.date.formatted(.dateTime))",
+                     ""]
+        
+        for player in game.players {
+            var holeLine = ""
+            
+            for hole in player.holes {
                 holeLine += "|\(hole.strokes)"
-          }
-          
-          lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
-          lines.append("Holes " + holeLine)
-          
-      }
-      lines.append("")
-      lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
-      return lines.joined(separator: "\n")
+            }
+            
+            lines.append("\(player.name): \(player.totalStrokes) strokes (\(player.totalStrokes))")
+            lines.append("Holes " + holeLine)
+            
+        }
+        lines.append("")
+        lines.append("Download MiniMate: https://apps.apple.com/app/id6745438125")
+        return lines.joined(separator: "\n")
     }
 }
 
@@ -239,8 +319,8 @@ struct PlayerScoreColumnShowView: View {
     var body: some View {
         VStack {
             ForEach(player.holes.sorted(by: { $0.number < $1.number }), id: \.number) { hole in
-                            HoleRowShowView(hole: hole)
-                        }
+                HoleRowShowView(hole: hole)
+            }
         }
     }
 }

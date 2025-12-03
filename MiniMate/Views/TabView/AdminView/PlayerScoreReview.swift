@@ -53,7 +53,7 @@ struct PlayerScoreReview: View {
             totalRow
         }
         .background(
-            course.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
+            course.scoreCardColor
         )
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)

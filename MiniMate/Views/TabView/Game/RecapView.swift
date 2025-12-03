@@ -161,7 +161,7 @@ struct RecapView<VM: ViewManager & ObservableObject, AM: ObservableObject, Conte
                     .frame(width: 140, height: 40)
                     .sheet(isPresented: $showReviewSheet){
                         if let game = game {
-                            GameReviewView(viewManager: viewManager, game: game, course: course, isAppClip: true)
+                            GameReviewView(viewManager: viewManager, game: game)
                         }
                     }
                     content()

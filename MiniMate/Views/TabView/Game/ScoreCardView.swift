@@ -10,8 +10,6 @@ struct ScoreCardView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     
-    @State var course: Course?
-    
     @StateObject var viewManager: ViewManager
     @StateObject var authModel: AuthViewModel
     @ObservedObject var gameModel: GameViewModel
@@ -48,7 +46,7 @@ struct ScoreCardView: View {
                 }
             }
             if showRecap, let pg = passGame {
-                RecapView(authModel: authModel, viewManager: viewManager, course: course, game: pg){
+                RecapView(authModel: authModel, viewManager: viewManager, course: gameModel.getCourse(), game: pg){
                     Button {
                         if NetworkChecker.shared.isConnected && !authModel.userModel!.isPro {
                                 viewManager.navigateToAd()
@@ -78,12 +76,12 @@ struct ScoreCardView: View {
             VStack(alignment: .leading){
                 Text("Scorecard")
                     .font(.title).fontWeight(.bold)
-                if let location = gameModel.gameValue.location?.name {
-                    Text(location)
+                if let locationName = gameModel.getCourse()?.name {
+                    Text(locationName)
                         .font(.subheadline)
                 }
             }
-            if let logo = course?.logo{
+            if let logo = gameModel.getCourse()?.logo{
                 Divider()
                     .frame(height: 30)
                 Image(logo)
@@ -112,7 +110,7 @@ struct ScoreCardView: View {
             totalRow
         }
         .background(
-            course?.colors.first.map { AnyShapeStyle($0.opacity(0.2))} ?? AnyShapeStyle(.ultraThinMaterial)
+            gameModel.getCourse()?.scoreCardColor
         )
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
@@ -177,7 +175,7 @@ struct ScoreCardView: View {
                 VStack{
                     Text("Hole \(i)")
                         .font(.body).fontWeight(.medium)
-                    if let coursePars = course?.pars, let course = course, course.hasPars {
+                    if let course = gameModel.getCourse(), let coursePars = course.pars, course.hasPars {
                         Text("Par: \(coursePars[i - 1])")
                             .font(.caption)
                     }
@@ -194,7 +192,7 @@ struct ScoreCardView: View {
             VStack{
                 Text("Total")
                     .font(.title3).fontWeight(.semibold)
-                if let coursePars = course?.pars, let course = course, course.hasPars {
+                if let course = gameModel.getCourse(), let coursePars = course.pars, course.hasPars {
                     Text("Par: \(coursePars.reduce(0, +))")
                         .font(.caption)
                 }
@@ -250,7 +248,7 @@ struct ScoreCardView: View {
                 }
             }
             
-            if let course = course, course.adTitle != "" {
+            if let course = gameModel.getCourse(), course.adActive {
                 Button {
                     if let link = course.adLink, link != "" {
                         if let url = URL(string: link) {
@@ -260,21 +258,26 @@ struct ScoreCardView: View {
                 } label: {
                     HStack{
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(course.adTitle!)
-                                .foregroundStyle(.mainOpp)
-                                .font(.headline)
-                                .fontWeight(.semibold)
                             
-                            Text(course.adDescription!)
-                                .foregroundStyle(.mainOpp)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .padding(.trailing)
+                            if let adTitle = course.adTitle {
+                                Text(adTitle)
+                                    .foregroundStyle(.mainOpp)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                            }
+                            
+                            if let adDescription = course.adDescription {
+                                Text(adDescription)
+                                    .foregroundStyle(.mainOpp)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.leading)
+                                    .padding(.trailing)
+                            }
                         }
                         Spacer()
-                        if course.adImage != "" {
-                            AsyncImage(url: URL(string: course.adImage!)) { phase in
+                        if let adImage = course.adImage, adImage != ""  {
+                            AsyncImage(url: URL(string: adImage)) { phase in
                                 switch phase {
                                 case .empty:
                                     ProgressView()

@@ -18,10 +18,13 @@ final class GameViewModel: ObservableObject {
     
     // Published Game State
     @Published private var game: Game
+    @Published private var course: Course?
     
     // Dependencies & Config
     private var onlineGame: Bool
     private var lastUpdated: Date = Date()
+    
+    private var hasLoaded: Bool = false
     
     private var liveGameRepo = LiveGameRepository()
     private var courseRepo = CourseRepository()
@@ -31,11 +34,13 @@ final class GameViewModel: ObservableObject {
     // Initialization
     init(game: Game,
          authModel: AuthViewModel,
-         onlineGame: Bool = true)
-    {
+         onlineGame: Bool = true,
+         course: Course?
+    ){
         self.game = game
         self.authModel = authModel
         self.onlineGame = onlineGame
+        self.course = course
     }
     
     /// Read-only access: vm.someField == game.someField
@@ -346,12 +351,8 @@ final class GameViewModel: ObservableObject {
         game.started = true
         pushUpdate()
         
-        if let location = game.location, let courseID = game.courseID {
-            courseRepo.findOrCreateCourseWithMapItem(location: location) { complete in
-                if complete {
-                    self.courseRepo.incPeakAnalytics(courseID: courseID)
-                }
-            }
+        if let courseID = course?.id {
+            self.courseRepo.incPeakAnalytics(courseID: courseID)
         }
         
         // Flip the binding to false
@@ -365,6 +366,9 @@ final class GameViewModel: ObservableObject {
         game.dismissed = true
         pushUpdate()            // push the “dismissed” flag
         deleteFromFirebaseGamesArr()
+        
+        hasLoaded = false
+        resetCourse()
         resetGame()             // now creates a new Game with id == ""
     }
     
@@ -373,7 +377,7 @@ final class GameViewModel: ObservableObject {
         stopListening()
         game.endTime = Date()
         
-        // Clone all fields into a fresh Game instance
+        
         // Clone all fields into a fresh Game instance
         let finished = Game(
             id:           game.id,
@@ -399,6 +403,8 @@ final class GameViewModel: ObservableObject {
                     email: player.email
                 )
             },
+            startTime:    game.startTime,
+            endTime:      game.endTime,
         )
         
         
@@ -426,11 +432,9 @@ final class GameViewModel: ObservableObject {
             }
             courseRepo.addToHoleAnalytics(courseID: courseID, game: finished)
             if let startTime = finished.startTime, let endTime = finished.endTime {
-                print("StartTime: \(startTime), EndTime: \(endTime)")
                 courseRepo.addRoundTime(courseID: courseID, startTime: startTime, endTime: endTime)
             }
         }
-        
         
         UnifiedGameRepository(context: context).save(finished) { local, remote in
             if local || remote {
@@ -446,6 +450,61 @@ final class GameViewModel: ObservableObject {
         
         pushUpdate()
         objectWillChange.send()
+        hasLoaded = false
+        resetCourse()
         resetGame()
     }
+    
+    
+    // MARK: Course
+    func findClosestLocationAndLoadCourse(locationHandler: LocationHandler, showTextAndButtons: Binding<Bool>) {
+        
+        guard !hasLoaded else {
+                print("⛔️ Already loaded closest course — skipping")
+                return
+            }
+        // Guard to prevent multiple calls
+        print("🚀 Starting findClosestLocationAndLoadCourse()")
+        
+        locationHandler.findClosestMiniGolf { closestPlace in
+            guard let closestPlace = closestPlace else {
+                print("⚠️ No closest mini golf location found")
+                return
+            }
+            
+            print("📍 Closest mini golf found: \(closestPlace.name ?? "Unknown")")
+            
+            DispatchQueue.main.async {
+                withAnimation {
+                    locationHandler.selectedItem = closestPlace
+                    showTextAndButtons.wrappedValue = true
+                }
+                
+                self.setLocation(closestPlace.toDTO())
+                print("🎯 Game model location set: \(closestPlace.toDTO())")
+                
+                let courseID = CourseIDGenerator.generateCourseID(from: closestPlace.toDTO())
+                
+                
+                self.courseRepo.fetchCourse(id: courseID) { course in
+                    if let course = course {
+                        self.course = course
+                        print("✅ Course loaded: \(course.name)")
+                        self.hasLoaded = true
+                    } else {
+                        print("⚠️ Course not found for ID: \(courseID) creating new course")
+                        if let location = self.game.location {
+                            self.courseRepo.createCourseWithMapItem(location: location) { complete in }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    func getHasLoaded() -> Bool { hasLoaded }
+    func setHasLoaded(_ hasLoaded: Bool) { self.hasLoaded = hasLoaded}
+    
+    func resetCourse(){ course = nil }
+    func getCourse() -> Course? { course }
 }

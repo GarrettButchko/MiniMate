@@ -101,7 +101,7 @@ final class CourseRepository {
     }
 
     
-    func findOrCreateCourseWithMapItem(location: MapItemDTO, completion: @escaping (Bool) -> Void) {
+    func createCourseWithMapItem(location: MapItemDTO, completion: @escaping (Bool) -> Void) {
         let courseID = CourseIDGenerator.generateCourseID(from: location)
         let ref = db.collection(collectionName).document(courseID)
         
@@ -109,13 +109,6 @@ final class CourseRepository {
             if let error = error {
                 print("❌ Firestore fetch error: \(error)")
                 completion(false)
-                return
-            }
-            
-            // ⭐ CHECK SNAPSHOT EXISTS (not decoding)
-            if let snapshot = snapshot, snapshot.exists {
-                print("Found existing course: \(courseID)")
-                completion(true)
                 return
             }
             
@@ -294,38 +287,55 @@ final class CourseRepository {
     // MARK: - Unified Daily Metric Updater
     func updateDailyMetric(courseID: String, metric: DailyMetric, increment: Int = 1) {
         let ref = db.collection(collectionName).document(courseID)
-        
-        // Format "MM-dd-YYYY"
+
+        // Correct date format (calendar year)
         let formatter = DateFormatter()
-        formatter.dateFormat = "MM-dd-YYYY"
+        formatter.dateFormat = "MM-dd-yyyy"
         let todayID = formatter.string(from: Date())
 
-        ref.getDocument { snapshot, error in
-            guard let data = snapshot?.data(), error == nil else { return }
+        db.runTransaction({ (transaction, errorPointer) -> Any? in
+            let snapshot: DocumentSnapshot
+            do {
+                snapshot = try transaction.getDocument(ref)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
 
-            // 1. Load dictionary (or empty)
+            // Load full data
+            var data = snapshot.data() ?? [:]
+
+            // Load nested map
             var dailyCounts = data["dailyCount"] as? [String: [String: Int]] ?? [:]
 
-            // 2. Get or create today's entry
-            var todayEntry: [String: Int] = dailyCounts[todayID] ?? [
+            // Build today's entry or load existing
+            var todayEntry = dailyCounts[todayID] ?? [
                 "activeUsers": 0,
                 "gamesPlayed": 0,
                 "newPlayers": 0,
                 "returningPlayers": 0
             ]
 
-            // 3. Increment the appropriate metric
-            todayEntry[metric.rawValue, default: 0] += increment
+            // Increment the metric
+            let key = metric.rawValue
+            todayEntry[key, default: 0] += increment
 
-            // 4. Save back into the dictionary
+            // Store back into main dictionary
             dailyCounts[todayID] = todayEntry
+            data["dailyCount"] = dailyCounts
 
-            // 5. Upload the nested dictionary
-            ref.updateData(["dailyCount": dailyCounts])
+            // Write through transaction
+            transaction.updateData(["dailyCount": dailyCounts], forDocument: ref)
+
+            return nil
+        }) { (_, error) in
+            if let error = error {
+                print("❌ Transaction failed: \(error.localizedDescription)")
+            } else {
+                print("✅ Metric updated safely in transaction: \(metric.rawValue)")
+            }
         }
     }
-
-
     
     func updateDailyCount(courseID: String, increment: Int = 1) {
         updateDailyMetric(courseID: courseID, metric: .activeUsers, increment: increment)
@@ -351,19 +361,26 @@ final class CourseRepository {
 
         let docRef = db.collection(collectionName).document(courseID)
 
-        docRef.getDocument { snap, error in
-            guard let data = snap?.data(), error == nil else { return }
+        db.runTransaction({ (transaction, errorPointer) -> Any? in
+            let snapshot: DocumentSnapshot
+            do {
+                snapshot = try transaction.getDocument(docRef)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
 
             // ===============================
-            // 1. Get nested object or create empty
+            // 1. Load existing data
             // ===============================
+            let data = snapshot.data() ?? [:]
             let peak = data["peakAnalytics"] as? [String: Any] ?? [:]
 
             // Load arrays or initialize
             var hourly = peak["hourlyCounts"] as? [Int] ?? Array(repeating: 0, count: 24)
-            var daily  = peak["dailyCounts"] as? [Int] ?? Array(repeating: 0, count: 7)
+            var daily  = peak["dailyCounts"]  as? [Int] ?? Array(repeating: 0, count: 7)
 
-            // Ensure lengths are correct
+            // Ensure correct lengths
             if hourly.count != 24 { hourly = Array(repeating: 0, count: 24) }
             if daily.count  != 7  { daily  = Array(repeating: 0, count: 7) }
 
@@ -377,92 +394,127 @@ final class CourseRepository {
             // 3. Rebuild nested object
             // ===============================
             let updatedPeak: [String: Any] = [
-                "id": "peakAnalytics",
                 "hourlyCounts": hourly,
                 "dailyCounts": daily
             ]
 
             // ===============================
-            // 4. Write back under nested key
+            // 4. Write full object back atomically
             // ===============================
-            docRef.setData(
+            transaction.updateData(
                 ["peakAnalytics": updatedPeak],
-                merge: true
+                forDocument: docRef
             )
+
+            return nil
+        }) { (_, error) in
+            if let error = error {
+                print("❌ PeakAnalytics transaction failed: \(error.localizedDescription)")
+            } else {
+                print("📈 PeakAnalytics increment successful (hour \(hour), weekday \(weekday))")
+            }
         }
     }
-
 
     // MARK: Hole Analytics
     func addToHoleAnalytics(courseID: String, game: Game, increment: Int = 1) {
         let docRef = db.collection(collectionName).document(courseID)
 
-        docRef.getDocument { snap, error in
-            guard let data = snap?.data(), error == nil else { return }
-            
-            let holeAnalytics = data["holeAnalytics"] as? [String: Any] ?? [:]
-            
-            var totalStrokes = holeAnalytics["totalStrokesPerHole"] as? [Int] ?? Array(repeating: 0, count: game.numberOfHoles)
-            var playsPerHole  = holeAnalytics["playsPerHole"] as? [Int] ?? Array(repeating: 0, count: game.numberOfHoles)
-            
+        db.runTransaction({ (transaction, errorPointer) -> Any? in
+            let snap: DocumentSnapshot
+            do {
+                snap = try transaction.getDocument(docRef)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+
+            // Load existing analytics or create empty structure
+            let data = snap.data() ?? [:]
+            let existing = data["holeAnalytics"] as? [String: Any] ?? [:]
+
+            var totalStrokes = existing["totalStrokesPerHole"] as? [Int]
+                ?? Array(repeating: 0, count: game.numberOfHoles)
+
+            var playsPerHole = existing["playsPerHole"] as? [Int]
+                ?? Array(repeating: 0, count: game.numberOfHoles)
+
+            // Ensure array lengths match the course hole count
+            if totalStrokes.count != game.numberOfHoles {
+                totalStrokes = Array(repeating: 0, count: game.numberOfHoles)
+            }
+            if playsPerHole.count != game.numberOfHoles {
+                playsPerHole = Array(repeating: 0, count: game.numberOfHoles)
+            }
+
+            // ===============================
+            // Increment analytics for each hole played
+            // ===============================
             for player in game.players {
                 for hole in player.holes {
                     guard hole.strokes != 0 else { continue }
-                    
-                    totalStrokes[hole.number - 1] += hole.strokes
-                    playsPerHole[hole.number - 1] += increment
+
+                    let index = hole.number - 1
+                    guard index >= 0, index < game.numberOfHoles else { continue }
+
+                    totalStrokes[index] += hole.strokes
+                    playsPerHole[index] += increment
                 }
             }
-            
+
             let updatedHole: [String: Any] = [
-                "id": "holeAnalytics",
                 "totalStrokesPerHole": totalStrokes,
                 "playsPerHole": playsPerHole
             ]
 
-            docRef.setData(
-                ["holeAnalytics": updatedHole],
-                merge: true
-            )
+            // Atomic write
+            transaction.updateData(["holeAnalytics": updatedHole], forDocument: docRef)
+            return nil
+
+        }) { (_, error) in
+            if let error = error {
+                print("❌ HoleAnalytics transaction failed: \(error.localizedDescription)")
+            } else {
+                print("⛳️ HoleAnalytics updated successfully for game \(game.id)")
+            }
         }
     }
+
     
     func addRoundTime(courseID: String, startTime: Date, endTime: Date) {
         let docRef = db.collection(collectionName).document(courseID)
 
         let roundLengthSeconds = Int(endTime.timeIntervalSince(startTime))
 
-        docRef.getDocument { snap, error in
-            guard let data = snap?.data(), error == nil else {
-                print("❌ Firestore fetch error: \(error?.localizedDescription ?? "Unknown error")")
-                return
+        db.runTransaction({ (transaction, errorPointer) -> Any? in
+            let snap: DocumentSnapshot
+            do {
+                snap = try transaction.getDocument(docRef)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
             }
 
-            // ===============================
-            // 1. Load nested object if it exists
-            // ===============================
+            let data = snap.data() ?? [:]
             let roundTime = data["roundTimeAnalytics"] as? [String: Any] ?? [:]
 
             let existingSeconds = roundTime["totalRoundSeconds"] as? Int ?? 0
 
-            // ===============================
-            // 2. Build updated nested structure
-            // ===============================
             let updatedRoundTime: [String: Any] = [
-                "id": "roundTimeAnalytics",
                 "totalRoundSeconds": existingSeconds + roundLengthSeconds
             ]
 
-            // ===============================
-            // 3. Write nested object back
-            // ===============================
-            docRef.setData(
+            transaction.updateData(
                 ["roundTimeAnalytics": updatedRoundTime],
-                merge: true
-            ) { error in
-                if let error = error {
-                    print("❌ Failed to update roundTimeAnalytics: \(error.localizedDescription)")
-                }
+                forDocument: docRef
+            )
+
+            return nil
+        }) { (_, error) in
+            if let error = error {
+                print("❌ roundTime transaction failed: \(error.localizedDescription)")
+            } else {
+                print("⏱️ Successfully added \(roundLengthSeconds)s to roundTimeAnalytics")
             }
         }
     }

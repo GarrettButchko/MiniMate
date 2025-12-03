@@ -39,10 +39,6 @@ struct HostView: View {
     
     let courseRepo = CourseRepository()
     
-    @State var course: Course?
-    
-    @State private var hasLoadedCourse = false
-    
     var body: some View {
         VStack {
             Capsule()
@@ -74,7 +70,7 @@ struct HostView: View {
             TextField("Name", text: $newPlayerName)
                 .characterLimit($newPlayerName, maxLength: 18)
             
-            if course != nil {
+            if gameModel.getCourse() != nil {
                 TextField("Email", text: $newPlayerEmail)
                     .autocapitalization(.none)   // starts lowercase / no auto-cap
                     .keyboardType(.emailAddress)
@@ -213,7 +209,10 @@ struct HostView: View {
                     if !showTextAndButtons {
                         
                         Button {
-                            findClosestLocationAndLoadCourse()
+                            
+                            gameModel.setHasLoaded(false)
+                            gameModel.findClosestLocationAndLoadCourse(locationHandler: locationHandler, showTextAndButtons: $showTextAndButtons)
+                            
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "magnifyingglass")
@@ -227,12 +226,17 @@ struct HostView: View {
                         .buttonStyle(.plain)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                     } else {
+                        
+                        
                         // Retry Button
                         Button(action: {
                             withAnimation(){
                                 isRotating = true
                             }
-                            findClosestLocationAndLoadCourse()
+                            
+                            gameModel.setHasLoaded(false)
+                            gameModel.findClosestLocationAndLoadCourse(locationHandler: locationHandler, showTextAndButtons: $showTextAndButtons)
+                            
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                 isRotating = false
                             }
@@ -255,7 +259,7 @@ struct HostView: View {
                             withAnimation {
                                 locationHandler.selectedItem = nil
                                 gameModel.setLocation(nil)
-                                course = nil
+                                gameModel.resetCourse()
                                 showTextAndButtons = false
                             }
                         }) {
@@ -271,59 +275,14 @@ struct HostView: View {
                     }
                 }
                 .onAppear {
-                    if !hasLoadedCourse {
-                        findClosestLocationAndLoadCourse()
-                        hasLoadedCourse = true
+                    if gameModel.getCourse() == nil && !gameModel.getHasLoaded() {
+                        gameModel.findClosestLocationAndLoadCourse(locationHandler: locationHandler, showTextAndButtons: $showTextAndButtons)
+                        gameModel.setHasLoaded(true)
                     }
                 }
             }
         }
     }
-
-    func findClosestLocationAndLoadCourse() {
-        // Guard to prevent multiple calls
-        guard !hasLoadedCourse else {
-            print("⚠️ Already loaded course — skipping")
-            return
-        }
-        
-        hasLoadedCourse = true // mark as loaded
-        print("🚀 Starting findClosestLocationAndLoadCourse()")
-        
-        locationHandler.findClosestMiniGolf { closestPlace in
-            guard let closestPlace = closestPlace else {
-                print("⚠️ No closest mini golf location found")
-                return
-            }
-            
-            print("📍 Closest mini golf found: \(closestPlace.name ?? "Unknown")")
-            
-            DispatchQueue.main.async {
-                withAnimation {
-                    locationHandler.selectedItem = closestPlace
-                    showTextAndButtons = true
-                    print("✨ Animation: selectedItem set and buttons shown")
-                }
-                
-                gameModel.setLocation(closestPlace.toDTO())
-                print("🎯 Game model location set: \(closestPlace.toDTO())")
-                
-                let courseID = CourseIDGenerator.generateCourseID(from: closestPlace.toDTO())
-                print("🆔 Generated course ID: \(courseID)")
-                
-                courseRepo.fetchCourse(id: courseID) { course in
-                    if let course = course {
-                        self.course = course
-                        print("✅ Course loaded: \(course.name ?? "Unnamed Course")")
-                    } else {
-                        print("⚠️ Course not found for ID: \(courseID)")
-                    }
-                }
-            }
-        }
-    }
-
-
     
     private var playersSection: some View {
         Section(header: Text("Players: \(gameModel.gameValue.players.count)")) {

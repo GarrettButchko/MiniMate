@@ -32,7 +32,8 @@ struct ContentView: View {
             wrappedValue: GameViewModel(
                 game: initialGame,
                 authModel: auth,
-                onlineGame: true
+                onlineGame: true,
+                course: nil
             )
         )
         
@@ -47,12 +48,11 @@ struct ContentView: View {
                 case .welcome:
                     WelcomeView(viewManager: viewManager)
                     
-                case .scoreCard(let course):
-                    ScoreCardView(course: course, viewManager: viewManager, authModel: authModel, gameModel: gameModel)
+                case .scoreCard:
+                    ScoreCardView(viewManager: viewManager, authModel: authModel, gameModel: gameModel)
                     
                 case .gameReview(let gameModel):
-                    GameReviewView(viewManager: viewManager, game: gameModel)
-                    
+                    GameReviewView(viewManager: viewManager, game: gameModel, showBackToStatsButton: true)
                 case .ad:
                     InterstitialAdView(adUnitID: "ca-app-pub-8261962597301587/3394145015") {
                         viewManager.currentView = .main(1)
