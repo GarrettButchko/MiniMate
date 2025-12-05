@@ -43,7 +43,11 @@ class IAPManager: ObservableObject {
                     }
                 }
                 
-                authModel.saveUserModel(authModel.userModel!) { _ in }
+                if let userModel = authModel.userModel {
+                    UserRepository().saveRemote(id: userModel.id, userModel: userModel) { completed in
+                        print("Updated online user")
+                    }
+                }
                 return true
                 
             case .userCancelled, .pending:

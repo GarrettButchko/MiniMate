@@ -7,6 +7,8 @@
 
 import SwiftUI
 import _AuthenticationServices_SwiftUI
+import FirebaseAuth
+import SwiftData
 
 struct SignInView: View {
     
@@ -108,14 +110,15 @@ struct SignInView: View {
 }
 
 struct StartButtons: View {
+    @Environment(\.modelContext) var context
+    @Environment(\.colorScheme) var colorScheme
+    
     @Binding var showEmailSignIn: Bool
     @Binding var height: CGFloat
     @Binding var errorMessage: String?
+    
     var authModel: AuthViewModel
     var viewManager: ViewManager
-    
-    @Environment(\.modelContext) var context
-    @Environment(\.colorScheme) var colorScheme
     
     var geometry: GeometryProxy
     
@@ -144,11 +147,7 @@ struct StartButtons: View {
                 authModel.signInWithGoogle(context: context) { result in
                     switch result {
                     case .success(let firebaseUser):
-                        errorMessage = nil
-                        /// If user is in local storage
-                        authModel.loadOrCreateUserIfNeeded(user: firebaseUser, in: context) {
-                            viewManager.navigateToMain(1)
-                        }
+                        createOrSignInUserAndNavigateToHome(context: context, authModel: authModel, viewManager: viewManager, user: firebaseUser, errorMessage: $errorMessage)
                     case .failure(let error):
                         errorMessage = error.localizedDescription
                     }
@@ -183,10 +182,7 @@ struct StartButtons: View {
                         case .failure(let err):
                             errorMessage = err.localizedDescription
                         case .success(let firebaseUser):
-                            errorMessage = nil
-                            authModel.loadOrCreateUserIfNeeded(user: firebaseUser, name: name, in: context) {
-                                viewManager.navigateToMain(1)
-                            }
+                            createOrSignInUserAndNavigateToHome(context: context, authModel: authModel, viewManager: viewManager, user: firebaseUser, errorMessage: $errorMessage)
                         }
                     }
                 }
@@ -195,7 +191,18 @@ struct StartButtons: View {
             .frame(height: 50)
             .cornerRadius(25)
         }
-        
+    }
+}
+
+func createOrSignInUserAndNavigateToHome(context: ModelContext, authModel: AuthViewModel, viewManager: ViewManager, user: User?, errorMessage: Binding<String?>) {
+
+    errorMessage.wrappedValue = nil
+    let repo = UserRepository(context: context)
+    repo.loadOrCreateUser(id: authModel.currentUserIdentifier!, firebaseUser: user) { userModel in
+        authModel.setUserModel(userModel)
+        Task { @MainActor in
+            viewManager.navigateToMain(1)
+        }
     }
 }
 

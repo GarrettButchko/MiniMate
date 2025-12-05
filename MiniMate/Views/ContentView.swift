@@ -111,6 +111,7 @@ struct MainTabView: View {
     @StateObject var locationHandler = LocationHandler()
     @StateObject var iapManager = IAPManager()
     
+    private var userRepo: UserRepository { UserRepository(context: context)}
     
     @State var selectedTab: Int
     
@@ -145,9 +146,9 @@ struct MainTabView: View {
             }
         }
         .onAppear {
-            authModel.loadOrCreateUserIfNeeded(user: authModel.firebaseUser, in: context) {
+            userRepo.loadOrCreateUser(id: authModel.currentUserIdentifier!) { userModel in
                 if NetworkChecker.shared.isConnected {
-                    authModel.saveUserModel(authModel.userModel!) { _ in }
+                    authModel.setUserModel(userModel)
                 }
                 try? context.save()
                 Task {

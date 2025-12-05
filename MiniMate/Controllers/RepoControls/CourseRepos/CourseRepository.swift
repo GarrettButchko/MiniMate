@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseStorage
 
 final class CourseRepository {
     
@@ -515,6 +516,38 @@ final class CourseRepository {
                 print("❌ roundTime transaction failed: \(error.localizedDescription)")
             } else {
                 print("⏱️ Successfully added \(roundLengthSeconds)s to roundTimeAnalytics")
+            }
+        }
+    }
+    
+    func uploadCourseImages(id: String, _ image: UIImage, key: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        guard let data = image.pngData() else {
+            return completion(.failure(NSError(
+                domain: "AuthViewModel",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Image conversion failed"]
+            )))
+        }
+        
+        let ref = Storage.storage()
+            .reference()
+            .child(id)
+            .child("\(key).png")
+        
+        // 1️⃣ upload
+        ref.putData(data, metadata: nil) { meta, error in
+            if let error = error {
+                return completion(.failure(error))
+            }
+            // 2️⃣ get download URL
+            ref.downloadURL { result in
+                switch result {
+                case .failure(let error):
+                    return completion(.failure(error))
+                case .success(let url):
+                    // 3️⃣ update Firebase Auth
+                    completion(.success(url))
+                }
             }
         }
     }

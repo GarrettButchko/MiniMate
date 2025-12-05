@@ -100,7 +100,7 @@ class UserStatsAnalyzer {
             let strokesList = holeStrokesDict[holeNumber] ?? []
             let average = strokesList.isEmpty ? 0 : Double(strokesList.reduce(0, +)) / Double(strokesList.count)
             let roundedAverage = Double(round(100 * average) / 100) // Round to 2 decimals
-            averageHoles.append(Hole(number: holeNumber, par: 2, strokes: Int(roundedAverage)))
+            averageHoles.append(Hole(number: holeNumber, strokes: Int(roundedAverage)))
         }
         
         return averageHoles

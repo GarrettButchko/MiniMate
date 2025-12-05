@@ -149,35 +149,10 @@ struct EmailPasswordView: View {
     private func signIn() {
         authModel.signIn(email: email, password: password) { result in
             switch result {
+            case .failure(let err):
+                errorMessage = err.localizedDescription
             case .success(let firebaseUser):
-                errorMessage = nil
-                /// If user is in local storage
-                authModel.loadOrCreateUserIfNeeded(user: firebaseUser, name: email, in: context) {
-                    viewManager.navigateToMain(1)
-                }
-                
-            case .failure(_):
-                authModel.createUser(email: email, password: password) { result in
-                    switch result {
-                    case .success(let user):
-                        errorMessage = nil
-                        // Create app-specific user model
-                        let newUser = UserModel(
-                            id: user.uid,
-                            name: email,
-                            email: email,
-                            gameIDs: []
-                        )
-                        authModel.userModel = newUser
-                        context.insert(newUser)
-                        authModel.saveUserModel(newUser) { _ in }
-                        viewManager.navigateToMain(1)
-                        user.sendEmailVerification { _ in }
-
-                    case .failure(let error):
-                        errorMessage = error.localizedDescription
-                    }
-                }
+                createOrSignInUserAndNavigateToHome(context: context, authModel: authModel, viewManager: viewManager, user: firebaseUser, errorMessage: $errorMessage)
             }
         }
     }

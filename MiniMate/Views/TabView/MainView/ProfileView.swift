@@ -7,6 +7,21 @@ import SwiftUI
 import FirebaseAuth
 import AuthenticationServices
 
+enum DeleteAlertType: Identifiable {
+    case google
+    case apple
+    case email
+    
+    var id: Int {
+        switch self {
+        case .google: return 0
+        case .apple:  return 1
+        case .email:  return 2
+        }
+    }
+}
+
+
 /// Displays and allows editing of the current user's profile
 struct ProfileView: View {
     @Environment(\.modelContext) private var context
@@ -32,9 +47,12 @@ struct ProfileView: View {
     
     @State private var pickedImage: UIImage? = nil
     
+    @State private var activeDeleteAlert: DeleteAlertType? = nil
+    
     @State private var reauthCoordinator = AppleReauthCoordinator { _ in }
     
     private var localGameRepo: LocalGameRepository { LocalGameRepository(context: context) }
+    private var userRepo: UserRepository { UserRepository(context: context) }
     
     let courseRepo = CourseRepository()
     
@@ -84,7 +102,8 @@ struct ProfileView: View {
                     PhotoPicker(image: $pickedImage)
                         .onChange(of: pickedImage) { old ,newImage in
                             guard let img = newImage else { return }
-                            authModel.uploadProfilePhoto(img) { result in
+                            
+                            userRepo.uploadProfilePhoto(id: authModel.currentUserIdentifier!, img) { result in
                                 switch result {
                                 case .success(let url):
                                     print("✅ Photo URL:", url)
@@ -135,7 +154,7 @@ struct ProfileView: View {
                                 Button(editProfile ? "Save" : "Edit Profile") {
                                     if editProfile {
                                         authModel.userModel?.name = name
-                                        authModel.saveUserModel(authModel.userModel!) { _ in }
+                                        userRepo.saveRemote(id: authModel.currentUserIdentifier!, userModel: authModel.userModel!) { _ in }
                                         editProfile = false
                                     } else {
                                         name = user.name
@@ -172,7 +191,7 @@ struct ProfileView: View {
                                     courseRepo.findCourseIDWithPassword(withPassword: adminCode) { courseId in
                                         if let courseId = courseId {
                                             authModel.userModel?.adminType = courseId
-                                            authModel.saveUserModel(authModel.userModel!) { _ in }
+                                            userRepo.saveRemote(id: authModel.currentUserIdentifier!, userModel: authModel.userModel!) { _ in }
                                             if let userId = authModel.userModel?.id {
                                                 courseRepo.addAdminIDtoCourse(adminID: userId, courseID: courseId) { _ in }
                                             }
@@ -198,7 +217,7 @@ struct ProfileView: View {
                                             if complete {
                                                 adminSignInMessage = ""
                                                 authModel.userModel?.adminType = nil
-                                                authModel.saveUserModel(authModel.userModel!) { _ in }
+                                                userRepo.saveRemote(id: authModel.currentUserIdentifier!, userModel: authModel.userModel!) { _ in }
                                             } else {
                                                 adminSignInMessage = "Could not log you out"
                                             }
@@ -214,76 +233,66 @@ struct ProfileView: View {
                     
                     // Account Management Section
                     Section("Account Management") {
-                        if authModel.userModel?.id != "IDGuest" {
-                            Button("Logout") {
-                                isSheetPresent = false
-                                withAnimation {
-                                    viewManager.navigateToWelcome()
-                                }
-                                authModel.logout()
+                        
+                        Button("Logout") {
+                            isSheetPresent = false
+                            withAnimation {
+                                viewManager.navigateToWelcome()
                             }
-                            .foregroundColor(.red)
+                            authModel.logout()
                         }
+                        .foregroundColor(.red)
+                        
                         
 
                         Button("Delete Account") {
-                            if let firebaseUser = authModel.firebaseUser {
-                                if firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
-                                    showGoogleDeleteConfirmation = true
-                                } else if firebaseUser.providerData.contains(where: { $0.providerID == "apple.com" }) {
-                                    showAppleDeleteConfirmation = true
-                                } else {
-                                    showLoginOverlay = true
+                            guard let firebaseUser = authModel.firebaseUser else {
+                                    activeDeleteAlert = .email
+                                    return
                                 }
-                            } else {
-                                viewManager.navigateToWelcome()
-                                context.delete(authModel.userModel!)
-                            }
+                                if firebaseUser.providerData.contains(where: { $0.providerID == "google.com" }) {
+                                    activeDeleteAlert = .google
+                                } else if firebaseUser.providerData.contains(where: { $0.providerID == "apple.com" }) {
+                                    activeDeleteAlert = .apple
+                                } else {
+                                    activeDeleteAlert = .email
+                                }
                         }
                         .foregroundColor(.red)
-                        // Google delete confirmation
-                        .alert("Confirm Deletion", isPresented: $showGoogleDeleteConfirmation) {
-                            Button("Delete", role: .destructive) {
-                                authModel.reauthenticateWithGoogle { reauthResult in
-                                    switch reauthResult {
-                                    case .success(let credential):
-                                        authModel.deleteAccount(reauthCredential: credential) { deleteResult in
-                                            switch deleteResult {
-                                            case .success:
-                                                viewManager.navigateToWelcome()
-                                                
-                                                if let userModel = authModel.userModel {
-                                                    
-                                                    localGameRepo.deleteAll(ids: userModel.gameIDs) { completed in
-                                                        if completed {
-                                                            print("Deleted all local games for user")
-                                                        }
-                                                    }
-                                                    context.delete(LocFuncs().fetchUser(by: "IDGuest", context: context)!)
-                                                }
-                                            case .failure(let error):
-                                                botMessage = error.localizedDescription
-                                                isRed = true
-                                            }
-                                        }
-                                    case .failure(let error):
-                                        botMessage = error.localizedDescription
-                                        isRed = true
-                                    }
-                                }
+                        
+                        .alert(item: $activeDeleteAlert) { alertType in
+                            switch alertType {
+                            case .google:
+                                return Alert(
+                                    title: Text("Confirm Deletion"),
+                                    message: Text("This will permanently delete your account."),
+                                    primaryButton: .destructive(Text("Delete")) {
+                                        // call Google deletion flow
+                                        googleReauthAndDelete()
+                                    },
+                                    secondaryButton: .cancel()
+                                )
+                                
+                            case .apple:
+                                return Alert(
+                                    title: Text("Confirm Deletion"),
+                                    message: Text("This will permanently delete your account."),
+                                    primaryButton: .destructive(Text("Delete")) {
+                                        startAppleReauthAndDelete()
+                                    },
+                                    secondaryButton: .cancel()
+                                )
+                                
+                            case .email:
+                                return Alert(
+                                    title: Text("Confirm Deletion"),
+                                    message: Text("This will permanently delete your account."),
+                                    primaryButton: .destructive(Text("Delete")) {
+                                        emailReauthAndDelete()
+                                    },
+                                    secondaryButton: .cancel()
+                                )
                             }
-                            Button("Cancel", role: .cancel) {}
-                        } message: {
-                            Text("This will permanently delete your account and all data.")
-                        }
-                        // Apple delete confirmation
-                        .alert("Confirm Deletion", isPresented: $showAppleDeleteConfirmation) {
-                            Button("Delete", role: .destructive) {
-                                startAppleReauthAndDelete()
-                            }
-                            Button("Cancel", role: .cancel) {}
-                        } message: {
-                            Text("This will permanently delete your account and all data.")
                         }
                     }
                     
@@ -306,8 +315,7 @@ struct ProfileView: View {
             // Reauth Overlay
             if showLoginOverlay {
                 ReauthViewOverlay(
-                    viewManager: viewManager,
-                    authModel: authModel,
+                    authModel: authModel, viewManager: viewManager,
                     showLoginOverlay: $showLoginOverlay,
                     isSheetPresent: $isSheetPresent
                 )
@@ -348,7 +356,8 @@ struct ProfileView: View {
                                     print("Deleted all local games for user")
                                 }
                             }
-                            authModel.saveUserModel(model) { _ in
+                            
+                            userRepo.saveRemote(id: authModel.currentUserIdentifier!, userModel: model) { _ in
                                 authModel.setRawAppleId(nil)
                             }
                         }
@@ -365,6 +374,55 @@ struct ProfileView: View {
         controller.delegate = reauthCoordinator
         controller.presentationContextProvider = reauthCoordinator
         controller.performRequests()
+    }
+    
+    func googleReauthAndDelete() {
+        authModel.reauthenticateWithGoogle { reauthResult in
+            switch reauthResult {
+            case .success(let credential):
+                handleDeleteAccount(using: credential)
+            case .failure(let error):
+                botMessage = error.localizedDescription
+                isRed = true
+            }
+        }
+    }
+    
+    func emailReauthAndDelete() {
+        authModel.reauthenticateWithGoogle { reauthResult in
+            switch reauthResult {
+            case .success(let credential):
+                handleDeleteAccount(using: credential)
+            case .failure(let error):
+                botMessage = error.localizedDescription
+                isRed = true
+            }
+        }
+    }
+    
+    private func handleDeleteAccount(using credential: AuthCredential) {
+        authModel.deleteAccount(reauthCredential: credential) { result in
+            switch result {
+            case .success:
+                cleanupLocalDataAndExit()
+            case .failure(let error):
+                botMessage = error.localizedDescription
+                isRed = true
+            }
+        }
+    }
+    
+    private func cleanupLocalDataAndExit() {
+        viewManager.navigateToWelcome()
+
+        if let userModel = authModel.userModel {
+            localGameRepo.deleteAll(ids: userModel.gameIDs) { completed in
+                if completed {
+                    print("🗑️ Deleted all local games for user")
+                }
+            }
+            userRepo.deleteUnified(id: authModel.currentUserIdentifier!) { _, _ in }
+        }
     }
 }
 

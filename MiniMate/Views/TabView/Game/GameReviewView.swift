@@ -89,11 +89,21 @@ struct GameReviewView: View {
                 }
             }
         }
-        .background(
-            course?.scoreCardColor
-        )
+        .background {
+            scoreCardBackground
+        }
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
+    }
+    
+    private var scoreCardBackground: some View {
+        Group {
+            if let color = course?.scoreCardColor {
+                Rectangle().fill(color)
+            } else {
+                Rectangle().fill(.ultraThinMaterial)
+            }
+        }
     }
     
     /// Player Row
@@ -130,16 +140,18 @@ struct GameReviewView: View {
         }
     }
     
+    var holeCount: Int { course?.pars?.count ?? game.numberOfHoles }
     /// first column with holes and number i.e "hole 1"
     private var holeNumbersColumn: some View {
         VStack {
-            ForEach(1...game.numberOfHoles, id: \.self) { i in
+            ForEach(1...holeCount, id: \.self) { i in
                 if i != 1 { Divider() }
-                VStack{
+                VStack {
                     Text("Hole \(i)")
                         .font(.body).fontWeight(.medium)
-                    if let coursePars = course?.pars, let course = course, course.hasPars {
-                        Text("Par: \(coursePars[i - 1])")
+
+                    if let course = course, let pars = course.pars {
+                        Text("Par: \(pars[i - 1])")
                             .font(.caption)
                     }
                 }
@@ -155,8 +167,8 @@ struct GameReviewView: View {
             VStack{
                 Text("Total")
                     .font(.title3).fontWeight(.semibold)
-                if let coursePars = course?.pars, let course = course, course.hasPars {
-                    Text("Par: \(coursePars.reduce(0, +))")
+                if let course = course, let coursePars = course.pars{
+                    Text("Par: \(coursePars.reduce(0) { $0 + ($1) })")
                         .font(.caption)
                 }
             }
@@ -353,3 +365,4 @@ struct PlayerColumnsShowView: View {
         }
     }
 }
+

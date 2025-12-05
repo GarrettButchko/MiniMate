@@ -35,8 +35,6 @@ struct HostView: View {
     
     @State private var isRotating = false // Place this in your view struct
     
-    @State var showHolePicker: Bool = true
-    
     let courseRepo = CourseRepository()
     
     var body: some View {
@@ -137,17 +135,15 @@ struct HostView: View {
 
                         courseRepo.courseNameExistsAndSupported(name) { exists in
                             if !exists {
-                                // Course does NOT exist — let user pick hole count
-                                withAnimation { showHolePicker = true }
                                 return
                             }
 
                             // Course exists — try to fetch it
                             courseRepo.fetchCourseByName(name) { course in
-                                let holeCount = course?.numOfHoles ?? 18
-                                gameModel.setNumberOfHole(holeCount)
-
-                                withAnimation { showHolePicker = false }
+                                
+                                let holeCount = course?.pars?.count ?? 18
+                                    gameModel.setNumberOfHole(holeCount)
+                                
                             }
                         }
                     }
@@ -157,7 +153,18 @@ struct HostView: View {
                     locationSection
                 }
                 
-                if showHolePicker{
+                if let course = gameModel.getCourse() {
+                    if course.pars == nil {
+                        HStack {
+                            Text("Holes:")
+                            NumberPickerView(
+                                selectedNumber: gameModel.binding(for: \.numberOfHoles),
+                                minNumber: 9, maxNumber: 21
+                            )
+                        }
+                    }
+                } else {
+                    // No course → show picker
                     HStack {
                         Text("Holes:")
                         NumberPickerView(

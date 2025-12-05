@@ -109,11 +109,19 @@ struct ScoreCardView: View {
             Divider()
             totalRow
         }
-        .background(
-            gameModel.getCourse()?.scoreCardColor
-        )
+        .background(scoreCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 25))
         .padding(.vertical)
+    }
+    
+    private var scoreCardBackground: some View {
+        Group {
+            if let color = gameModel.getCourse()?.scoreCardColor {
+                Rectangle().fill(color)
+            } else {
+                Rectangle().fill(.ultraThinMaterial)
+            }
+        }
     }
     
     /// Player Row
@@ -168,16 +176,22 @@ struct ScoreCardView: View {
     }
     
     /// first column with holes and number i.e "hole 1"
+    var holeCount: Int { gameModel.getCourse()?.pars?.count ?? gameModel.gameValue.numberOfHoles }
+    /// first column with holes and number i.e "hole 1"
     private var holeNumbersColumn: some View {
         VStack {
-            ForEach(1...gameModel.gameValue.numberOfHoles, id: \.self) { i in
+            ForEach(1...holeCount, id: \.self) { i in
                 if i != 1 { Divider() }
-                VStack{
+                VStack {
                     Text("Hole \(i)")
                         .font(.body).fontWeight(.medium)
-                    if let course = gameModel.getCourse(), let coursePars = course.pars, course.hasPars {
+
+                    if let course = gameModel.getCourse(), let coursePars = course.pars {
                         Text("Par: \(coursePars[i - 1])")
                             .font(.caption)
+                            .onAppear {
+                                print(coursePars[i - 1])
+                            }
                     }
                 }
                 .frame(height: 60)
@@ -192,8 +206,8 @@ struct ScoreCardView: View {
             VStack{
                 Text("Total")
                     .font(.title3).fontWeight(.semibold)
-                if let course = gameModel.getCourse(), let coursePars = course.pars, course.hasPars {
-                    Text("Par: \(coursePars.reduce(0, +))")
+                if let course = gameModel.getCourse(), let coursePars = course.pars {
+                    Text("Par: \(coursePars.compactMap { $0 }.reduce(0, +))")
                         .font(.caption)
                 }
             }
@@ -391,3 +405,4 @@ struct PlayerColumnsView: View {
         }
     }
 }
+

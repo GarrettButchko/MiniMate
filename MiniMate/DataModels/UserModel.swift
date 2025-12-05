@@ -19,9 +19,10 @@ class UserModel: Identifiable, Equatable {
     var adminType: String? = nil
     var isPro: Bool = false
     var gameIDs: [String] = []
+    var lastUpdated: Date
 
     enum CodingKeys: String, CodingKey {
-        case id, name, photoURL, email, adminType, isPro, gameIDs
+        case id, name, photoURL, email, adminType, isPro, gameIDs, lastUpdated
     }
 
     static func == (lhs: UserModel, rhs: UserModel) -> Bool {
@@ -31,7 +32,8 @@ class UserModel: Identifiable, Equatable {
         lhs.email == rhs.email &&
         lhs.adminType == rhs.adminType &&
         lhs.isPro == rhs.isPro &&
-        lhs.gameIDs == rhs.gameIDs
+        lhs.gameIDs == rhs.gameIDs &&
+        lhs.lastUpdated == rhs.lastUpdated
     }
 
     init(
@@ -41,7 +43,8 @@ class UserModel: Identifiable, Equatable {
         email: String? = nil,
         adminType: String? = nil,
         isPro: Bool = false,
-        gameIDs: [String] = []
+        gameIDs: [String] = [],
+        lastUpdated: Date = Date()
     ) {
         self.id = id
         self.name = name
@@ -50,6 +53,7 @@ class UserModel: Identifiable, Equatable {
         self.adminType = adminType
         self.isPro = isPro
         self.gameIDs = gameIDs
+        self.lastUpdated = lastUpdated
     }
 
     func toDTO() -> UserDTO {
@@ -60,7 +64,8 @@ class UserModel: Identifiable, Equatable {
             email: email,
             adminType: adminType,
             isPro: isPro,
-            gameIDs: gameIDs
+            gameIDs: gameIDs,
+            lastUpdated: lastUpdated
         )
     }
 
@@ -72,7 +77,8 @@ class UserModel: Identifiable, Equatable {
             email: dto.email,
             adminType: dto.adminType,
             isPro: dto.isPro,
-            gameIDs: dto.gameIDs
+            gameIDs: dto.gameIDs,
+            lastUpdated: dto.lastUpdated
         )
     }
 }
@@ -85,5 +91,6 @@ struct UserDTO: Codable {
     var adminType: String?
     var isPro: Bool
     var gameIDs: [String]
+    var lastUpdated: Date
 }
 

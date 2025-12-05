@@ -120,11 +120,13 @@ struct CourseSettingsView: View {
                 }
                 .sheet(isPresented: $showReviewSheet){
                     
-                    let holes1 = (1...course.numOfHoles).map { number in
-                        Hole(number: number, par: 2, strokes: Int.random(in: 1...6))
+                    var holeCount: Int { course.pars?.count ?? 18 }
+                    
+                    let holes1 = (1...holeCount).map { number in
+                        Hole(number: number, strokes: Int.random(in: 1...6))
                     }
-                    let holes2 = (1...course.numOfHoles).map { number in
-                        Hole(number: number, par: 2, strokes: Int.random(in: 1...6))
+                    let holes2 = (1...holeCount).map { number in
+                        Hole(number: number, strokes: Int.random(in: 1...6))
                     }
 
                     GameReviewView(viewManager: ViewManager(), game:
@@ -333,7 +335,8 @@ struct CourseSettingsView: View {
                             PhotoPicker(image: $image)
                                 .onChange(of: image) { old ,newImage in
                                     guard let img = newImage else { return }
-                                    authModel.uploadCompanyImages(img, id: course.id, key: "logoImage"){ result in
+                                    
+                                    courseRepo.uploadCourseImages(id: course.id, img, key: "logoImage") { result in
                                         switch result {
                                         case .success(let url):
                                             course.logo = url.absoluteString
@@ -536,7 +539,8 @@ struct CourseSettingsView: View {
                                 PhotoPicker(image: $image)
                                     .onChange(of: image) { old ,newImage in
                                         guard let img = newImage else { return }
-                                        authModel.uploadCompanyImages(img, id: course.id, key: "adImage"){ result in
+                                        
+                                        courseRepo.uploadCourseImages(id: course.id, img, key: "adImage") { result in
                                             switch result {
                                             case .success(let url):
                                                 course.adImage = url.absoluteString
@@ -554,31 +558,36 @@ struct CourseSettingsView: View {
             
             
             Section ("Pars"){
-                ForEach(course.holes) { hole in
-                    HStack{
-                        Text("Hole \(hole.number):")
-                        Spacer()
-                        
-                        NumberPickerView(selectedNumber: Binding(
-                            get: { hole.par },
-                            set: {
-                                course.pars?[hole.number - 1] = $0
+                
+                if let pars = course.pars {
+                    ForEach(pars.indices, id: \.self) { index in
+                        HStack {
+                            Text("Hole \(index + 1):")
+                            Spacer()
+
+                            NumberPickerView(
+                                selectedNumber: Binding(
+                                    get: { course.pars?[index] ?? 0 },
+                                    set: {
+                                        course.pars?[index] = $0
+                                        courseRepo.addOrUpdateCourse(course) { _ in }
+                                    }
+                                ),
+                                minNumber: 0,
+                                maxNumber: 10
+                            )
+                            .frame(width: 75)
+                        }
+                    }
+                    .onDelete { indices in
+                        indices.forEach { index in
+                            withAnimation {
+                                course.pars?.remove(at: index)
                                 courseRepo.addOrUpdateCourse(course) { _ in }
                             }
-                        ), minNumber: 0, maxNumber: 10)
-                        .frame(width: 75)
-                    }
-                }
-                .onDelete { indices in
-                    let filteredIndices = indices.filter { $0 != 0 }
-                    for index in filteredIndices {
-                        withAnimation(){
-                            _ = course.pars?.remove(at: index)
-                            courseRepo.addOrUpdateCourse(course) { _ in }
                         }
                     }
                 }
-                
                 
                 Button {
                     withAnimation(){

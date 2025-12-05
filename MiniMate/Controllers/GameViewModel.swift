@@ -243,7 +243,7 @@ final class GameViewModel: ObservableObject {
         guard player.holes.count != game.numberOfHoles else { return }
         player.holes = []
         player.holes = (0..<game.numberOfHoles).map {
-            let hole = Hole(number: $0 + 1, par: 2)
+            let hole = Hole(number: $0 + 1)
             hole.player = player
             return hole
         }
@@ -398,7 +398,7 @@ final class GameViewModel: ObservableObject {
                     name:     player.name,
                     photoURL: player.photoURL,
                     holes:    player.holes.map {
-                        Hole(number: $0.number, par: 2, strokes: $0.strokes)
+                        Hole(number: $0.number, strokes: $0.strokes)
                     },
                     email: player.email
                 )
@@ -440,8 +440,11 @@ final class GameViewModel: ObservableObject {
             if local || remote {
                 print("Saved Game Everywhere")
                 self.authModel.userModel?.gameIDs.append(finished.id)
-                self.authModel.saveUserModel { completed in
-                    print("Updated online user")
+                
+                if let userModel = self.authModel.userModel {
+                    UserRepository(context: context).saveRemote(id: self.authModel.currentUserIdentifier!, userModel: userModel) { completed in
+                        print("Updated online user")
+                    }
                 }
             } else {
                 print("Error Saving Game")
@@ -505,6 +508,6 @@ final class GameViewModel: ObservableObject {
     func getHasLoaded() -> Bool { hasLoaded }
     func setHasLoaded(_ hasLoaded: Bool) { self.hasLoaded = hasLoaded}
     
-    func resetCourse(){ course = nil }
+    func resetCourse(){ course = nil; game.courseID = nil}
     func getCourse() -> Course? { course }
 }

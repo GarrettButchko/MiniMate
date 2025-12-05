@@ -9,9 +9,12 @@ import FirebaseAuth
 /// Overlay for reauthentication before account deletion
 struct ReauthViewOverlay: View {
     @Environment(\.modelContext) private var context
+    @ObservedObject var authModel: AuthViewModel
+    
+    private var userRepo: UserRepository { UserRepository(context: context) }
 
     @ObservedObject var viewManager: ViewManager
-    @ObservedObject var authModel: AuthViewModel
+    
 
     @Binding var showLoginOverlay: Bool
     @Binding var isSheetPresent: Bool
@@ -93,9 +96,7 @@ struct ReauthViewOverlay: View {
                                 isSheetPresent = false
                                 viewManager.navigateToWelcome()
                             }
-                            if let userModel = authModel.userModel {
-                                context.delete(userModel)
-                            }
+                            userRepo.deleteLocal(id: authModel.currentUserIdentifier!) { _ in }
                         case .failure(let error):
                             errorMessage = error.localizedDescription
                         }

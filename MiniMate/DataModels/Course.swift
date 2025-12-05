@@ -44,7 +44,7 @@ struct Course: Codable, Identifiable, Equatable {
         logo: String? = nil,
         scoreCardColorDT: String? = nil,
         link: String? = nil,
-        pars: [Int] = [],
+        pars: [Int]? = nil,
         adActive: Bool = false,
         adTitle: String? = nil,
         adDescription: String? = nil,
@@ -101,34 +101,6 @@ struct Course: Codable, Identifiable, Equatable {
         lhs.supported == rhs.supported &&
         lhs.adminIDs == rhs.adminIDs &&
         lhs.adActive == rhs.adActive
-    }
-    
-    
-    // MARK: - Computed Properties
-    var numOfHoles: Int {
-        if let pars = pars {
-            return pars.count
-        } else {
-            return 0
-        }
-    }
-    
-    var hasPars: Bool {
-        if let pars = pars {
-            return pars.contains { $0 != 2 }
-        } else {
-            return false
-        }
-    }
-    
-    var holes: [Hole] {
-        if let pars = pars, !pars.isEmpty{
-            return (1...numOfHoles).map { index in
-                Hole(number: index, par: hasPars ? pars[index - 1] : 2)
-            }
-        } else {
-            return []
-        }
     }
     
     var scoreCardColor: Color? {

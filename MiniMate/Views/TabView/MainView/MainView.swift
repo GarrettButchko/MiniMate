@@ -13,15 +13,12 @@ struct MainView: View {
     }
     
     @Environment(\.colorScheme) private var colorScheme
-    
-    
+
     @ObservedObject var viewManager: ViewManager
     @ObservedObject var authModel: AuthViewModel
     @ObservedObject var locationHandler: LocationHandler
     @ObservedObject var gameModel: GameViewModel
-    //let ad: Ad?
-    
-    @State private var userName = "Guest" + String(Int.random(in: 10000...99999))
+
     @State private var nameIsPresented = false
     @State private var isSheetPresented = false
     @State var showLoginOverlay = false
@@ -29,8 +26,6 @@ struct MainView: View {
     @State var showHost = false
     @State var showJoin = false
     @State var showFirstStage: Bool = false
-    @State var showGuestAdd: Bool = false
-    @State var showenGuestAdd: Bool = false
     @State var alreadyShown: Bool = false
     @State var editOn: Bool = false
     @State var showDonation: Bool = false
@@ -38,8 +33,6 @@ struct MainView: View {
     private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
     
     @State private var analyzer: UserStatsAnalyzer? = nil
-    
-    @State var idGuestGames: [Game] = []
     
     var body: some View {
         
@@ -117,64 +110,6 @@ struct MainView: View {
                                         .background(.ultraThinMaterial)
                                         .clipShape(RoundedRectangle(cornerRadius: 25))
                                     }
-                                    
-                                    //if let ad = ad, ad.title != ""{
-                                    //  Button {
-                                    //    if ad.link != "" {
-                                    //      if let url = URL(string: ad.link) {
-                                    //        UIApplication.shared.open(url)
-                                    //  }
-                                    //}
-                                    //} label: {
-                                    //    HStack{
-                                    //        VStack(alignment: .leading, spacing: 8) {
-                                    //            Text(ad.title)
-                                    //                .foregroundStyle(.mainOpp)
-                                    //                .font(.headline)
-                                    //                .fontWeight(.semibold)
-                                    //
-                                    //            Text(ad.text)
-                                    //                .foregroundStyle(.mainOpp)
-                                    //               .font(.caption)
-                                    //                .foregroundStyle(.secondary)
-                                    //                .multilineTextAlignment(.leading)
-                                    //                .padding(.trailing)
-                                    //        }
-                                    //        Spacer()
-                                    //        if ad.image != "" {
-                                    //            AsyncImage(url: URL(string: ad.image)) { phase in
-                                    //                switch phase {
-                                    //                case .empty:
-                                    //                    ProgressView()
-                                    //                        .frame(height: 60)
-                                    //                case .success(let image):
-                                    //                    image
-                                    //                        .resizable()
-                                    //                        .scaledToFill()
-                                    //                        .frame(height: 60)
-                                    //                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    //                        .clipped()
-                                    //                case .failure:
-                                    //                    Image(systemName: "photo")
-                                    //                        .resizable()
-                                    //                        .scaledToFit()
-                                    //                        .frame(height: 60)
-                                    //                        .foregroundColor(.gray)
-                                    //                        .background(Color.gray.opacity(0.2))
-                                    //                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    //                @unknown default:
-                                    //                    EmptyView()
-                                    //                }
-                                    //            }
-                                    //        }
-                                    //        Spacer()
-                                    //    }
-                                    //    .padding()
-                                    //}
-                                    //.transition(.opacity)
-                                    //.background(.ultraThinMaterial)
-                                    //.clipShape(RoundedRectangle(cornerRadius: 25))
-                                    //}
                                     
                                     if games.count != 0{
                                         Button {
@@ -317,7 +252,7 @@ struct MainView: View {
                                                 .presentationDetents([.large])
                                         }
                                         
-                                        if authModel.userModel?.id == "IDGuest" || !NetworkChecker.shared.isConnected {
+                                        if !NetworkChecker.shared.isConnected {
                                             HStack {
                                                 Image(systemName: "globe")
                                                 Text("Connect")
@@ -402,86 +337,6 @@ struct MainView: View {
                 
             }
             .padding([.top, .horizontal])
-            .onAppear(){
-                if let Guest: UserModel = LocFuncs().fetchUser(by: "IDGuest", context: context) {
-                    for id in Guest.gameIDs {
-                        if authModel.userModel?.gameIDs.contains(id) == false {
-                            authModel.userModel?.gameIDs.append(id)
-                        }
-                    }
-                    uniGameRepo.fetchAll(ids: Guest.gameIDs) { games in
-                        idGuestGames = games.map({ Game.fromDTO($0) })
-                    }
-                }
-                
-                if games.count == 0 && LocFuncs().fetchUser(by: "IDGuest", context: context) != nil && authModel.userModel?.id != "IDGuest" && idGuestGames.count != 0 {
-                    
-                    print(authModel.userModel?.id ?? "No ID")
-                    withAnimation{
-                        showGuestAdd = true
-                    }
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    if authModel.userModel?.id == "IDGuest" && showenGuestAdd == false{
-                        nameIsPresented = true
-                        showenGuestAdd = true
-                    }
-                }
-            }
-            .alert("Add your name?", isPresented: $nameIsPresented) {
-                TextField("Name", text: $userName)
-                Button("Add") { authModel.userModel?.name = userName}
-                Button("Cancel", role: .cancel) {}
-            }
-            
-            if showGuestAdd && alreadyShown == false{
-                ZStack{
-                    Rectangle()
-                        .background(.ultraThinMaterial)
-                        .ignoresSafeArea()
-                    
-                    if let guestUser = LocFuncs().fetchUser(by: "IDGuest", context: context){
-                        VStack{
-                            Text("We found games added by a guest user!")
-                                .font(.headline)
-                                .foregroundStyle(.mainOpp)
-                                .padding(.top)
-                            Text("Would you like to add these games to your account?")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            ScrollView{
-                                ForEach(idGuestGames, id: \.self){ game in
-                                    GameGridView(editOn: $editOn, authModel: authModel, game: game)
-                                }
-                            }
-                            .padding()
-                            
-                            HStack{
-                                gameModeButton(title: "Add Games", color: .green) {
-                                    withAnimation{
-                                        alreadyShown = true
-                                        showGuestAdd = false
-                                    }
-                                    authModel.userModel!.gameIDs.append(contentsOf: idGuestGames.map(\.id))
-                                    authModel.saveUserModel(authModel.userModel!){ _ in }
-                                    context.delete(guestUser)
-                                }
-                                gameModeButton(title: "Cancel", color: .blue) {
-                                    withAnimation{
-                                        alreadyShown = true
-                                        showGuestAdd = false
-                                    }
-                                }
-                            }
-                            .padding()
-                        }
-                        .background(RoundedRectangle(cornerRadius: 25).fill().foregroundStyle(.ultraThinMaterial))
-                        .padding(.horizontal, 20)
-                        .frame(height: 400)
-                    }
-                }
-                
-            }
         }
         .ignoresSafeArea(.keyboard)
         .onAppear(){

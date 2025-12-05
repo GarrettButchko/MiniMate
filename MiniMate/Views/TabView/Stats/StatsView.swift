@@ -39,6 +39,7 @@ struct StatsView: View {
     @State private var isCooldown = false
     
     private var uniGameRepo: UnifiedGameRepository { UnifiedGameRepository(context: context) }
+    
     @State private var analyzer: UserStatsAnalyzer? = nil
     
     /// Presents the share sheet with the given text content.
@@ -416,7 +417,7 @@ struct GameGridView: View {
         // 2) Build averaged Hole objects
         return sums.enumerated().map { (idx, total) in
             let avg = total / playerCount
-            return Hole(number: idx + 1, par: 2, strokes: avg)
+            return Hole(number: idx + 1, strokes: avg)
         }
     }
 }
@@ -434,6 +435,7 @@ struct GameRow: View {
     var presentShareSheet: (String) -> Void
     
     var localGameRepo: LocalGameRepository { LocalGameRepository(context: context) }
+    var remoteGameRepo = FirestoreGameRepository()
     
     var body: some View {
         GeometryReader { proxy in
@@ -452,17 +454,16 @@ struct GameRow: View {
                         ButtonSkim(color: Color.blue, systemImage: "square.and.arrow.up", string: makeShareableSummary(for: game)) :
                         nil
                     ) {
-                        withAnimation {
-                            // 1. Remove from user model
-                            if let user = authModel.userModel {
-                                // 1) Update the user first, which causes @Query results to change
+                        if let user = authModel.userModel {
+                            withAnimation {
                                 user.gameIDs.removeAll(where: { $0 == game.id })
-                                authModel.saveUserModel(user) { _ in }
-                                
-                                // 2️⃣ Delete the SwiftData object *after* a delay
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    localGameRepo.delete(id: game.id) { _ in }
-                                }
+                            }
+                            UserRepository().saveRemote(id: authModel.currentUserIdentifier!, userModel: user) { _ in }
+                                // Delete the SwiftData object *after* a delay
+                            remoteGameRepo.delete(id: game.id) { _ in }
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                localGameRepo.delete(id: game.id) { _ in }
                             }
                         }
                     }

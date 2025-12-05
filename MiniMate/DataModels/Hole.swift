@@ -8,7 +8,6 @@ import Contacts
 class Hole: Equatable, Identifiable {
     @Attribute(.unique) var id: String = UUID().uuidString
     var number: Int
-    var par: Int = 2
     var strokes: Int
 
     @Relationship(deleteRule: .nullify)
@@ -17,23 +16,20 @@ class Hole: Equatable, Identifiable {
     static func == (lhs: Hole, rhs: Hole) -> Bool {
         lhs.id == rhs.id &&
         lhs.number == rhs.number &&
-        lhs.par == rhs.par &&
         lhs.strokes == rhs.strokes
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, number, par, strokes
+        case id, number, strokes
     }
 
     init(
           id: String = UUID().uuidString,
           number: Int,
-          par: Int,
           strokes: Int = 0
         ) {
           self.id      = id
           self.number  = number
-          self.par     = par
           self.strokes = strokes
         }
 
@@ -41,7 +37,6 @@ class Hole: Equatable, Identifiable {
         return HoleDTO(
             id: id,
             number: number,
-            par: par,
             strokes: strokes
         )
     }
@@ -50,7 +45,6 @@ class Hole: Equatable, Identifiable {
         return Hole(
             id: dto.id,
             number: dto.number,
-            par: dto.par,
             strokes: dto.strokes
         )
     }
@@ -59,7 +53,6 @@ class Hole: Equatable, Identifiable {
 struct HoleDTO: Codable, Equatable {
     var id: String
     var number: Int
-    var par: Int
     var strokes: Int
 }
 

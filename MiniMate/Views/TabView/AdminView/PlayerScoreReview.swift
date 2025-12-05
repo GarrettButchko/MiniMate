@@ -90,13 +90,13 @@ struct PlayerScoreReview: View {
     /// first column with holes and number i.e "hole 1"
     private var holeNumbersColumn: some View {
         VStack {
-            ForEach(1...course.numOfHoles, id: \.self) { i in
+            ForEach(1...player.holes.count, id: \.self) { i in
                 if i != 1 { Divider() }
                 VStack{
                     Text("Hole \(i)")
                         .font(.body).fontWeight(.medium)
-                    if let coursePars = course.pars {
-                        Text("Par: \(coursePars[i - 1])")
+                    if let pars = course.pars {
+                        Text("Par: \(pars[i - 1])")
                             .font(.caption)
                     }
                 }
@@ -114,7 +114,7 @@ struct PlayerScoreReview: View {
                     .font(.title3).fontWeight(.semibold)
                 
                 if let coursePars = course.pars {
-                    Text("Par: \(coursePars.reduce(0, +))")
+                    Text("Par: \(coursePars.compactMap { $0 }.reduce(0, +))")
                         .font(.caption)
                 }
             }
